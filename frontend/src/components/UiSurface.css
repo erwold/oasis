@@ -1,0 +1,227 @@
+/* Intelligent UI surfaces (native catalog): a card in the answer on the theme's tokens — hairline ring, the ink ramp,
+   colour only for state and for a series' identity. The html preview's own frame is styled by its component.
+   A skin sets the --uis-* variables on any ancestor; each falls back to the app's own token:
+     --uis-bg, --uis-head-bg, --uis-shadow, --uis-rule, --uis-grid, --uis-ink, --uis-ink-2, --uis-muted,
+     --uis-font-title, --uis-title-weight, --uis-title-track, --uis-font-data, --uis-label-size, --uis-label-weight,
+     --uis-label-track, --uis-metric-size, --uis-metric-weight, --uis-stroke, --uis-field, --uis-btn-shadow, --uis-series-0 … --uis-series-7,
+     --uis-latest (the latest point's ring and rule), --uis-cursor, --uis-fresh (a value that just changed). */
+
+.uis { flex: none; display: flex; flex-direction: column; width: 100%; min-width: 0; margin: 4px 0; border-radius: var(--radius-md); background: var(--uis-bg, var(--surface)); box-shadow: var(--uis-shadow, var(--shadow-card)); overflow: hidden; color: var(--uis-ink, var(--ink)); }
+.uis-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 32px; padding: 5px 10px 5px 12px; border-bottom: 1px solid var(--uis-rule, var(--line)); background: var(--uis-head-bg, var(--inset)); color: var(--uis-ink-2, var(--ink-2)); font-size: 12px; }
+.uis-head > svg { flex: none; color: var(--ink-3); }
+.uis-name { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--uis-ink, var(--ink)); font-family: var(--uis-font-title, inherit); font-weight: var(--uis-title-weight, 600); letter-spacing: var(--uis-title-track, normal); font-size: 12.5px; }
+.uis-tag { flex: none; padding: 0 7px; border-radius: var(--radius-pill); background: var(--field); font-size: 10.5px; line-height: 18px; color: var(--ink-3); }
+.uis-tag.readonly { background: var(--orange-tint); color: var(--warning-foreground); }
+.uis-who { display: inline-flex; align-items: center; gap: 4px; min-width: 0; color: var(--ink-3); font-size: 11px; }
+.uis-who img { width: 14px; height: 14px; }
+.uis-spacer { flex: 1; }
+.uis-toggle { height: 22px; padding: 0 8px; border-radius: var(--radius-pill); font-size: 11px; color: var(--ink-2); box-shadow: var(--uis-btn-shadow, var(--shadow-btn)); background: var(--uis-field, var(--surface)); }
+.uis-toggle:hover:not(:disabled) { background: var(--hover); }
+.uis-toggle[aria-pressed="true"] { background: var(--ink); color: var(--surface); box-shadow: none; }
+
+.uis-body { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; min-width: 0; }
+.uis-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.uis-row-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.uis-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; min-width: 0; }
+.uis-row > * { flex: 1 1 160px; min-width: 0; }
+.uis-title { font-size: var(--uis-label-size, 11px); font-weight: var(--uis-label-weight, 600); letter-spacing: var(--uis-label-track, 0.06em); text-transform: uppercase; color: var(--uis-muted, var(--ink-3)); }
+.uis-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px 12px; border-radius: var(--radius-sm); background: transparent; box-shadow: inset 0 0 0 1px var(--uis-rule, var(--line)); }
+.uis-card-title { margin: 0; font: 600 12.5px/1.3 var(--font-body); color: var(--ink); }
+.uis-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); line-height: 1.55; }
+.uis-divider { border: none; border-top: 1px solid var(--line); margin: 2px 0; }
+.uis-unknown, .uis-note { font-size: 11px; color: var(--ink-3); }
+
+/* a metric is a figure on the page, not a box: a small label over a tabular number; metrics side by side are parted
+   by a hairline */
+.uis-metric { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 2px 0; }
+.uis-row > .uis-metric + .uis-metric { padding-left: 12px; box-shadow: inset 1px 0 0 var(--uis-rule, var(--line)); }
+.uis-metric-label { font-size: var(--uis-label-size, 11px); color: var(--uis-muted, var(--ink-3)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uis-metric-value { font-family: var(--uis-font-data, var(--font-heading)); font-size: var(--uis-metric-size, 20px); font-weight: var(--uis-metric-weight, 600); line-height: 1.2; letter-spacing: -0.02em; color: var(--uis-ink, var(--ink)); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.uis-metric-unit { margin-left: 4px; font: 500 12px var(--font-body); color: var(--uis-ink-2, var(--ink-2)); }
+/* a value that just changed, while the page was in view: its ink settles once from the fresh colour */
+.uis-fresh { animation: uis-fresh 600ms ease-out 1; }
+@keyframes uis-fresh { from { color: var(--uis-fresh, var(--uis-latest, var(--accent))); } to { color: inherit; } }
+
+.uis-table { overflow: auto; max-height: 360px; min-width: 0; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1px var(--uis-rule, var(--line)); }
+.uis-table:focus-visible { outline: 2px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 1px; }
+.uis-table table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.uis-table caption { caption-side: top; text-align: left; padding: 6px 8px 2px; font-size: 11px; color: var(--ink-3); }
+.uis-table th, .uis-table td { text-align: left; vertical-align: top; padding: 4px 8px; border-bottom: 1px solid var(--uis-rule, var(--line)); }
+.uis-table th { position: sticky; top: 0; background: var(--uis-bg, var(--surface)); font-weight: 500; color: var(--uis-muted, var(--ink-3)); font-size: 11px; white-space: nowrap; }
+.uis-table tbody th { position: static; font-variant-numeric: tabular-nums; color: var(--uis-ink-2, var(--ink-2)); }
+.uis-table td.num, .uis-table th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--uis-font-data, inherit); }
+.uis-table tbody tr:last-child td { border-bottom: none; }
+.uis-table .uis-note { padding: 4px 8px; }
+
+.uis-chart { display: flex; flex-direction: column; gap: 4px; margin: 0; min-width: 0; }
+.uis-chart svg { width: 100%; height: auto; max-height: 220px; overflow: visible; }
+.uis-chart-axis { stroke: var(--uis-rule, var(--line-strong)); stroke-width: 1; shape-rendering: crispEdges; }
+.uis-chart-bar { fill: var(--uis-series-0, var(--accent)); }
+.uis-chart-bar:hover { fill: var(--uis-ink, var(--accent-ink)); }
+.uis-chart-line { stroke: var(--uis-series-0, var(--accent)); stroke-width: var(--uis-stroke, 1.75); stroke-linejoin: round; stroke-linecap: round; }
+.uis-chart-dot { fill: var(--uis-bg, var(--surface)); stroke: var(--uis-series-0, var(--accent)); stroke-width: 1.5; }
+.uis-chart-labels { display: grid; font-size: 10.5px; color: var(--uis-muted, var(--ink-3)); text-align: center; }
+.uis-chart-labels.line { display: flex; justify-content: space-between; }
+.uis-chart-labels span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+.uis-chart-ylabel { font-size: 10.5px; color: var(--uis-muted, var(--ink-3)); }
+/* a chart of series, drawn at its laid-out size (no scaling): a head line (title, the x shown, the y unit), the legend
+   as the readout, the plot with few quiet grid lines, the latest point's hollow ring and dashed rule */
+.uis-chart.series { gap: 3px; }
+.uis-chart.series svg { width: auto; max-width: none; max-height: none; display: block; overflow: visible; touch-action: pan-y; }
+.uis-chart-head { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.uis-chart-head .uis-title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uis-chart-at { margin-left: auto; font-family: var(--uis-font-data, var(--font-body)); font-size: 11px; font-variant-numeric: tabular-nums; color: var(--uis-ink-2, var(--ink-2)); white-space: nowrap; }
+.uis-chart-at.cursor { color: var(--uis-ink, var(--ink)); }
+.uis-chart-head .uis-chart-ylabel { white-space: nowrap; }
+.uis-plot { position: relative; min-width: 0; width: 100%; border-radius: 2px; }
+.uis-plot:focus { outline: none; }
+.uis-plot:focus-visible { outline: 2px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 2px; }
+.uis-chart-grid { stroke: var(--uis-grid, var(--line-soft, var(--line))); stroke-width: 1; shape-rendering: crispEdges; }
+.uis-chart-tick { fill: var(--uis-muted, var(--ink-3)); font-family: var(--uis-font-data, var(--font-body)); font-size: 10px; font-variant-numeric: tabular-nums; }
+.uis-chart-empty { fill: var(--uis-muted, var(--ink-3)); font-size: 11px; }
+.uis-series { --series: var(--uis-series-0, #2563eb); }
+.uis-series.c1 { --series: var(--uis-series-1, #ea580c); }
+.uis-series.c2 { --series: var(--uis-series-2, #16a34a); }
+.uis-series.c3 { --series: var(--uis-series-3, #9333ea); }
+.uis-series.c4 { --series: var(--uis-series-4, #dc2626); }
+.uis-series.c5 { --series: var(--uis-series-5, #0891b2); }
+.uis-series.c6 { --series: var(--uis-series-6, #ca8a04); }
+.uis-series.c7 { --series: var(--uis-series-7, #db2777); }
+.uis-series-line { stroke: var(--series); stroke-width: var(--uis-stroke, 1.5); fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.uis-series-dot { fill: var(--series); stroke: none; }
+.uis-series-latest { fill: var(--uis-bg, var(--surface)); stroke: var(--uis-latest, var(--series)); stroke-width: 1.5; }
+.uis-latest-rule { stroke: var(--uis-latest, var(--uis-muted, var(--ink-3))); stroke-width: 1; stroke-dasharray: 2 3; opacity: 0.7; shape-rendering: crispEdges; }
+/* a new latest point, seen arriving: one ring that widens and fades, once */
+.uis-series-arrive { fill: none; stroke: var(--uis-latest, var(--series)); stroke-width: 1.25; transform-box: fill-box; transform-origin: center; animation: uis-arrive 700ms ease-out 1 forwards; pointer-events: none; }
+@keyframes uis-arrive { from { transform: scale(1); opacity: 0.9; } to { transform: scale(3); opacity: 0; } }
+.uis-cursor-rule { stroke: var(--uis-cursor, var(--uis-ink-2, var(--ink-2))); stroke-width: 1; shape-rendering: crispEdges; }
+.uis-cursor-dot { fill: var(--series); stroke: var(--uis-bg, var(--surface)); stroke-width: 1.5; }
+.uis-chart .uis-legend { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 0; padding: 0; list-style: none; font-size: 11.5px; color: var(--uis-ink-2, var(--ink-2)); }
+.uis-chart .uis-legend li { display: inline-flex; align-items: baseline; gap: 5px; min-width: 0; }
+.uis-chart .uis-legend svg { width: 16px; height: 8px; flex: none; align-self: center; max-height: none; }
+.uis-legend-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* charts side by side in a row line up: the row gives each the height of the tallest and a legend takes up the
+   difference, so every plot sits on the same baseline whatever its legend wraps to — and a row whose legends are all
+   one line keeps no empty space */
+/* (a chart that ends a card in the row: the card is stretched, the chart fills it, its legend takes the rest) */
+.uis-row > .uis-card > .uis-chart.series:last-child { flex: 1 0 auto; }
+.uis-row > .uis-chart.series .uis-legend,
+.uis-row > .uis-card > .uis-chart.series:last-child .uis-legend { flex: 1 0 auto; align-content: flex-start; }
+/* (while one of them shows its values table the row is as tall as that table: the others keep their own heights) */
+.uis-row:has(.uis-chart-values[open]) > .uis-chart.series .uis-legend,
+.uis-row:has(.uis-chart-values[open]) > .uis-card > .uis-chart.series:last-child .uis-legend { flex-grow: 0; }
+.uis-legend-value { font-family: var(--uis-font-data, var(--font-body)); font-variant-numeric: tabular-nums; color: var(--uis-ink, var(--ink)); font-weight: 500; }
+.uis-legend-value.none { color: var(--uis-muted, var(--ink-3)); font-weight: 400; }
+.uis-legend-note { color: var(--uis-muted, var(--ink-3)); font-size: 10.5px; }
+.uis-chart-note { font-size: 10.5px; color: var(--uis-muted, var(--ink-3)); font-variant-numeric: tabular-nums; }
+.uis-chart-values summary { cursor: pointer; font-size: 11px; color: var(--uis-muted, var(--ink-3)); width: max-content; }
+.uis-chart-values .uis-table { margin-top: 4px; max-height: 240px; }
+.uis-pager { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px; color: var(--uis-muted, var(--ink-3)); font-variant-numeric: tabular-nums; }
+.uis-pager .uis-link { text-decoration: none; font-size: 13px; padding: 0 4px; }
+.uis-pager .uis-link:disabled { color: var(--uis-muted, var(--ink-3)); opacity: 0.5; }
+@media (prefers-reduced-motion: reduce) {
+  .uis-series-arrive { display: none; }
+  .uis-fresh { animation: none; }
+}
+/* a surface kept up to date across runs: a quiet tag and when it last changed */
+.uis-tag.live { display: inline-flex; align-items: center; gap: 4px; background: transparent; padding: 0 2px; color: var(--green); font-weight: 500; }
+.uis-tag.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.uis-updated { flex: none; color: var(--ink-3); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.uis-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.uis-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.uis-label { font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
+.uis-input { width: 100%; min-width: 0; height: 30px; padding: 0 9px; border: none; border-radius: var(--radius-sm); color: var(--uis-ink, var(--ink)); font: inherit; box-shadow: inset 0 0 0 1px var(--uis-rule, var(--line-strong)); background: var(--uis-field, var(--surface)); }
+.uis-input:hover:not(:disabled) { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--ink-3) 45%, var(--line-strong)); }
+.uis-input:focus { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px var(--accent-tint); }
+.uis-input:focus-visible { outline: 2px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 1px; }
+.uis-input[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--red); }
+.uis-input:disabled, .uis-check input:disabled, .uis-slider input:disabled { opacity: 0.6; cursor: default; }
+.uis-select { appearance: none; padding-right: 28px; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 13px, calc(100% - 10px) 13px; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
+/* a choice among a few: chips, the chosen ones in the accent */
+.uis-choices { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.uis-choice { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; max-width: 100%; padding: 4px 11px; border: none; border-radius: var(--radius-pill);
+  background: var(--surface); color: var(--ink-2); font: inherit; font-size: 12.5px; line-height: 1.3; text-align: left; cursor: pointer; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.uis-choice:hover:not(:disabled) { color: var(--ink); background: var(--hover); }
+.uis-choice.on { background: var(--accent-tint); color: var(--accent-ink); box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent) 55%, transparent); }
+.uis-choice:focus-visible { outline: 2px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 2px; }
+.uis-choice:disabled { opacity: 0.6; cursor: default; }
+.uis-choice-mark { display: inline-grid; place-items: center; width: 13px; height: 13px; border-radius: 4px; font-size: 10px; line-height: 1; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.uis-choice.on .uis-choice-mark { background: var(--accent); color: var(--surface); box-shadow: none; }
+.uis-hint { font-size: 11px; color: var(--ink-3); }
+.uis-hint.bad { color: var(--red); }
+.uis-slider { display: flex; align-items: center; gap: 10px; }
+.uis-slider input, .uis-check input { padding: 0; background: transparent; box-shadow: none; border-radius: 0; }
+.uis-slider input:focus, .uis-check input:focus { box-shadow: none; }
+.uis-slider input { flex: 1; min-width: 0; height: 30px; accent-color: var(--accent); }
+.uis-slider input:focus-visible, .uis-check input:focus-visible, .uis-select:focus-visible { outline: 2px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 2px; }
+.uis-slider-value { min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 500; }
+.uis-check { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+.uis-check input { width: 15px; height: 15px; accent-color: var(--accent); }
+.uis-button { align-self: flex-start; }
+
+.uis-image { display: block; max-width: 100%; max-height: 360px; border-radius: var(--radius-sm); object-fit: contain; }
+.uis-image-missing { padding: 12px; border-radius: var(--radius-sm); background: var(--inset); color: var(--ink-3); font-size: 12px; }
+
+.uis-fallback { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
+.uis-fallback-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); line-height: 1.55; }
+.uis-problem { margin: 0; font-size: 11.5px; color: var(--warning-foreground); }
+
+.uis-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 12px 10px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--accent-tint); color: var(--ink); font-size: 12px; }
+.uis-suggest > span { flex: 1 1 220px; }
+.uis-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.uis-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-3); }
+.uis-status.ok { color: var(--success-foreground); }
+.uis-status.bad { color: var(--red); }
+.uis-link { padding: 0 2px; height: auto; font-size: 11px; color: var(--accent-ink); text-decoration: underline; }
+
+@media (max-width: 560px) {
+  .uis-body { padding: 10px; }
+  .uis-row > * { flex-basis: 100%; }
+  .uis-metric-value { font-size: 18px; }
+}
+
+/* an html surface: the preview is the body itself (no inner card); its controls sit in the header's slot */
+.uis-body.html { padding: 0; gap: 0; }
+.uis-controls { display: inline-flex; align-items: center; min-width: 0; }
+.uis-controls:empty { display: none; }
+@media (max-width: 560px) {
+  .uis-body.html { padding: 0; }
+}
+
+/* a `run` action's task, in its surface's card: its status, the answer as it streams, the tools, the result data */
+.uis-tasks { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; }
+.uis-task { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--inset); }
+.uis-task-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
+.uis-task-action { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.uis-task-pill { flex: none; padding: 0 8px; border-radius: var(--radius-pill); background: var(--field); font-size: 11px; line-height: 20px; color: var(--ink-2); }
+.uis-task-pill.queued, .uis-task-pill.starting { background: var(--orange-tint); color: var(--warning-foreground); }
+.uis-task-pill.running { background: var(--accent-tint); color: var(--accent-ink); }
+.uis-task-pill.succeeded { background: var(--green-tint); color: var(--success-foreground); }
+.uis-task-pill.failed { background: var(--red-tint); color: var(--red); }
+.uis-task-pill.cancelled { background: var(--field); color: var(--ink-3); }
+.uis-task-tools { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--ink-3); }
+.uis-task-tools li { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uis-task-tool { font-family: var(--font-mono); color: var(--ink-2); }
+.uis-task-text { min-width: 0; max-height: 360px; overflow: auto; color: var(--ink); font-size: 13px; line-height: 1.55; }
+.uis-task-text.streaming { color: var(--ink-2); }
+.uis-task-error { margin: 0; font-size: 12px; color: var(--red); overflow-wrap: anywhere; }
+.uis-task-data { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.uis-task-data-head { display: flex; align-items: center; gap: 6px; }
+.uis-task-fields { display: grid; grid-template-columns: minmax(0, max-content) minmax(0, 1fr); gap: 2px 12px; margin: 0; font-size: 12px; }
+.uis-task-fields > div { display: contents; }
+.uis-task-fields dt { color: var(--ink-3); }
+.uis-task-fields dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.uis-task-json summary { cursor: pointer; font-size: 11px; color: var(--ink-3); }
+.uis-task-json pre { margin: 4px 0 0; max-height: 280px; overflow: auto; padding: 8px; border-radius: var(--radius-sm); background: var(--surface); font: 11.5px/1.45 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* request_input: a form the run waits on (the native catalog's own fields); its section is .uis-form — .uis-input is a
+   text field's class (a fixed height), never the section's */
+.uis-form.pending { box-shadow: var(--shadow-card), 0 0 0 1px color-mix(in oklch, var(--accent) 40%, transparent); }
+.uis-tag.waiting { background: var(--accent-tint); color: var(--accent-ink); }
+.uis-input-message { margin: 0; padding: 10px 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); line-height: 1.55; font-size: 13px; }
+.uis-input-fields { display: flex; flex-direction: column; gap: 10px; min-width: 0; margin: 0; padding: 0; border: none; }
+.uis-input-errors { margin: 0 12px 4px; padding: 6px 10px 6px 24px; border-radius: var(--radius-sm); background: var(--red-tint); color: var(--red); font-size: 12px; }
+.pending-inputs { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow: auto; margin-bottom: 6px; }

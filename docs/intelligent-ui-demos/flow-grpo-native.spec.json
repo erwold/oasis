@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "surface_id": "grpo_plan",
+  "title": "Flow-GRPO planner",
+  "fallback": "Flow-GRPO planner: group size 16, 32 prompts per step, 10 training SDE steps, KL beta 0.04, noise level 0.7.",
+  "kind": "native",
+  "initial_state": {
+    "group_size": 16,
+    "prompts": 32,
+    "sde_steps": 10,
+    "kl_beta": 0.04,
+    "noise": 0.7
+  },
+  "actions": [
+    {
+      "id": "estimate",
+      "label": "Estimate with agent",
+      "prompt": "Estimate an illustrative Flow-GRPO cost from these values and send it with return_ui_result as data: {\"rollouts_per_step\": number, \"sde_evals_per_step\": number, \"gpu_hours\": number, \"phases\": [{\"label\": \"sampling\"|\"reward\"|\"update\", \"value\": seconds per step}]}, with rollouts_per_step = prompts × group_size, sde_evals_per_step = rollouts_per_step × sde_steps, sampling = evals × 0.05 s, reward = rollouts × 0.02 s, update = evals × 0.03 s (one decimal each), gpu_hours = sum of the phases × 100 / 3600 (two decimals). These are demo constants, not measurements; say so in the answer.",
+      "mode": "run"
+    },
+    {
+      "id": "ask_estimate",
+      "label": "Ask, then estimate",
+      "prompt": "Before estimating, ask the person with request_input for the prompts per step to use and the focus (cost or stability); then estimate as the \"Estimate with agent\" action does, with the prompts per step they gave, and send the result with return_ui_result (data as that action describes, plus \"focus\": string).",
+      "mode": "run"
+    },
+    {
+      "id": "sweep",
+      "label": "Noise sweep",
+      "prompt": "Sweep the noise level a for these values and send each point with return_ui_result as data {\"points\": [{\"noise\": number, \"rollouts\": number}]}, replacing the list as it grows.",
+      "mode": "run"
+    },
+    {
+      "id": "check",
+      "label": "Check limits",
+      "prompt": "Check these values against this planner's demo limit: KL beta at most 0.5 (a threshold chosen for this demo, not a theoretical bound). Send return_ui_result with data {\"kl_beta\": number, \"limit\": 0.5}, and ok false with a message naming the value when KL beta is over the limit.",
+      "mode": "run"
+    },
+    {
+      "id": "explain",
+      "label": "Explain in draft",
+      "prompt": "Explain how these Flow-GRPO values trade cost against stability."
+    }
+  ],
+  "root": "main",
+  "elements": {
+    "main": {
+      "type": "stack",
+      "children": [
+        "params",
+        "local",
+        "note"
+      ]
+    },
+    "params": {
+      "type": "card",
+      "props": {
+        "title": "Training values"
+      },
+      "children": [
+        "group_size",
+        "prompts",
+        "sde_steps",
+        "kl_beta",
+        "noise"
+      ]
+    },
+    "group_size": {
+      "type": "input",
+      "props": {
+        "label": "Group size",
+        "key": "group_size",
+        "inputType": "number",
+        "min": 2,
+        "max": 64
+      }
+    },
+    "prompts": {
+      "type": "input",
+      "props": {
+        "label": "Prompts per step",
+        "key": "prompts",
+        "inputType": "number",
+        "min": 1,
+        "max": 512
+      }
+    },
+    "sde_steps": {
+      "type": "slider",
+      "props": {
+        "label": "Training SDE steps",
+        "key": "sde_steps",
+        "min": 1,
+        "max": 40,
+        "step": 1
+      }
+    },
+    "kl_beta": {
+      "type": "slider",
+      "props": {
+        "label": "KL beta",
+        "key": "kl_beta",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      }
+    },
+    "noise": {
+      "type": "slider",
+      "props": {
+        "label": "Noise level",
+        "key": "noise",
+        "min": 0,
+        "max": 1.5,
+        "step": 0.1
+      }
+    },
+    "local": {
+      "type": "row",
+      "children": [
+        "rollouts",
+        "evals"
+      ]
+    },
+    "rollouts": {
+      "type": "metric",
+      "props": {
+        "label": "Rollouts per step",
+        "value": {
+          "op": "multiply",
+          "args": [
+            {
+              "state": "prompts"
+            },
+            {
+              "state": "group_size"
+            }
+          ]
+        }
+      }
+    },
+    "evals": {
+      "type": "metric",
+      "props": {
+        "label": "SDE evaluations per step",
+        "value": {
+          "op": "multiply",
+          "args": [
+            {
+              "state": "prompts"
+            },
+            {
+              "state": "group_size"
+            },
+            {
+              "state": "sde_steps"
+            }
+          ]
+        }
+      }
+    },
+    "note": {
+      "type": "text",
+      "props": {
+        "text": "Estimates use demo constants (seconds per SDE evaluation and per rollout), not hardware measurements. Check limits uses a demo threshold, KL beta at most 0.5, not a theoretical bound."
+      }
+    }
+  }
+}

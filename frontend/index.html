@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- frame-src only: no frame of this page may load a URL. The one DOM iframe (the HTML preview) is srcdoc, which
+         this does not touch; what it stops is that frame navigating itself (script, meta refresh, a clicked link) —
+         Chromium refuses that request before it is sent (measured: docs/intelligent-ui.md §6.2). Nothing else here is
+         restricted; the desktop's browser views are separate WebContentsViews, not frames of this page. -->
+    <meta http-equiv="Content-Security-Policy" content="frame-src 'none'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>oasis-code</title>
+    <!-- the saved theme on the root before anything paints (src/state/theme.ts reads it the same way, then keeps it) -->
+    <script id="theme-boot">(function(){var d=document.documentElement,p='light',m=false;try{var v=localStorage.getItem('oasis-code.theme');if(v==='light'||v==='dark'||v==='claude'||v==='system')p=v}catch(e){}if(p==='system')try{m=window.matchMedia('(prefers-color-scheme: dark)').matches===true}catch(e){}d.dataset.theme=p==='system'?(m?'dark':'light'):p})()</script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

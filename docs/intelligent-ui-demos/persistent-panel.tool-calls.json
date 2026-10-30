@@ -1,0 +1,1136 @@
+{
+  "note": "FIXTURE examples generated from frontend/e2e/persistent-panel-fixtures.ts (the same functions the e2e uses). FXDEMO is not a market; the quotes, forecasts, ids and times are fixture values. Tool results show the documented shapes (contract/src/ui.ts); ids are placeholders. Scores: only forecast points strictly after the common origin, against closed actual points at exactly the same time.",
+  "calls": [
+    {
+      "tool": "fetch_url",
+      "args": {
+        "url": "https://quotes.fixture.e2e.example/v1/quote?symbol=FXDEMO"
+      },
+      "result_excerpt": {
+        "status": "ok",
+        "source_id": "a_100001",
+        "retrieved_at": "2026-10-12T02:00:01.000Z",
+        "http_status": 200,
+        "text": "{\"fixture\":true,\"notice\":\"FIXTURE market data: a local, scripted test feed. Not a market price, not investment information.\",\"symbol\":\"FXDEMO\",\"unit\":\"points\",\"asof\":\"2026-10-12T01:30:00.000Z\",\"asof_ms\":1791768600000,\"price\":100}"
+      }
+    },
+    {
+      "tool": "present_ui",
+      "args": {
+        "version": 1,
+        "surface_id": "fx_forecast",
+        "title": "FXDEMO 三方预测 vs 实际（FIXTURE 数据）",
+        "kind": "native",
+        "fallback": "FXDEMO（FIXTURE 数据）三方预测对比：最后成功 as-of 2026-10-12T01:30:00.000Z；已覆盖 0/3 个预测时间点；主线 owner MAE 暂无，Agent A MAE 暂无，Agent B MAE 暂无。",
+        "root": "root",
+        "elements": {
+          "root": {
+            "type": "stack",
+            "children": [
+              "notice",
+              "chart",
+              "status",
+              "errors",
+              "mae",
+              "sources",
+              "log",
+              "bounds"
+            ]
+          },
+          "notice": {
+            "type": "text",
+            "props": {
+              "text": "FXDEMO · 单位 points · 预测起点 2026-10-12T01:30:00.000Z · 预测时间点 01:35 UTC / 01:40 UTC / 01:45 UTC。数据源：FIXTURE（本地受控测试行情，非真实市场）。只对比预测与已发生的数值，不构成任何投资判断。"
+            }
+          },
+          "chart": {
+            "type": "chart",
+            "props": {
+              "kind": "line",
+              "x_axis": "time",
+              "label": "FXDEMO（FIXTURE）实际与三份预测",
+              "y_label": "points",
+              "series": [
+                {
+                  "id": "actual",
+                  "label": "实际 FXDEMO（FIXTURE）",
+                  "line_style": "solid",
+                  "data": [
+                    {
+                      "x": 1791768600000,
+                      "value": 100
+                    }
+                  ]
+                },
+                {
+                  "id": "fc_owner",
+                  "label": "预测 主线 owner",
+                  "line_style": "dashed",
+                  "data": [
+                    {
+                      "x": 1791768600000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791768900000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791769200000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791769500000,
+                      "value": 100
+                    }
+                  ]
+                },
+                {
+                  "id": "fc_A",
+                  "label": "预测 Agent A（等待提交）",
+                  "line_style": "dashed",
+                  "data": []
+                },
+                {
+                  "id": "fc_B",
+                  "label": "预测 Agent B（等待提交）",
+                  "line_style": "dashed",
+                  "data": []
+                }
+              ]
+            }
+          },
+          "status": {
+            "type": "table",
+            "props": {
+              "caption": "采集状态",
+              "columns": [
+                {
+                  "key": "item",
+                  "label": "项目"
+                },
+                {
+                  "key": "value",
+                  "label": "值"
+                }
+              ],
+              "rows": [
+                {
+                  "item": "最后成功 market as-of",
+                  "value": "2026-10-12T01:30:00.000Z"
+                },
+                {
+                  "item": "最后成功取数时间",
+                  "value": "2026-10-12T02:00:01.000Z"
+                },
+                {
+                  "item": "最近一次取数",
+                  "value": "2026-10-12T02:00:01.000Z · 成功：新点已追加"
+                }
+              ]
+            }
+          },
+          "errors": {
+            "type": "table",
+            "props": {
+              "caption": "同一时间点的绝对误差（已覆盖 0/3 个时间点；未发生的时间点为 暂无）",
+              "columns": [
+                {
+                  "key": "t",
+                  "label": "时间点"
+                },
+                {
+                  "key": "actual",
+                  "label": "实际"
+                },
+                {
+                  "key": "f_owner",
+                  "label": "主线 owner 预测"
+                },
+                {
+                  "key": "e_owner",
+                  "label": "主线 owner |误差|"
+                },
+                {
+                  "key": "f_A",
+                  "label": "Agent A 预测"
+                },
+                {
+                  "key": "e_A",
+                  "label": "Agent A |误差|"
+                },
+                {
+                  "key": "f_B",
+                  "label": "Agent B 预测"
+                },
+                {
+                  "key": "e_B",
+                  "label": "Agent B |误差|"
+                }
+              ],
+              "rows": [
+                {
+                  "t": "01:35 UTC",
+                  "actual": "暂无",
+                  "f_owner": 100,
+                  "e_owner": "暂无",
+                  "f_A": "等待",
+                  "e_A": "暂无",
+                  "f_B": "等待",
+                  "e_B": "暂无"
+                },
+                {
+                  "t": "01:40 UTC",
+                  "actual": "暂无",
+                  "f_owner": 100,
+                  "e_owner": "暂无",
+                  "f_A": "等待",
+                  "e_A": "暂无",
+                  "f_B": "等待",
+                  "e_B": "暂无"
+                },
+                {
+                  "t": "01:45 UTC",
+                  "actual": "暂无",
+                  "f_owner": 100,
+                  "e_owner": "暂无",
+                  "f_A": "等待",
+                  "e_A": "暂无",
+                  "f_B": "等待",
+                  "e_B": "暂无"
+                }
+              ]
+            }
+          },
+          "mae": {
+            "type": "row",
+            "children": [
+              "mae_owner",
+              "mae_A",
+              "mae_B"
+            ]
+          },
+          "sources": {
+            "type": "table",
+            "props": {
+              "caption": "预测来源（发布后冻结）",
+              "columns": [
+                {
+                  "key": "agent",
+                  "label": "预测者"
+                },
+                {
+                  "key": "rule",
+                  "label": "规则"
+                },
+                {
+                  "key": "mechanism",
+                  "label": "回传方式"
+                },
+                {
+                  "key": "issued_at",
+                  "label": "发布时间"
+                },
+                {
+                  "key": "origin",
+                  "label": "起点"
+                },
+                {
+                  "key": "origin_price",
+                  "label": "起点价"
+                }
+              ],
+              "rows": [
+                {
+                  "agent": "主线 owner",
+                  "rule": "持平：每个时间点 = 起点价",
+                  "mechanism": "主线 run 自己发布",
+                  "issued_at": "2026-10-12T02:00:02.000Z",
+                  "origin": "2026-10-12T01:30:00.000Z",
+                  "origin_price": 100
+                },
+                {
+                  "agent": "Agent A",
+                  "rule": "线性漂移：每 5 分钟 +0.40",
+                  "mechanism": "relay 回合 A → 主线汇总",
+                  "issued_at": "等待提交",
+                  "origin": "2026-10-12T01:30:00.000Z",
+                  "origin_price": "等待提交"
+                },
+                {
+                  "agent": "Agent B",
+                  "rule": "均值回归：每 5 分钟 −0.25",
+                  "mechanism": "relay 回合 B → 主线汇总",
+                  "issued_at": "等待提交",
+                  "origin": "2026-10-12T01:30:00.000Z",
+                  "origin_price": "等待提交"
+                }
+              ]
+            }
+          },
+          "log": {
+            "type": "table",
+            "props": {
+              "caption": "采集记录（最近 12 条）",
+              "columns": [
+                {
+                  "key": "at",
+                  "label": "取数时间"
+                },
+                {
+                  "key": "result",
+                  "label": "结果"
+                },
+                {
+                  "key": "asof",
+                  "label": "market as-of"
+                },
+                {
+                  "key": "source",
+                  "label": "来源响应"
+                }
+              ],
+              "rows": [
+                {
+                  "at": "2026-10-12T02:00:01.000Z",
+                  "result": "成功：新点已追加",
+                  "asof": "2026-10-12T01:30:00.000Z",
+                  "source": "a_100001"
+                }
+              ]
+            }
+          },
+          "bounds": {
+            "type": "text",
+            "props": {
+              "text": "图表总点数上限 100（所有序列合计）：三份预测各 4 点（起点 + 3 个时间点），实际序列最多保留最近 88 个点，超出时丢弃最旧的点。实际点按 market 时间追加去重，过旧的数据不回退。"
+            }
+          },
+          "mae_owner": {
+            "type": "metric",
+            "props": {
+              "label": "MAE 主线 owner（n=0）",
+              "value": "暂无",
+              "unit": "points"
+            }
+          },
+          "mae_A": {
+            "type": "metric",
+            "props": {
+              "label": "MAE Agent A（n=0）",
+              "value": "暂无",
+              "unit": "points"
+            }
+          },
+          "mae_B": {
+            "type": "metric",
+            "props": {
+              "label": "MAE Agent B（n=0）",
+              "value": "暂无",
+              "unit": "points"
+            }
+          }
+        },
+        "scope": "session",
+        "expected_revision": 0
+      },
+      "result": {
+        "status": "ok",
+        "surface_id": "fx_forecast",
+        "revision": 1,
+        "kind": "native"
+      }
+    },
+    {
+      "tool": "read_ui",
+      "args": {
+        "surface_id": "fx_forecast",
+        "scope": "session"
+      },
+      "result": {
+        "status": "ok",
+        "surface": {
+          "session_id": "s_…",
+          "run_id": "run_ANCHOR",
+          "surface_id": "fx_forecast",
+          "scope": "session",
+          "updated_by_run_id": "run_AGGREGATE",
+          "revision": 2,
+          "spec": {
+            "version": 1,
+            "surface_id": "fx_forecast",
+            "title": "FXDEMO 三方预测 vs 实际（FIXTURE 数据）",
+            "kind": "native",
+            "fallback": "FXDEMO（FIXTURE 数据）三方预测对比：最后成功 as-of 2026-10-12T01:30:00.000Z；已覆盖 0/3 个预测时间点；主线 owner MAE 暂无，Agent A MAE 暂无，Agent B MAE 暂无。",
+            "root": "root",
+            "elements": {
+              "root": {
+                "type": "stack",
+                "children": [
+                  "notice",
+                  "chart",
+                  "status",
+                  "errors",
+                  "mae",
+                  "sources",
+                  "log",
+                  "bounds"
+                ]
+              },
+              "notice": {
+                "type": "text",
+                "props": {
+                  "text": "FXDEMO · 单位 points · 预测起点 2026-10-12T01:30:00.000Z · 预测时间点 01:35 UTC / 01:40 UTC / 01:45 UTC。数据源：FIXTURE（本地受控测试行情，非真实市场）。只对比预测与已发生的数值，不构成任何投资判断。"
+                }
+              },
+              "chart": {
+                "type": "chart",
+                "props": {
+                  "kind": "line",
+                  "x_axis": "time",
+                  "label": "FXDEMO（FIXTURE）实际与三份预测",
+                  "y_label": "points",
+                  "series": [
+                    {
+                      "id": "actual",
+                      "label": "实际 FXDEMO（FIXTURE）",
+                      "line_style": "solid",
+                      "data": [
+                        {
+                          "x": 1791768600000,
+                          "value": 100
+                        }
+                      ]
+                    },
+                    {
+                      "id": "fc_owner",
+                      "label": "预测 主线 owner",
+                      "line_style": "dashed",
+                      "data": [
+                        {
+                          "x": 1791768600000,
+                          "value": 100
+                        },
+                        {
+                          "x": 1791768900000,
+                          "value": 100
+                        },
+                        {
+                          "x": 1791769200000,
+                          "value": 100
+                        },
+                        {
+                          "x": 1791769500000,
+                          "value": 100
+                        }
+                      ]
+                    },
+                    {
+                      "id": "fc_A",
+                      "label": "预测 Agent A",
+                      "line_style": "dashed",
+                      "data": [
+                        {
+                          "x": 1791768600000,
+                          "value": 100
+                        },
+                        {
+                          "x": 1791768900000,
+                          "value": 100.4
+                        },
+                        {
+                          "x": 1791769200000,
+                          "value": 100.8
+                        },
+                        {
+                          "x": 1791769500000,
+                          "value": 101.2
+                        }
+                      ]
+                    },
+                    {
+                      "id": "fc_B",
+                      "label": "预测 Agent B",
+                      "line_style": "dashed",
+                      "data": [
+                        {
+                          "x": 1791768600000,
+                          "value": 100
+                        },
+                        {
+                          "x": 1791768900000,
+                          "value": 99.75
+                        },
+                        {
+                          "x": 1791769200000,
+                          "value": 99.5
+                        },
+                        {
+                          "x": 1791769500000,
+                          "value": 99.25
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "status": {
+                "type": "table",
+                "props": {
+                  "caption": "采集状态",
+                  "columns": [
+                    {
+                      "key": "item",
+                      "label": "项目"
+                    },
+                    {
+                      "key": "value",
+                      "label": "值"
+                    }
+                  ],
+                  "rows": [
+                    {
+                      "item": "最后成功 market as-of",
+                      "value": "2026-10-12T01:30:00.000Z"
+                    },
+                    {
+                      "item": "最后成功取数时间",
+                      "value": "2026-10-12T02:00:01.000Z"
+                    },
+                    {
+                      "item": "最近一次取数",
+                      "value": "2026-10-12T02:00:01.000Z · 成功：新点已追加"
+                    }
+                  ]
+                }
+              },
+              "errors": {
+                "type": "table",
+                "props": {
+                  "caption": "同一时间点的绝对误差（已覆盖 0/3 个时间点；未发生的时间点为 暂无）",
+                  "columns": [
+                    {
+                      "key": "t",
+                      "label": "时间点"
+                    },
+                    {
+                      "key": "actual",
+                      "label": "实际"
+                    },
+                    {
+                      "key": "f_owner",
+                      "label": "主线 owner 预测"
+                    },
+                    {
+                      "key": "e_owner",
+                      "label": "主线 owner |误差|"
+                    },
+                    {
+                      "key": "f_A",
+                      "label": "Agent A 预测"
+                    },
+                    {
+                      "key": "e_A",
+                      "label": "Agent A |误差|"
+                    },
+                    {
+                      "key": "f_B",
+                      "label": "Agent B 预测"
+                    },
+                    {
+                      "key": "e_B",
+                      "label": "Agent B |误差|"
+                    }
+                  ],
+                  "rows": [
+                    {
+                      "t": "01:35 UTC",
+                      "actual": "暂无",
+                      "f_owner": 100,
+                      "e_owner": "暂无",
+                      "f_A": 100.4,
+                      "e_A": "暂无",
+                      "f_B": 99.75,
+                      "e_B": "暂无"
+                    },
+                    {
+                      "t": "01:40 UTC",
+                      "actual": "暂无",
+                      "f_owner": 100,
+                      "e_owner": "暂无",
+                      "f_A": 100.8,
+                      "e_A": "暂无",
+                      "f_B": 99.5,
+                      "e_B": "暂无"
+                    },
+                    {
+                      "t": "01:45 UTC",
+                      "actual": "暂无",
+                      "f_owner": 100,
+                      "e_owner": "暂无",
+                      "f_A": 101.2,
+                      "e_A": "暂无",
+                      "f_B": 99.25,
+                      "e_B": "暂无"
+                    }
+                  ]
+                }
+              },
+              "mae": {
+                "type": "row",
+                "children": [
+                  "mae_owner",
+                  "mae_A",
+                  "mae_B"
+                ]
+              },
+              "sources": {
+                "type": "table",
+                "props": {
+                  "caption": "预测来源（发布后冻结）",
+                  "columns": [
+                    {
+                      "key": "agent",
+                      "label": "预测者"
+                    },
+                    {
+                      "key": "rule",
+                      "label": "规则"
+                    },
+                    {
+                      "key": "mechanism",
+                      "label": "回传方式"
+                    },
+                    {
+                      "key": "issued_at",
+                      "label": "发布时间"
+                    },
+                    {
+                      "key": "origin",
+                      "label": "起点"
+                    },
+                    {
+                      "key": "origin_price",
+                      "label": "起点价"
+                    }
+                  ],
+                  "rows": [
+                    {
+                      "agent": "主线 owner",
+                      "rule": "持平：每个时间点 = 起点价",
+                      "mechanism": "主线 run 自己发布",
+                      "issued_at": "2026-10-12T02:00:02.000Z",
+                      "origin": "2026-10-12T01:30:00.000Z",
+                      "origin_price": 100
+                    },
+                    {
+                      "agent": "Agent A",
+                      "rule": "线性漂移：每 5 分钟 +0.40",
+                      "mechanism": "relay 回合 A → 主线汇总",
+                      "issued_at": "2026-10-12T02:01:10.000Z",
+                      "origin": "2026-10-12T01:30:00.000Z",
+                      "origin_price": 100
+                    },
+                    {
+                      "agent": "Agent B",
+                      "rule": "均值回归：每 5 分钟 −0.25",
+                      "mechanism": "relay 回合 B → 主线汇总",
+                      "issued_at": "2026-10-12T02:01:20.000Z",
+                      "origin": "2026-10-12T01:30:00.000Z",
+                      "origin_price": 100
+                    }
+                  ]
+                }
+              },
+              "log": {
+                "type": "table",
+                "props": {
+                  "caption": "采集记录（最近 12 条）",
+                  "columns": [
+                    {
+                      "key": "at",
+                      "label": "取数时间"
+                    },
+                    {
+                      "key": "result",
+                      "label": "结果"
+                    },
+                    {
+                      "key": "asof",
+                      "label": "market as-of"
+                    },
+                    {
+                      "key": "source",
+                      "label": "来源响应"
+                    }
+                  ],
+                  "rows": [
+                    {
+                      "at": "2026-10-12T02:00:01.000Z",
+                      "result": "成功：新点已追加",
+                      "asof": "2026-10-12T01:30:00.000Z",
+                      "source": "a_100001"
+                    }
+                  ]
+                }
+              },
+              "bounds": {
+                "type": "text",
+                "props": {
+                  "text": "图表总点数上限 100（所有序列合计）：三份预测各 4 点（起点 + 3 个时间点），实际序列最多保留最近 88 个点，超出时丢弃最旧的点。实际点按 market 时间追加去重，过旧的数据不回退。"
+                }
+              },
+              "mae_owner": {
+                "type": "metric",
+                "props": {
+                  "label": "MAE 主线 owner（n=0）",
+                  "value": "暂无",
+                  "unit": "points"
+                }
+              },
+              "mae_A": {
+                "type": "metric",
+                "props": {
+                  "label": "MAE Agent A（n=0）",
+                  "value": "暂无",
+                  "unit": "points"
+                }
+              },
+              "mae_B": {
+                "type": "metric",
+                "props": {
+                  "label": "MAE Agent B（n=0）",
+                  "value": "暂无",
+                  "unit": "points"
+                }
+              }
+            }
+          },
+          "model": "scripted:pf-owner",
+          "created_at": "2026-10-12T02:00:03.000Z",
+          "updated_at": "2026-10-12T02:01:30.000Z"
+        }
+      },
+      "note": "read_ui returns the published spec, revision, ownership (anchor run_id, scope, updated_by_run_id, model) and times; never the person's current state (inputs saved but not sent by an action do not reach the model)."
+    },
+    {
+      "tool": "present_ui",
+      "args": {
+        "version": 1,
+        "surface_id": "fx_forecast",
+        "title": "FXDEMO 三方预测 vs 实际（FIXTURE 数据）",
+        "kind": "native",
+        "fallback": "FXDEMO（FIXTURE 数据）三方预测对比：最后成功 as-of 2026-10-12T01:35:00.000Z；已覆盖 1/3 个预测时间点；主线 owner MAE 0.8，Agent A MAE 0.4，Agent B MAE 1.05。",
+        "root": "root",
+        "elements": {
+          "root": {
+            "type": "stack",
+            "children": [
+              "notice",
+              "chart",
+              "status",
+              "errors",
+              "mae",
+              "sources",
+              "log",
+              "bounds"
+            ]
+          },
+          "notice": {
+            "type": "text",
+            "props": {
+              "text": "FXDEMO · 单位 points · 预测起点 2026-10-12T01:30:00.000Z · 预测时间点 01:35 UTC / 01:40 UTC / 01:45 UTC。数据源：FIXTURE（本地受控测试行情，非真实市场）。只对比预测与已发生的数值，不构成任何投资判断。"
+            }
+          },
+          "chart": {
+            "type": "chart",
+            "props": {
+              "kind": "line",
+              "x_axis": "time",
+              "label": "FXDEMO（FIXTURE）实际与三份预测",
+              "y_label": "points",
+              "series": [
+                {
+                  "id": "actual",
+                  "label": "实际 FXDEMO（FIXTURE）",
+                  "line_style": "solid",
+                  "data": [
+                    {
+                      "x": 1791768600000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791768900000,
+                      "value": 100.8
+                    }
+                  ]
+                },
+                {
+                  "id": "fc_owner",
+                  "label": "预测 主线 owner",
+                  "line_style": "dashed",
+                  "data": [
+                    {
+                      "x": 1791768600000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791768900000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791769200000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791769500000,
+                      "value": 100
+                    }
+                  ]
+                },
+                {
+                  "id": "fc_A",
+                  "label": "预测 Agent A",
+                  "line_style": "dashed",
+                  "data": [
+                    {
+                      "x": 1791768600000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791768900000,
+                      "value": 100.4
+                    },
+                    {
+                      "x": 1791769200000,
+                      "value": 100.8
+                    },
+                    {
+                      "x": 1791769500000,
+                      "value": 101.2
+                    }
+                  ]
+                },
+                {
+                  "id": "fc_B",
+                  "label": "预测 Agent B",
+                  "line_style": "dashed",
+                  "data": [
+                    {
+                      "x": 1791768600000,
+                      "value": 100
+                    },
+                    {
+                      "x": 1791768900000,
+                      "value": 99.75
+                    },
+                    {
+                      "x": 1791769200000,
+                      "value": 99.5
+                    },
+                    {
+                      "x": 1791769500000,
+                      "value": 99.25
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "status": {
+            "type": "table",
+            "props": {
+              "caption": "采集状态",
+              "columns": [
+                {
+                  "key": "item",
+                  "label": "项目"
+                },
+                {
+                  "key": "value",
+                  "label": "值"
+                }
+              ],
+              "rows": [
+                {
+                  "item": "最后成功 market as-of",
+                  "value": "2026-10-12T01:35:00.000Z"
+                },
+                {
+                  "item": "最后成功取数时间",
+                  "value": "2026-10-12T02:02:41.000Z"
+                },
+                {
+                  "item": "最近一次取数",
+                  "value": "2026-10-12T02:02:41.000Z · 成功：重复（该 market 时间已有）"
+                }
+              ]
+            }
+          },
+          "errors": {
+            "type": "table",
+            "props": {
+              "caption": "同一时间点的绝对误差（已覆盖 1/3 个时间点；未发生的时间点为 暂无）",
+              "columns": [
+                {
+                  "key": "t",
+                  "label": "时间点"
+                },
+                {
+                  "key": "actual",
+                  "label": "实际"
+                },
+                {
+                  "key": "f_owner",
+                  "label": "主线 owner 预测"
+                },
+                {
+                  "key": "e_owner",
+                  "label": "主线 owner |误差|"
+                },
+                {
+                  "key": "f_A",
+                  "label": "Agent A 预测"
+                },
+                {
+                  "key": "e_A",
+                  "label": "Agent A |误差|"
+                },
+                {
+                  "key": "f_B",
+                  "label": "Agent B 预测"
+                },
+                {
+                  "key": "e_B",
+                  "label": "Agent B |误差|"
+                }
+              ],
+              "rows": [
+                {
+                  "t": "01:35 UTC",
+                  "actual": 100.8,
+                  "f_owner": 100,
+                  "e_owner": 0.8,
+                  "f_A": 100.4,
+                  "e_A": 0.4,
+                  "f_B": 99.75,
+                  "e_B": 1.05
+                },
+                {
+                  "t": "01:40 UTC",
+                  "actual": "暂无",
+                  "f_owner": 100,
+                  "e_owner": "暂无",
+                  "f_A": 100.8,
+                  "e_A": "暂无",
+                  "f_B": 99.5,
+                  "e_B": "暂无"
+                },
+                {
+                  "t": "01:45 UTC",
+                  "actual": "暂无",
+                  "f_owner": 100,
+                  "e_owner": "暂无",
+                  "f_A": 101.2,
+                  "e_A": "暂无",
+                  "f_B": 99.25,
+                  "e_B": "暂无"
+                }
+              ]
+            }
+          },
+          "mae": {
+            "type": "row",
+            "children": [
+              "mae_owner",
+              "mae_A",
+              "mae_B"
+            ]
+          },
+          "sources": {
+            "type": "table",
+            "props": {
+              "caption": "预测来源（发布后冻结）",
+              "columns": [
+                {
+                  "key": "agent",
+                  "label": "预测者"
+                },
+                {
+                  "key": "rule",
+                  "label": "规则"
+                },
+                {
+                  "key": "mechanism",
+                  "label": "回传方式"
+                },
+                {
+                  "key": "issued_at",
+                  "label": "发布时间"
+                },
+                {
+                  "key": "origin",
+                  "label": "起点"
+                },
+                {
+                  "key": "origin_price",
+                  "label": "起点价"
+                }
+              ],
+              "rows": [
+                {
+                  "agent": "主线 owner",
+                  "rule": "持平：每个时间点 = 起点价",
+                  "mechanism": "主线 run 自己发布",
+                  "issued_at": "2026-10-12T02:00:02.000Z",
+                  "origin": "2026-10-12T01:30:00.000Z",
+                  "origin_price": 100
+                },
+                {
+                  "agent": "Agent A",
+                  "rule": "线性漂移：每 5 分钟 +0.40",
+                  "mechanism": "relay 回合 A → 主线汇总",
+                  "issued_at": "2026-10-12T02:01:10.000Z",
+                  "origin": "2026-10-12T01:30:00.000Z",
+                  "origin_price": 100
+                },
+                {
+                  "agent": "Agent B",
+                  "rule": "均值回归：每 5 分钟 −0.25",
+                  "mechanism": "relay 回合 B → 主线汇总",
+                  "issued_at": "2026-10-12T02:01:20.000Z",
+                  "origin": "2026-10-12T01:30:00.000Z",
+                  "origin_price": 100
+                }
+              ]
+            }
+          },
+          "log": {
+            "type": "table",
+            "props": {
+              "caption": "采集记录（最近 12 条）",
+              "columns": [
+                {
+                  "key": "at",
+                  "label": "取数时间"
+                },
+                {
+                  "key": "result",
+                  "label": "结果"
+                },
+                {
+                  "key": "asof",
+                  "label": "market as-of"
+                },
+                {
+                  "key": "source",
+                  "label": "来源响应"
+                }
+              ],
+              "rows": [
+                {
+                  "at": "2026-10-12T02:00:01.000Z",
+                  "result": "成功：新点已追加",
+                  "asof": "2026-10-12T01:30:00.000Z",
+                  "source": "a_100001"
+                },
+                {
+                  "at": "2026-10-12T02:02:40.000Z",
+                  "result": "成功：新点已追加",
+                  "asof": "2026-10-12T01:35:00.000Z",
+                  "source": "a_100002"
+                },
+                {
+                  "at": "2026-10-12T02:02:41.000Z",
+                  "result": "成功：重复（该 market 时间已有）",
+                  "asof": "2026-10-12T01:35:00.000Z",
+                  "source": "a_100003"
+                }
+              ]
+            }
+          },
+          "bounds": {
+            "type": "text",
+            "props": {
+              "text": "图表总点数上限 100（所有序列合计）：三份预测各 4 点（起点 + 3 个时间点），实际序列最多保留最近 88 个点，超出时丢弃最旧的点。实际点按 market 时间追加去重，过旧的数据不回退。"
+            }
+          },
+          "mae_owner": {
+            "type": "metric",
+            "props": {
+              "label": "MAE 主线 owner（n=1）",
+              "value": 0.8,
+              "unit": "points"
+            }
+          },
+          "mae_A": {
+            "type": "metric",
+            "props": {
+              "label": "MAE Agent A（n=1）",
+              "value": 0.4,
+              "unit": "points"
+            }
+          },
+          "mae_B": {
+            "type": "metric",
+            "props": {
+              "label": "MAE Agent B（n=1）",
+              "value": 1.05,
+              "unit": "points"
+            }
+          }
+        },
+        "scope": "session",
+        "expected_revision": 2
+      },
+      "result": {
+        "status": "ok",
+        "surface_id": "fx_forecast",
+        "revision": 3,
+        "kind": "native"
+      }
+    },
+    {
+      "tool": "present_ui",
+      "note": "the same call again (a retry after a lost answer): nothing is written",
+      "args": {
+        "scope": "session",
+        "expected_revision": 2,
+        "…": "the same spec as above"
+      },
+      "result": {
+        "status": "conflict",
+        "surface_id": "fx_forecast",
+        "scope": "session",
+        "expected_revision": 2,
+        "current_revision": 3
+      }
+    },
+    {
+      "tool": "read_ui",
+      "note": "a run that is not the session main thread (a relay turn, an interaction node, a work order, a UI task, a separate copy)",
+      "args": {
+        "surface_id": "fx_forecast",
+        "scope": "session"
+      },
+      "result": {
+        "status": "refused",
+        "scope": "session",
+        "reason": "(the server's reason)"
+      }
+    },
+    {
+      "tool": "read_ui",
+      "note": "scope run: only the calling run's own surfaces; the session panel is not one of them",
+      "args": {
+        "surface_id": "fx_forecast",
+        "scope": "run"
+      },
+      "result": {
+        "status": "not_found",
+        "surface_id": "fx_forecast",
+        "scope": "run"
+      }
+    }
+  ]
+}

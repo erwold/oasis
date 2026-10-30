@@ -1,0 +1,37 @@
+# runtime data (the default data dir is outside the repo; a local one never lands in git)
+.oasis-code-data/
+data/
+
+# node
+node_modules/
+frontend/dist/
+# the session share's viewer bundle (npm run build:share), carried by the app's build as text
+frontend/share-viewer-dist/
+# the live link page's viewer (npm run build:live-share), carried by the app's build into dist/live-share/
+frontend/live-share-dist/
+desktop/dist/
+frontend/test-results/
+
+# misc
+.DS_Store
+.env
+
+# the TypeScript backend and the contract package
+backend-ts/dist/
+# bun build --compile's temporary executables, left behind when a compile is interrupted
+backend-ts/.*.bun-build
+contract/node_modules/
+
+# local secrets, agent state and private reports never land in git (the example env file and the TLS test fixture
+# under backend-ts/tests/fixtures/tls are tracked on purpose); scripts/oss/export-public.mjs excludes these names too
+.env.*
+!.env.example
+.claude/
+.oasis-code/
+reports/
+private-reports/
+*.p12
+*.p8
+*.pem
+*.mobileprovision
+*.har

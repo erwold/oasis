@@ -1,0 +1,15 @@
+{
+  "title": "Flow-GRPO comparison setup",
+  "message": "The comparison waits for these values.",
+  "root": "form",
+  "elements": {
+    "form": { "type": "stack", "children": ["methods", "group_size", "note", "use_kl"] },
+    "methods": { "type": "select", "props": { "label": "Methods", "key": "methods", "multiple": true, "options": [ { "label": "Flow-GRPO", "value": "flow-grpo" }, { "label": "DPO", "value": "dpo" }, { "label": "PPO", "value": "ppo" } ] } },
+    "group_size": { "type": "input", "props": { "label": "Group size", "key": "group_size", "inputType": "number", "min": 2, "max": 64 } },
+    "note": { "type": "input", "props": { "label": "Note", "key": "note", "inputType": "text" } },
+    "use_kl": { "type": "checkbox", "props": { "label": "Use KL penalty", "key": "use_kl" } }
+  },
+  "initial_state": { "methods": [], "group_size": 8, "note": "", "use_kl": false },
+  "required": ["methods", "group_size"],
+  "submit_label": "Start comparison"
+}

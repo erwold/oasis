@@ -1,0 +1,1765 @@
+{
+ "what": "lineage-polling fix: formal run (host check, targeted tests, smoke, baseline/after/baseline/after A/B) as its run wrote it; host paths replaced by <run-root> and <worktree>; sha256_as_written is of each file before that replacement",
+ "run_dir": "<run-root>/out/formal-20261018T165743Z",
+ "junit_sha256_as_written": "7c3385049eda4fb27e6c03506c3505dd473e2e1f87b009537c355689cb048a09",
+ "driver_executed_sha256": "5cb4e68806eb7e75e84640eefc1c70d6eda15535395f66ed7f7ef6789d135689",
+ "raw": {
+  "driver": {
+   "file": "driver.json",
+   "sha256_as_written": "5be65ea1891d09636d47ce6d0b7df1ede1b750a4ca26db0d0b9c58b1828ccb7b",
+   "content": {
+    "stages": [
+     {
+      "name": "host: ps permitted, process count",
+      "ok": true,
+      "start_utc": "2026-10-18T16:57:43.895Z",
+      "end_utc": "2026-10-18T16:57:43.921Z",
+      "mono_start_ms": 54.944,
+      "mono_end_ms": 80.604,
+      "loadavg_before": [
+       4.91,
+       8.49,
+       8.07
+      ],
+      "loadavg_after": [
+       4.91,
+       8.49,
+       8.07
+      ],
+      "sources_before": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "sources_after": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "exit_code": 0,
+      "signal": null,
+      "result": {
+       "ps_error": null,
+       "host_processes": 1242,
+       "includes_self": true
+      }
+     },
+     {
+      "name": "targeted regression tests",
+      "ok": true,
+      "start_utc": "2026-10-18T16:57:43.921Z",
+      "end_utc": "2026-10-18T16:58:37.476Z",
+      "mono_start_ms": 80.941,
+      "mono_end_ms": 53634.384,
+      "loadavg_before": [
+       4.91,
+       8.49,
+       8.07
+      ],
+      "loadavg_after": [
+       4.8,
+       7.94,
+       7.89
+      ],
+      "sources_before": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "sources_after": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "command": [
+       "bun",
+       "test",
+       "--timeout",
+       "60000",
+       "--reporter=junit",
+       "--reporter-outfile=<run-root>/out/formal-20261018T165743Z/tests.junit.xml",
+       "tests/test_lineage_tick.test.ts",
+       "tests/test_processes.test.ts",
+       "tests/test_fork_watch_record.test.ts",
+       "tests/test_fork_watcher.test.ts",
+       "tests/test_process_scratch_lifecycle.test.ts"
+      ],
+      "files": {
+       "stdout": "tests.stdout.log",
+       "stderr": "tests.stderr.log",
+       "junit": "tests.junit.xml"
+      },
+      "exit_code": 0,
+      "signal": null,
+      "result": {
+       "root": {
+        "tests": 39,
+        "assertions": 405,
+        "failures": 0,
+        "skipped": 0,
+        "time": 53.545819
+       },
+       "testcases": 39,
+       "failures": 0,
+       "errors": 0,
+       "skipped": 0
+      }
+     },
+     {
+      "name": "smoke: probe, 0 and 1 command, 2 s",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:37.476Z",
+      "end_utc": "2026-10-18T16:58:44.434Z",
+      "mono_start_ms": 53634.839,
+      "mono_end_ms": 60593.001,
+      "loadavg_before": [
+       4.8,
+       7.94,
+       7.89
+      ],
+      "loadavg_after": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "sources_before": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "sources_after": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "command": [
+       "bun",
+       "scripts/perf/run_lineage_ab.ts",
+       "smoke",
+       "--out",
+       "<run-root>/out/formal-20261018T165743Z/smoke"
+      ],
+      "files": {
+       "stdout": "smoke.stdout.log",
+       "stderr": "smoke.stderr.log",
+       "manifest": "smoke/manifest.json"
+      },
+      "exit_code": 0,
+      "signal": null,
+      "result": {
+       "cases": [
+        {
+         "label": "after",
+         "round": 1,
+         "running_commands": 0,
+         "still_running_at_end": 0,
+         "window_s": 2,
+         "track_lineage_calls": 0,
+         "track_lineage_calls_per_s": 0,
+         "track_lineage_ms_total": 0,
+         "table_scans": 0,
+         "table_scans_per_s": 0,
+         "table_scan_ms_total": 0,
+         "table_scan_ms_mean": null,
+         "rows_per_scan_mean": null,
+         "sql_statements": 1,
+         "cpu_ms": 4,
+         "cpu_pct_of_one_core": 0.202,
+         "host_processes_before": 1242,
+         "host_processes_after": 1244,
+         "loadavg_before": [
+          4.8,
+          7.94,
+          7.89
+         ],
+         "loadavg_after": [
+          4.97,
+          7.92,
+          7.89
+         ]
+        },
+        {
+         "label": "after",
+         "round": 1,
+         "running_commands": 1,
+         "still_running_at_end": 1,
+         "window_s": 2,
+         "track_lineage_calls": 39,
+         "track_lineage_calls_per_s": 19.5,
+         "track_lineage_ms_total": 33.9,
+         "table_scans": 39,
+         "table_scans_per_s": 19.5,
+         "table_scan_ms_total": 32.6,
+         "table_scan_ms_mean": 0.835,
+         "rows_per_scan_mean": 1243.1,
+         "sql_statements": 2,
+         "cpu_ms": 62.8,
+         "cpu_pct_of_one_core": 3.137,
+         "host_processes_before": 1246,
+         "host_processes_after": 1243,
+         "loadavg_before": [
+          4.97,
+          7.92,
+          7.89
+         ],
+         "loadavg_after": [
+          4.81,
+          7.84,
+          7.86
+         ]
+        }
+       ]
+      }
+     },
+     {
+      "name": "A/B: baseline, after, baseline, after",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:44.435Z",
+      "end_utc": "2026-10-18T17:07:10.935Z",
+      "mono_start_ms": 60593.21,
+      "mono_end_ms": 567093.719,
+      "loadavg_before": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "loadavg_after": [
+       7.12,
+       6.08,
+       6.74
+      ],
+      "sources_before": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "sources_after": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "command": [
+       "bun",
+       "scripts/perf/run_lineage_ab.ts",
+       "ab",
+       "--out",
+       "<run-root>/out/formal-20261018T165743Z/ab"
+      ],
+      "files": {
+       "stdout": "ab.stdout.log",
+       "stderr": "ab.stderr.log",
+       "manifest": "ab/manifest.json"
+      },
+      "exit_code": 0,
+      "signal": null
+     },
+     {
+      "name": "after: no quiet bench command left",
+      "ok": true,
+      "start_utc": "2026-10-18T17:07:10.935Z",
+      "end_utc": "2026-10-18T17:07:10.989Z",
+      "mono_start_ms": 567094.054,
+      "mono_end_ms": 567147.728,
+      "loadavg_before": [
+       7.12,
+       6.08,
+       6.74
+      ],
+      "loadavg_after": [
+       7.12,
+       6.08,
+       6.74
+      ],
+      "sources_before": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "sources_after": {
+       "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+       "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+      },
+      "exit_code": 0,
+      "result": {
+       "left": []
+      }
+     }
+    ],
+    "driver": "run_lineage_formal.ts",
+    "root": "<run-root>",
+    "run_dir": "<run-root>/out/formal-20261018T165743Z",
+    "pid": 77050,
+    "started_utc": "2026-10-18T16:57:43.893Z",
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "node": "v24.22.0",
+    "tmpdir": "<run-root>/tmp",
+    "harness_sha256": {
+     "scripts/perf/bench_watches.ts": "e6644ad0ba01a10e2e43a347f99a665096f00925cd5a76165c05b054d89a76f3",
+     "scripts/perf/lib/app.ts": "0e8215511b8e0577bcf8ec2e1c7a008095a66ed87f1c3a4f5b6a667e437f9521",
+     "scripts/perf/lib/env.ts": "207a78cac0cf5c172ef4680301850578191d151cea4d142db1bc8c5403d3289a",
+     "scripts/perf/lib/fixtures.ts": "67322f3da3e2cacaa53fe24d4722452c371827166f20bcc8d3f1876171075b5f",
+     "scripts/perf/lib/stats.ts": "27fb3ad7fee2dc04dee3cb9031f32ff55644cb54728415c78342000246047816",
+     "scripts/perf/bench_lineage.ts": "128cf5c96300f001ef969c96c23a61893e79e303fd65a1742a17a5b4f8ba38c8",
+     "scripts/perf/lib/lineage_probe.ts": "fb7013fea560fd78edf648c0bcb9257a59d1d9e32b5894b77751764f91b44f50",
+     "scripts/perf/run_lineage_ab.ts": "678320a859614b793a62768aea3954f705442d78dd2aa5e828bf251d1ea548f0",
+     "scripts/perf/run_lineage_formal.ts": "5cb4e68806eb7e75e84640eefc1c70d6eda15535395f66ed7f7ef6789d135689",
+     "tests/test_lineage_tick.test.ts": "e50d89e2c3d94e1d21173875ee50c834cb35e439edf4b5ce786218abf34305c5",
+     "tests/test_processes.test.ts": "076a2df36535dbb29bc8f7348a1915e93abec00fa0004343d88b9e200a50b29c",
+     "tests/test_fork_watch_record.test.ts": "143d6c78e47591fc9aecf5b69e37df375be0ce6ef858e671c325678a8071b558",
+     "tests/test_fork_watcher.test.ts": "58cabf99e96e6345a02dfc384a213772b36f04e5e38e3dcdfe5fea3f10fe49ad",
+     "tests/test_process_scratch_lifecycle.test.ts": "1c38efdeda2742af44c0ebd6d31c315fb1177e0d555a0ab54d91b3cc06aaab72"
+    },
+    "processes_ts_at_start": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+    "processes_ts_at_end": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+    "exit_code": 0,
+    "finished_utc": "2026-10-18T17:07:10.989Z",
+    "mono_total_ms": 567148.116
+   }
+  },
+  "smoke_manifest": {
+   "file": "smoke/manifest.json",
+   "sha256_as_written": "d7436e7a21983df068f4fafd5119b34f93f5063fbf1019646f1cf4747a6303d5",
+   "content": {
+    "stages": [
+     {
+      "name": "preflight",
+      "kind": "preflight",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:37.495Z",
+      "end_utc": "2026-10-18T16:58:37.549Z",
+      "mono_start_ms": 0.55,
+      "mono_end_ms": 54.642,
+      "loadavg_before": [
+       4.8,
+       7.94,
+       7.89
+      ],
+      "loadavg_after": [
+       4.8,
+       7.94,
+       7.89
+      ]
+     },
+     {
+      "name": "bench 01_after",
+      "kind": "bench",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:37.549Z",
+      "end_utc": "2026-10-18T16:58:44.433Z",
+      "mono_start_ms": 54.919,
+      "mono_end_ms": 6938.538,
+      "loadavg_before": [
+       4.8,
+       7.94,
+       7.89
+      ],
+      "loadavg_after": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "command": [
+       "bun",
+       "--preload",
+       "./scripts/perf/lib/lineage_probe.ts",
+       "scripts/perf/bench_lineage.ts",
+       "--commands",
+       "0,1",
+       "--window-s",
+       "2",
+       "--rounds",
+       "1",
+       "--label",
+       "after",
+       "--name",
+       "01_after",
+       "--out",
+       "<run-root>/out/formal-20261018T165743Z/smoke"
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "4dcf34adb75e350b42ef695b465922ae35597b03",
+        "sha256": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      },
+      "log": {
+       "stdout": "01_after.stdout.log",
+       "stderr": "01_after.stderr.log"
+      },
+      "exit_code": 0,
+      "signal": null
+     },
+     {
+      "name": "validate 01_after",
+      "kind": "validate",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:44.433Z",
+      "end_utc": "2026-10-18T16:58:44.433Z",
+      "mono_start_ms": 6938.619,
+      "mono_end_ms": 6938.738,
+      "loadavg_before": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "loadavg_after": [
+       4.81,
+       7.84,
+       7.86
+      ]
+     }
+    ],
+    "mode": "smoke",
+    "base": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "branch": "fix/perf-lineage-polling-20261018",
+    "status_porcelain": "M backend-ts/src/execution/processes.ts\n?? backend-ts/scripts/perf/\n?? backend-ts/tests/test_lineage_tick.test.ts",
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "platform": "darwin",
+    "arch": "arm64",
+    "harness_sha256": {
+     "scripts/perf/bench_watches.ts": "e6644ad0ba01a10e2e43a347f99a665096f00925cd5a76165c05b054d89a76f3",
+     "scripts/perf/lib/app.ts": "0e8215511b8e0577bcf8ec2e1c7a008095a66ed87f1c3a4f5b6a667e437f9521",
+     "scripts/perf/lib/env.ts": "207a78cac0cf5c172ef4680301850578191d151cea4d142db1bc8c5403d3289a",
+     "scripts/perf/lib/fixtures.ts": "67322f3da3e2cacaa53fe24d4722452c371827166f20bcc8d3f1876171075b5f",
+     "scripts/perf/lib/stats.ts": "27fb3ad7fee2dc04dee3cb9031f32ff55644cb54728415c78342000246047816",
+     "scripts/perf/bench_lineage.ts": "128cf5c96300f001ef969c96c23a61893e79e303fd65a1742a17a5b4f8ba38c8",
+     "scripts/perf/lib/lineage_probe.ts": "fb7013fea560fd78edf648c0bcb9257a59d1d9e32b5894b77751764f91b44f50",
+     "scripts/perf/run_lineage_ab.ts": "678320a859614b793a62768aea3954f705442d78dd2aa5e828bf251d1ea548f0"
+    },
+    "processes_ts": {
+     "baseline": {
+      "blob": "c86ecced92e6cecebb586c4c278cd2a5013a023e",
+      "sha256": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22"
+     },
+     "after": {
+      "blob": "4dcf34adb75e350b42ef695b465922ae35597b03",
+      "sha256": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994"
+     }
+    },
+    "lineage_ts": {
+     "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+     "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+    },
+    "production_changed_from_base": [
+     "backend-ts/src/execution/processes.ts"
+    ],
+    "production_untracked": [],
+    "exit_code": 0,
+    "finished_utc": "2026-10-18T16:58:44.433Z",
+    "mono_total_ms": 6938.854
+   }
+  },
+  "smoke_01_after": {
+   "file": "smoke/01_after.json",
+   "sha256_as_written": "58dd049e8107510a82759cdf85491e213a81311db5907b531fb3881c43076a3e",
+   "content": {
+    "bench": "lineage",
+    "at": "2026-10-18T16:58:44.392Z",
+    "git_head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "git_branch": "fix/perf-lineage-polling-20261018",
+    "git_dirty_src": true,
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "platform": "darwin",
+    "arch": "arm64",
+    "os_release": "27.0.0",
+    "cpu": "Apple M4 Pro",
+    "cpu_count": 12,
+    "total_mem_gb": 48,
+    "loadavg_start": [
+     4.81,
+     7.84,
+     7.86
+    ],
+    "argv": [
+     "--commands",
+     "0,1",
+     "--window-s",
+     "2",
+     "--rounds",
+     "1",
+     "--label",
+     "after",
+     "--name",
+     "01_after",
+     "--out",
+     "<run-root>/out/formal-20261018T165743Z/smoke"
+    ],
+    "label": "after",
+    "sources": {
+     "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+     "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+    },
+    "level": "ProcessManager in the perf app; real quiet child processes (passthrough sandbox mode); trackLineage instance wrapper + load-time identities() wrapper (main thread; CPU includes it)",
+    "params": {
+     "window_s": 2,
+     "rounds": 1,
+     "commands": [
+      0,
+      1
+     ]
+    },
+    "cases": [
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 0,
+      "still_running_at_end": 0,
+      "window_s": 2,
+      "track_lineage_calls": 0,
+      "track_lineage_calls_per_s": 0,
+      "track_lineage_ms_total": 0,
+      "table_scans": 0,
+      "table_scans_per_s": 0,
+      "table_scan_ms_total": 0,
+      "table_scan_ms_mean": null,
+      "rows_per_scan_mean": null,
+      "sql_statements": 1,
+      "cpu_ms": 4,
+      "cpu_pct_of_one_core": 0.202,
+      "host_processes_before": 1242,
+      "host_processes_after": 1244,
+      "loadavg_before": [
+       4.8,
+       7.94,
+       7.89
+      ],
+      "loadavg_after": [
+       4.97,
+       7.92,
+       7.89
+      ]
+     },
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 1,
+      "still_running_at_end": 1,
+      "window_s": 2,
+      "track_lineage_calls": 39,
+      "track_lineage_calls_per_s": 19.5,
+      "track_lineage_ms_total": 33.9,
+      "table_scans": 39,
+      "table_scans_per_s": 19.5,
+      "table_scan_ms_total": 32.6,
+      "table_scan_ms_mean": 0.835,
+      "rows_per_scan_mean": 1243.1,
+      "sql_statements": 2,
+      "cpu_ms": 62.8,
+      "cpu_pct_of_one_core": 3.137,
+      "host_processes_before": 1246,
+      "host_processes_after": 1243,
+      "loadavg_before": [
+       4.97,
+       7.92,
+       7.89
+      ],
+      "loadavg_after": [
+       4.81,
+       7.84,
+       7.86
+      ]
+     }
+    ],
+    "loadavg_end": [
+     4.81,
+     7.84,
+     7.86
+    ]
+   }
+  },
+  "ab_manifest": {
+   "file": "ab/manifest.json",
+   "sha256_as_written": "8bf41c6f15114d7260a18c4d205e148043c37cc3981c2b3d767a920a4151cfcb",
+   "content": {
+    "stages": [
+     {
+      "name": "preflight",
+      "kind": "preflight",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:44.449Z",
+      "end_utc": "2026-10-18T16:58:44.494Z",
+      "mono_start_ms": 0.498,
+      "mono_end_ms": 45.694,
+      "loadavg_before": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "loadavg_after": [
+       4.81,
+       7.84,
+       7.86
+      ]
+     },
+     {
+      "name": "swap in baseline processes.ts (1)",
+      "kind": "swap",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:44.494Z",
+      "end_utc": "2026-10-18T16:58:44.495Z",
+      "mono_start_ms": 45.769,
+      "mono_end_ms": 46.602,
+      "loadavg_before": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "loadavg_after": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "c86ecced92e6cecebb586c4c278cd2a5013a023e",
+        "sha256": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      }
+     },
+     {
+      "name": "bench 01_baseline",
+      "kind": "bench",
+      "ok": true,
+      "start_utc": "2026-10-18T16:58:44.496Z",
+      "end_utc": "2026-10-18T17:00:50.901Z",
+      "mono_start_ms": 46.918,
+      "mono_end_ms": 126452.232,
+      "loadavg_before": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "loadavg_after": [
+       5.16,
+       7.07,
+       7.56
+      ],
+      "command": [
+       "bun",
+       "--preload",
+       "./scripts/perf/lib/lineage_probe.ts",
+       "scripts/perf/bench_lineage.ts",
+       "--commands",
+       "0,1,5,10",
+       "--window-s",
+       "30",
+       "--rounds",
+       "1",
+       "--label",
+       "baseline",
+       "--name",
+       "01_baseline",
+       "--out",
+       "<run-root>/out/formal-20261018T165743Z/ab"
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "c86ecced92e6cecebb586c4c278cd2a5013a023e",
+        "sha256": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      },
+      "log": {
+       "stdout": "01_baseline.stdout.log",
+       "stderr": "01_baseline.stderr.log"
+      },
+      "exit_code": 0,
+      "signal": null
+     },
+     {
+      "name": "validate 01_baseline",
+      "kind": "validate",
+      "ok": true,
+      "start_utc": "2026-10-18T17:00:50.901Z",
+      "end_utc": "2026-10-18T17:00:50.901Z",
+      "mono_start_ms": 126452.367,
+      "mono_end_ms": 126452.519,
+      "loadavg_before": [
+       5.16,
+       7.07,
+       7.56
+      ],
+      "loadavg_after": [
+       5.16,
+       7.07,
+       7.56
+      ]
+     },
+     {
+      "name": "restore after bench 1",
+      "kind": "restore",
+      "ok": true,
+      "start_utc": "2026-10-18T17:00:50.901Z",
+      "end_utc": "2026-10-18T17:00:50.902Z",
+      "mono_start_ms": 126452.601,
+      "mono_end_ms": 126453.278,
+      "loadavg_before": [
+       5.16,
+       7.07,
+       7.56
+      ],
+      "loadavg_after": [
+       5.16,
+       7.07,
+       7.56
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "4dcf34adb75e350b42ef695b465922ae35597b03",
+        "sha256": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      }
+     },
+     {
+      "name": "bench 02_after",
+      "kind": "bench",
+      "ok": true,
+      "start_utc": "2026-10-18T17:00:50.902Z",
+      "end_utc": "2026-10-18T17:02:57.425Z",
+      "mono_start_ms": 126453.38,
+      "mono_end_ms": 252975.976,
+      "loadavg_before": [
+       5.16,
+       7.07,
+       7.56
+      ],
+      "loadavg_after": [
+       3.81,
+       5.85,
+       7
+      ],
+      "command": [
+       "bun",
+       "--preload",
+       "./scripts/perf/lib/lineage_probe.ts",
+       "scripts/perf/bench_lineage.ts",
+       "--commands",
+       "0,1,5,10",
+       "--window-s",
+       "30",
+       "--rounds",
+       "1",
+       "--label",
+       "after",
+       "--name",
+       "02_after",
+       "--out",
+       "<run-root>/out/formal-20261018T165743Z/ab"
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "4dcf34adb75e350b42ef695b465922ae35597b03",
+        "sha256": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      },
+      "log": {
+       "stdout": "02_after.stdout.log",
+       "stderr": "02_after.stderr.log"
+      },
+      "exit_code": 0,
+      "signal": null
+     },
+     {
+      "name": "validate 02_after",
+      "kind": "validate",
+      "ok": true,
+      "start_utc": "2026-10-18T17:02:57.425Z",
+      "end_utc": "2026-10-18T17:02:57.425Z",
+      "mono_start_ms": 252976.098,
+      "mono_end_ms": 252976.239,
+      "loadavg_before": [
+       3.81,
+       5.85,
+       7
+      ],
+      "loadavg_after": [
+       3.81,
+       5.85,
+       7
+      ]
+     },
+     {
+      "name": "swap in baseline processes.ts (3)",
+      "kind": "swap",
+      "ok": true,
+      "start_utc": "2026-10-18T17:02:57.425Z",
+      "end_utc": "2026-10-18T17:02:57.425Z",
+      "mono_start_ms": 252976.301,
+      "mono_end_ms": 252976.803,
+      "loadavg_before": [
+       3.81,
+       5.85,
+       7
+      ],
+      "loadavg_after": [
+       3.81,
+       5.85,
+       7
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "c86ecced92e6cecebb586c4c278cd2a5013a023e",
+        "sha256": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      }
+     },
+     {
+      "name": "bench 03_baseline",
+      "kind": "bench",
+      "ok": true,
+      "start_utc": "2026-10-18T17:02:57.426Z",
+      "end_utc": "2026-10-18T17:05:04.047Z",
+      "mono_start_ms": 252976.918,
+      "mono_end_ms": 379598.124,
+      "loadavg_before": [
+       3.81,
+       5.85,
+       7
+      ],
+      "loadavg_after": [
+       5.02,
+       5.47,
+       6.67
+      ],
+      "command": [
+       "bun",
+       "--preload",
+       "./scripts/perf/lib/lineage_probe.ts",
+       "scripts/perf/bench_lineage.ts",
+       "--commands",
+       "0,1,5,10",
+       "--window-s",
+       "30",
+       "--rounds",
+       "1",
+       "--label",
+       "baseline",
+       "--name",
+       "03_baseline",
+       "--out",
+       "<run-root>/out/formal-20261018T165743Z/ab"
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "c86ecced92e6cecebb586c4c278cd2a5013a023e",
+        "sha256": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      },
+      "log": {
+       "stdout": "03_baseline.stdout.log",
+       "stderr": "03_baseline.stderr.log"
+      },
+      "exit_code": 0,
+      "signal": null
+     },
+     {
+      "name": "validate 03_baseline",
+      "kind": "validate",
+      "ok": true,
+      "start_utc": "2026-10-18T17:05:04.047Z",
+      "end_utc": "2026-10-18T17:05:04.047Z",
+      "mono_start_ms": 379598.292,
+      "mono_end_ms": 379598.429,
+      "loadavg_before": [
+       5.02,
+       5.47,
+       6.67
+      ],
+      "loadavg_after": [
+       5.02,
+       5.47,
+       6.67
+      ]
+     },
+     {
+      "name": "restore after bench 3",
+      "kind": "restore",
+      "ok": true,
+      "start_utc": "2026-10-18T17:05:04.047Z",
+      "end_utc": "2026-10-18T17:05:04.048Z",
+      "mono_start_ms": 379598.489,
+      "mono_end_ms": 379599.037,
+      "loadavg_before": [
+       5.02,
+       5.47,
+       6.67
+      ],
+      "loadavg_after": [
+       5.02,
+       5.47,
+       6.67
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "4dcf34adb75e350b42ef695b465922ae35597b03",
+        "sha256": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      }
+     },
+     {
+      "name": "bench 04_after",
+      "kind": "bench",
+      "ok": true,
+      "start_utc": "2026-10-18T17:05:04.048Z",
+      "end_utc": "2026-10-18T17:07:10.932Z",
+      "mono_start_ms": 379599.098,
+      "mono_end_ms": 506483.603,
+      "loadavg_before": [
+       5.02,
+       5.47,
+       6.67
+      ],
+      "loadavg_after": [
+       7.12,
+       6.08,
+       6.74
+      ],
+      "command": [
+       "bun",
+       "--preload",
+       "./scripts/perf/lib/lineage_probe.ts",
+       "scripts/perf/bench_lineage.ts",
+       "--commands",
+       "0,1,5,10",
+       "--window-s",
+       "30",
+       "--rounds",
+       "1",
+       "--label",
+       "after",
+       "--name",
+       "04_after",
+       "--out",
+       "<run-root>/out/formal-20261018T165743Z/ab"
+      ],
+      "sources": {
+       "backend-ts/src/execution/processes.ts": {
+        "blob": "4dcf34adb75e350b42ef695b465922ae35597b03",
+        "sha256": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994"
+       },
+       "backend-ts/src/execution/lineage.ts": {
+        "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+        "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+       }
+      },
+      "log": {
+       "stdout": "04_after.stdout.log",
+       "stderr": "04_after.stderr.log"
+      },
+      "exit_code": 0,
+      "signal": null
+     },
+     {
+      "name": "validate 04_after",
+      "kind": "validate",
+      "ok": true,
+      "start_utc": "2026-10-18T17:07:10.933Z",
+      "end_utc": "2026-10-18T17:07:10.933Z",
+      "mono_start_ms": 506484.449,
+      "mono_end_ms": 506484.664,
+      "loadavg_before": [
+       7.12,
+       6.08,
+       6.74
+      ],
+      "loadavg_after": [
+       7.12,
+       6.08,
+       6.74
+      ]
+     }
+    ],
+    "mode": "ab",
+    "base": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "branch": "fix/perf-lineage-polling-20261018",
+    "status_porcelain": "M backend-ts/src/execution/processes.ts\n?? backend-ts/scripts/perf/\n?? backend-ts/tests/test_lineage_tick.test.ts",
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "platform": "darwin",
+    "arch": "arm64",
+    "harness_sha256": {
+     "scripts/perf/bench_watches.ts": "e6644ad0ba01a10e2e43a347f99a665096f00925cd5a76165c05b054d89a76f3",
+     "scripts/perf/lib/app.ts": "0e8215511b8e0577bcf8ec2e1c7a008095a66ed87f1c3a4f5b6a667e437f9521",
+     "scripts/perf/lib/env.ts": "207a78cac0cf5c172ef4680301850578191d151cea4d142db1bc8c5403d3289a",
+     "scripts/perf/lib/fixtures.ts": "67322f3da3e2cacaa53fe24d4722452c371827166f20bcc8d3f1876171075b5f",
+     "scripts/perf/lib/stats.ts": "27fb3ad7fee2dc04dee3cb9031f32ff55644cb54728415c78342000246047816",
+     "scripts/perf/bench_lineage.ts": "128cf5c96300f001ef969c96c23a61893e79e303fd65a1742a17a5b4f8ba38c8",
+     "scripts/perf/lib/lineage_probe.ts": "fb7013fea560fd78edf648c0bcb9257a59d1d9e32b5894b77751764f91b44f50",
+     "scripts/perf/run_lineage_ab.ts": "678320a859614b793a62768aea3954f705442d78dd2aa5e828bf251d1ea548f0"
+    },
+    "processes_ts": {
+     "baseline": {
+      "blob": "c86ecced92e6cecebb586c4c278cd2a5013a023e",
+      "sha256": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22"
+     },
+     "after": {
+      "blob": "4dcf34adb75e350b42ef695b465922ae35597b03",
+      "sha256": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994"
+     }
+    },
+    "lineage_ts": {
+     "blob": "63daea99a56a5fa0b8930223491e9fcc7ad70a92",
+     "sha256": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+    },
+    "production_changed_from_base": [
+     "backend-ts/src/execution/processes.ts"
+    ],
+    "production_untracked": [],
+    "exit_code": 0,
+    "finished_utc": "2026-10-18T17:07:10.933Z",
+    "mono_total_ms": 506484.829
+   }
+  },
+  "ab_01_baseline": {
+   "file": "ab/01_baseline.json",
+   "sha256_as_written": "f6dd83a10aa7e47214ad346318addc5ecb625ab4162b6d40530f77626c3bb5ed",
+   "content": {
+    "bench": "lineage",
+    "at": "2026-10-18T17:00:50.830Z",
+    "git_head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "git_branch": "fix/perf-lineage-polling-20261018",
+    "git_dirty_src": false,
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "platform": "darwin",
+    "arch": "arm64",
+    "os_release": "27.0.0",
+    "cpu": "Apple M4 Pro",
+    "cpu_count": 12,
+    "total_mem_gb": 48,
+    "loadavg_start": [
+     5.16,
+     7.07,
+     7.56
+    ],
+    "argv": [
+     "--commands",
+     "0,1,5,10",
+     "--window-s",
+     "30",
+     "--rounds",
+     "1",
+     "--label",
+     "baseline",
+     "--name",
+     "01_baseline",
+     "--out",
+     "<run-root>/out/formal-20261018T165743Z/ab"
+    ],
+    "label": "baseline",
+    "sources": {
+     "src/execution/processes.ts": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22",
+     "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+    },
+    "level": "ProcessManager in the perf app; real quiet child processes (passthrough sandbox mode); trackLineage instance wrapper + load-time identities() wrapper (main thread; CPU includes it)",
+    "params": {
+     "window_s": 30,
+     "rounds": 1,
+     "commands": [
+      0,
+      1,
+      5,
+      10
+     ]
+    },
+    "cases": [
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 0,
+      "still_running_at_end": 0,
+      "window_s": 30,
+      "track_lineage_calls": 0,
+      "track_lineage_calls_per_s": 0,
+      "track_lineage_ms_total": 0,
+      "table_scans": 0,
+      "table_scans_per_s": 0,
+      "table_scan_ms_total": 0,
+      "table_scan_ms_mean": null,
+      "rows_per_scan_mean": null,
+      "sql_statements": 7,
+      "cpu_ms": 79.8,
+      "cpu_pct_of_one_core": 0.266,
+      "host_processes_before": 1243,
+      "host_processes_after": 1245,
+      "loadavg_before": [
+       4.81,
+       7.84,
+       7.86
+      ],
+      "loadavg_after": [
+       6.37,
+       7.93,
+       7.89
+      ]
+     },
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 1,
+      "still_running_at_end": 1,
+      "window_s": 30,
+      "track_lineage_calls": 580,
+      "track_lineage_calls_per_s": 19.3,
+      "track_lineage_ms_total": 472,
+      "table_scans": 580,
+      "table_scans_per_s": 19.3,
+      "table_scan_ms_total": 460.3,
+      "table_scan_ms_mean": 0.794,
+      "rows_per_scan_mean": 1246.2,
+      "sql_statements": 8,
+      "cpu_ms": 940.6,
+      "cpu_pct_of_one_core": 3.135,
+      "host_processes_before": 1246,
+      "host_processes_after": 1249,
+      "loadavg_before": [
+       6.37,
+       7.93,
+       7.89
+      ],
+      "loadavg_after": [
+       6.23,
+       7.74,
+       7.82
+      ]
+     },
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 5,
+      "still_running_at_end": 5,
+      "window_s": 30,
+      "track_lineage_calls": 2900,
+      "track_lineage_calls_per_s": 96.7,
+      "track_lineage_ms_total": 1571.5,
+      "table_scans": 2900,
+      "table_scans_per_s": 96.7,
+      "table_scan_ms_total": 1528.7,
+      "table_scan_ms_mean": 0.527,
+      "rows_per_scan_mean": 1249.6,
+      "sql_statements": 12,
+      "cpu_ms": 2439.9,
+      "cpu_pct_of_one_core": 8.133,
+      "host_processes_before": 1250,
+      "host_processes_after": 1254,
+      "loadavg_before": [
+       6.23,
+       7.74,
+       7.82
+      ],
+      "loadavg_after": [
+       5.19,
+       7.33,
+       7.67
+      ]
+     },
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 10,
+      "still_running_at_end": 10,
+      "window_s": 30,
+      "track_lineage_calls": 5790,
+      "track_lineage_calls_per_s": 193,
+      "track_lineage_ms_total": 3034.1,
+      "table_scans": 5790,
+      "table_scans_per_s": 193,
+      "table_scan_ms_total": 2945,
+      "table_scan_ms_mean": 0.509,
+      "rows_per_scan_mean": 1255,
+      "sql_statements": 17,
+      "cpu_ms": 4374.7,
+      "cpu_pct_of_one_core": 14.582,
+      "host_processes_before": 1263,
+      "host_processes_after": 1260,
+      "loadavg_before": [
+       5.5,
+       7.36,
+       7.67
+      ],
+      "loadavg_after": [
+       5.16,
+       7.07,
+       7.56
+      ]
+     }
+    ],
+    "loadavg_end": [
+     5.16,
+     7.07,
+     7.56
+    ]
+   }
+  },
+  "ab_02_after": {
+   "file": "ab/02_after.json",
+   "sha256_as_written": "1f834ffa9312fb602cdfeef201081a71ac6852f720a06ce97436a07bf1eef629",
+   "content": {
+    "bench": "lineage",
+    "at": "2026-10-18T17:02:57.358Z",
+    "git_head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "git_branch": "fix/perf-lineage-polling-20261018",
+    "git_dirty_src": true,
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "platform": "darwin",
+    "arch": "arm64",
+    "os_release": "27.0.0",
+    "cpu": "Apple M4 Pro",
+    "cpu_count": 12,
+    "total_mem_gb": 48,
+    "loadavg_start": [
+     3.81,
+     5.85,
+     7
+    ],
+    "argv": [
+     "--commands",
+     "0,1,5,10",
+     "--window-s",
+     "30",
+     "--rounds",
+     "1",
+     "--label",
+     "after",
+     "--name",
+     "02_after",
+     "--out",
+     "<run-root>/out/formal-20261018T165743Z/ab"
+    ],
+    "label": "after",
+    "sources": {
+     "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+     "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+    },
+    "level": "ProcessManager in the perf app; real quiet child processes (passthrough sandbox mode); trackLineage instance wrapper + load-time identities() wrapper (main thread; CPU includes it)",
+    "params": {
+     "window_s": 30,
+     "rounds": 1,
+     "commands": [
+      0,
+      1,
+      5,
+      10
+     ]
+    },
+    "cases": [
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 0,
+      "still_running_at_end": 0,
+      "window_s": 30,
+      "track_lineage_calls": 0,
+      "track_lineage_calls_per_s": 0,
+      "track_lineage_ms_total": 0,
+      "table_scans": 0,
+      "table_scans_per_s": 0,
+      "table_scan_ms_total": 0,
+      "table_scan_ms_mean": null,
+      "rows_per_scan_mean": null,
+      "sql_statements": 7,
+      "cpu_ms": 51.1,
+      "cpu_pct_of_one_core": 0.17,
+      "host_processes_before": 1259,
+      "host_processes_after": 1263,
+      "loadavg_before": [
+       5.16,
+       7.07,
+       7.56
+      ],
+      "loadavg_after": [
+       4.11,
+       6.64,
+       7.38
+      ]
+     },
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 1,
+      "still_running_at_end": 1,
+      "window_s": 30,
+      "track_lineage_calls": 579,
+      "track_lineage_calls_per_s": 19.3,
+      "track_lineage_ms_total": 555.3,
+      "table_scans": 579,
+      "table_scans_per_s": 19.3,
+      "table_scan_ms_total": 542.2,
+      "table_scan_ms_mean": 0.936,
+      "rows_per_scan_mean": 1247.6,
+      "sql_statements": 8,
+      "cpu_ms": 1062.1,
+      "cpu_pct_of_one_core": 3.54,
+      "host_processes_before": 1264,
+      "host_processes_after": 1243,
+      "loadavg_before": [
+       4.11,
+       6.64,
+       7.38
+      ],
+      "loadavg_after": [
+       3.95,
+       6.35,
+       7.25
+      ]
+     },
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 5,
+      "still_running_at_end": 5,
+      "window_s": 30,
+      "track_lineage_calls": 576,
+      "track_lineage_calls_per_s": 19.2,
+      "track_lineage_ms_total": 708.7,
+      "table_scans": 576,
+      "table_scans_per_s": 19.2,
+      "table_scan_ms_total": 659.7,
+      "table_scan_ms_mean": 1.145,
+      "rows_per_scan_mean": 1246.6,
+      "sql_statements": 12,
+      "cpu_ms": 1274.1,
+      "cpu_pct_of_one_core": 4.247,
+      "host_processes_before": 1247,
+      "host_processes_after": 1247,
+      "loadavg_before": [
+       4.35,
+       6.4,
+       7.26
+      ],
+      "loadavg_after": [
+       3.78,
+       6.05,
+       7.11
+      ]
+     },
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 10,
+      "still_running_at_end": 10,
+      "window_s": 30,
+      "track_lineage_calls": 580,
+      "track_lineage_calls_per_s": 19.3,
+      "track_lineage_ms_total": 523.7,
+      "table_scans": 580,
+      "table_scans_per_s": 19.3,
+      "table_scan_ms_total": 459.9,
+      "table_scan_ms_mean": 0.793,
+      "rows_per_scan_mean": 1250.7,
+      "sql_statements": 17,
+      "cpu_ms": 1057.5,
+      "cpu_pct_of_one_core": 3.525,
+      "host_processes_before": 1252,
+      "host_processes_after": 1256,
+      "loadavg_before": [
+       3.78,
+       6.05,
+       7.11
+      ],
+      "loadavg_after": [
+       3.81,
+       5.85,
+       7
+      ]
+     }
+    ],
+    "loadavg_end": [
+     3.81,
+     5.85,
+     7
+    ]
+   }
+  },
+  "ab_03_baseline": {
+   "file": "ab/03_baseline.json",
+   "sha256_as_written": "ad723d1d27d2abfb9390973e08a212f407a9ae55d663efaf9216a12397739471",
+   "content": {
+    "bench": "lineage",
+    "at": "2026-10-18T17:05:03.978Z",
+    "git_head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "git_branch": "fix/perf-lineage-polling-20261018",
+    "git_dirty_src": false,
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "platform": "darwin",
+    "arch": "arm64",
+    "os_release": "27.0.0",
+    "cpu": "Apple M4 Pro",
+    "cpu_count": 12,
+    "total_mem_gb": 48,
+    "loadavg_start": [
+     5.02,
+     5.47,
+     6.67
+    ],
+    "argv": [
+     "--commands",
+     "0,1,5,10",
+     "--window-s",
+     "30",
+     "--rounds",
+     "1",
+     "--label",
+     "baseline",
+     "--name",
+     "03_baseline",
+     "--out",
+     "<run-root>/out/formal-20261018T165743Z/ab"
+    ],
+    "label": "baseline",
+    "sources": {
+     "src/execution/processes.ts": "bf472cac37aaf3b12313d98daf6e20efad958cc471c02a0089ee90171a8e6c22",
+     "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+    },
+    "level": "ProcessManager in the perf app; real quiet child processes (passthrough sandbox mode); trackLineage instance wrapper + load-time identities() wrapper (main thread; CPU includes it)",
+    "params": {
+     "window_s": 30,
+     "rounds": 1,
+     "commands": [
+      0,
+      1,
+      5,
+      10
+     ]
+    },
+    "cases": [
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 0,
+      "still_running_at_end": 0,
+      "window_s": 30,
+      "track_lineage_calls": 0,
+      "track_lineage_calls_per_s": 0,
+      "track_lineage_ms_total": 0,
+      "table_scans": 0,
+      "table_scans_per_s": 0,
+      "table_scan_ms_total": 0,
+      "table_scan_ms_mean": null,
+      "rows_per_scan_mean": null,
+      "sql_statements": 7,
+      "cpu_ms": 86.1,
+      "cpu_pct_of_one_core": 0.287,
+      "host_processes_before": 1251,
+      "host_processes_after": 1249,
+      "loadavg_before": [
+       3.81,
+       5.85,
+       7
+      ],
+      "loadavg_after": [
+       4.35,
+       5.77,
+       6.93
+      ]
+     },
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 1,
+      "still_running_at_end": 1,
+      "window_s": 30,
+      "track_lineage_calls": 578,
+      "track_lineage_calls_per_s": 19.3,
+      "track_lineage_ms_total": 611,
+      "table_scans": 578,
+      "table_scans_per_s": 19.3,
+      "table_scan_ms_total": 596.2,
+      "table_scan_ms_mean": 1.031,
+      "rows_per_scan_mean": 1248.3,
+      "sql_statements": 8,
+      "cpu_ms": 1127.7,
+      "cpu_pct_of_one_core": 3.759,
+      "host_processes_before": 1250,
+      "host_processes_after": 1251,
+      "loadavg_before": [
+       4.4,
+       5.76,
+       6.92
+      ],
+      "loadavg_after": [
+       3.85,
+       5.5,
+       6.78
+      ]
+     },
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 5,
+      "still_running_at_end": 5,
+      "window_s": 30,
+      "track_lineage_calls": 2895,
+      "track_lineage_calls_per_s": 96.5,
+      "track_lineage_ms_total": 1874.7,
+      "table_scans": 2895,
+      "table_scans_per_s": 96.5,
+      "table_scan_ms_total": 1820.5,
+      "table_scan_ms_mean": 0.629,
+      "rows_per_scan_mean": 1253.1,
+      "sql_statements": 12,
+      "cpu_ms": 2831.1,
+      "cpu_pct_of_one_core": 9.437,
+      "host_processes_before": 1251,
+      "host_processes_after": 1253,
+      "loadavg_before": [
+       3.85,
+       5.5,
+       6.78
+      ],
+      "loadavg_after": [
+       3.85,
+       5.35,
+       6.68
+      ]
+     },
+     {
+      "label": "baseline",
+      "round": 1,
+      "running_commands": 10,
+      "still_running_at_end": 10,
+      "window_s": 30,
+      "track_lineage_calls": 5780,
+      "track_lineage_calls_per_s": 192.7,
+      "track_lineage_ms_total": 3322.8,
+      "table_scans": 5780,
+      "table_scans_per_s": 192.7,
+      "table_scan_ms_total": 3235,
+      "table_scan_ms_mean": 0.56,
+      "rows_per_scan_mean": 1253.3,
+      "sql_statements": 17,
+      "cpu_ms": 4658.7,
+      "cpu_pct_of_one_core": 15.528,
+      "host_processes_before": 1258,
+      "host_processes_after": 1253,
+      "loadavg_before": [
+       3.85,
+       5.35,
+       6.68
+      ],
+      "loadavg_after": [
+       4.67,
+       5.41,
+       6.66
+      ]
+     }
+    ],
+    "loadavg_end": [
+     5.02,
+     5.47,
+     6.67
+    ]
+   }
+  },
+  "ab_04_after": {
+   "file": "ab/04_after.json",
+   "sha256_as_written": "9ce026a8600a7900f4a8839f6ea9fec5dd3cdd41f236aa5d9df1ad270d323f8f",
+   "content": {
+    "bench": "lineage",
+    "at": "2026-10-18T17:07:10.857Z",
+    "git_head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+    "git_branch": "fix/perf-lineage-polling-20261018",
+    "git_dirty_src": true,
+    "bun": "1.4.0",
+    "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+    "platform": "darwin",
+    "arch": "arm64",
+    "os_release": "27.0.0",
+    "cpu": "Apple M4 Pro",
+    "cpu_count": 12,
+    "total_mem_gb": 48,
+    "loadavg_start": [
+     7.12,
+     6.08,
+     6.74
+    ],
+    "argv": [
+     "--commands",
+     "0,1,5,10",
+     "--window-s",
+     "30",
+     "--rounds",
+     "1",
+     "--label",
+     "after",
+     "--name",
+     "04_after",
+     "--out",
+     "<run-root>/out/formal-20261018T165743Z/ab"
+    ],
+    "label": "after",
+    "sources": {
+     "src/execution/processes.ts": "7e2ed52849c2e96bc7f6665463b340381cb67983b5ee120b5f056ab2c41fa994",
+     "src/execution/lineage.ts": "523cea7bf9f0d25a2cd588bc7972b731f02b36705b39826fd64e45979705b21e"
+    },
+    "level": "ProcessManager in the perf app; real quiet child processes (passthrough sandbox mode); trackLineage instance wrapper + load-time identities() wrapper (main thread; CPU includes it)",
+    "params": {
+     "window_s": 30,
+     "rounds": 1,
+     "commands": [
+      0,
+      1,
+      5,
+      10
+     ]
+    },
+    "cases": [
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 0,
+      "still_running_at_end": 0,
+      "window_s": 30,
+      "track_lineage_calls": 0,
+      "track_lineage_calls_per_s": 0,
+      "track_lineage_ms_total": 0,
+      "table_scans": 0,
+      "table_scans_per_s": 0,
+      "table_scan_ms_total": 0,
+      "table_scan_ms_mean": null,
+      "rows_per_scan_mean": null,
+      "sql_statements": 7,
+      "cpu_ms": 63.3,
+      "cpu_pct_of_one_core": 0.211,
+      "host_processes_before": 1251,
+      "host_processes_after": 1273,
+      "loadavg_before": [
+       5.02,
+       5.47,
+       6.67
+      ],
+      "loadavg_after": [
+       6.07,
+       5.63,
+       6.68
+      ]
+     },
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 1,
+      "still_running_at_end": 1,
+      "window_s": 30,
+      "track_lineage_calls": 578,
+      "track_lineage_calls_per_s": 19.3,
+      "track_lineage_ms_total": 559.7,
+      "table_scans": 578,
+      "table_scans_per_s": 19.3,
+      "table_scan_ms_total": 546.6,
+      "table_scan_ms_mean": 0.946,
+      "rows_per_scan_mean": 1272,
+      "sql_statements": 8,
+      "cpu_ms": 1003.5,
+      "cpu_pct_of_one_core": 3.345,
+      "host_processes_before": 1274,
+      "host_processes_after": 1277,
+      "loadavg_before": [
+       6.07,
+       5.63,
+       6.68
+      ],
+      "loadavg_after": [
+       7.44,
+       5.98,
+       6.77
+      ]
+     },
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 5,
+      "still_running_at_end": 5,
+      "window_s": 30,
+      "track_lineage_calls": 578,
+      "track_lineage_calls_per_s": 19.3,
+      "track_lineage_ms_total": 579.1,
+      "table_scans": 578,
+      "table_scans_per_s": 19.3,
+      "table_scan_ms_total": 542.9,
+      "table_scan_ms_mean": 0.939,
+      "rows_per_scan_mean": 1278,
+      "sql_statements": 12,
+      "cpu_ms": 1094.1,
+      "cpu_pct_of_one_core": 3.647,
+      "host_processes_before": 1281,
+      "host_processes_after": 1277,
+      "loadavg_before": [
+       7.44,
+       5.98,
+       6.77
+      ],
+      "loadavg_after": [
+       6.33,
+       5.86,
+       6.7
+      ]
+     },
+     {
+      "label": "after",
+      "round": 1,
+      "running_commands": 10,
+      "still_running_at_end": 10,
+      "window_s": 30,
+      "track_lineage_calls": 575,
+      "track_lineage_calls_per_s": 19.2,
+      "track_lineage_ms_total": 716.7,
+      "table_scans": 575,
+      "table_scans_per_s": 19.2,
+      "table_scan_ms_total": 635.7,
+      "table_scan_ms_mean": 1.106,
+      "rows_per_scan_mean": 1282.6,
+      "sql_statements": 17,
+      "cpu_ms": 1306,
+      "cpu_pct_of_one_core": 4.353,
+      "host_processes_before": 1281,
+      "host_processes_after": 1293,
+      "loadavg_before": [
+       6.22,
+       5.84,
+       6.69
+      ],
+      "loadavg_after": [
+       7.12,
+       6.08,
+       6.74
+      ]
+     }
+    ],
+    "loadavg_end": [
+     7.12,
+     6.08,
+     6.74
+    ]
+   }
+  }
+ }
+}

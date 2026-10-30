@@ -1,0 +1,29 @@
+/* The session share's page around the app's thread (everything else is the app's own index.css): the thread fills the
+   page alone — no rail, no composer dock, so no room kept for one — and the closing note and the palette buttons. */
+.share-shell .thread { --dock-h: 0px; }
+.share-theme { display: inline-flex; gap: 4px; flex: none; }
+.share-about { color: var(--ink-2); font-size: 12px; line-height: 1.5; }
+.share-about summary { cursor: pointer; }
+.share-about p { margin: 6px 0; }
+.share-about ul { margin: 2px 0 6px 18px; padding: 0; }
+@media (max-width: 560px) { .share-theme .thread-btn { padding: 0 7px; } }
+/* the room of a control the copy leaves out (CopyText under the share's presentation): the app's own box, never drawn */
+.share-action-space { visibility: hidden; pointer-events: none; }
+/* the chosen palette's button under the pointer keeps the product's active colours: the app's hover rule
+   (.thread-btn:hover, a light inset background) outranks .thread-btn.active's background but not its ink colour, which
+   left the active word nearly invisible on hover (light: white on near-white; dark: near-black on near-black) */
+.share-theme .thread-btn.active:hover:not(:disabled) { background: var(--ink); color: var(--surface); }
+/* a task's sessions: the app's rail (its rows, its bots stacked), at the rail's default width; stacked above the
+   thread on a narrow page */
+.share-rail { width: 248px; }
+.share-rail .rail-scroll { padding-top: 8px; }
+@media (max-width: 640px) {
+  .share-shell .workspace.desk { flex-direction: column; }
+  .share-rail { width: auto; max-height: 30vh; }
+  .share-rail .sidebar { border-right: none; border-bottom: 1px solid var(--line); }
+}
+/* the Agent Teams card: the desk's dock in its default corner and size, still (no drag, no resize) */
+.share-desk > .desk-win { left: auto; top: auto; right: 12px; bottom: 12px; width: 300px; height: 260px; max-width: calc(100% - 24px); max-height: calc(100% - 24px); }
+.share-desk > .desk-win.collapsed { height: 35px; min-height: 0; }
+.share-desk > .desk-win.expanded { inset: 18px; width: auto; height: auto; max-width: none; max-height: none; }
+.share-desk .desk-title, .share-desk .desk-title:active { cursor: default; }

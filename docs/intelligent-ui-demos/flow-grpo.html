@@ -1,0 +1,249 @@
+<style>
+  .fg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px 12px; }
+  .fg-grid label, .fg-scratch { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--ink-2); }
+  .fg-grid input:invalid { border-color: var(--red); }
+  .fg-note { font-size: 11.5px; color: var(--ink-3); margin: 4px 0 8px; }
+  .fg-nums { display: flex; gap: 18px; flex-wrap: wrap; margin: 10px 0 6px; font-size: 12px; color: var(--ink-2); }
+  .fg-nums b { display: block; font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .fg-chart { width: 100%; height: 120px; display: block; }
+  .fg-chart rect { fill: var(--accent); }
+  .fg-chart rect.capped { fill: var(--orange); }
+  .fg-chart text { font-size: 10px; fill: var(--ink-2); }
+  .fg-chart line { stroke: var(--line-strong); stroke-width: 1; }
+  .fg-agent { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 6px; }
+  .fg-agent[data-fresh="pending"] .fg-nums b { color: var(--ink-3); }
+  .fg-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
+  .fg-bad { color: var(--red); font-size: 12px; margin: 4px 0; }
+  #fg-status { font-size: 12px; color: var(--ink-2); }
+  #fg-log { font-family: var(--font-mono); font-size: 11px; max-height: 96px; overflow: auto; white-space: pre-wrap; color: var(--ink-3); margin: 4px 0 0; }
+  #agent_text { white-space: pre-wrap; font-size: 12px; }
+</style>
+<h3>Flow-GRPO: rollout cost and SDE noise schedule</h3>
+<p class="fg-note">Illustrative estimate. The seconds per phase use demo constants — sampling 0.05 s per SDE evaluation, reward 0.02 s per rollout, update 0.03 s per SDE evaluation — not hardware measurements and not published performance figures.</p>
+<div class="fg-grid">
+  <label>Group size G (integer 2–64) <input id="group_size" type="number" min="2" max="64" step="1" required></label>
+  <label>Prompts per step (integer 1–512) <input id="prompts" type="number" min="1" max="512" step="1" required></label>
+  <label>Training SDE steps T (integer 1–40) <input id="sde_steps" type="number" min="1" max="40" step="1" required></label>
+  <label>Noise level a <input id="noise" type="range" min="0" max="1.5" step="0.1"><output id="noise_out"></output></label>
+  <label>KL β (0–1) <input id="kl_beta" type="number" min="0" max="1" step="0.01" required></label>
+  <label>Agent focus <select id="focus"><option value="cost">GPU cost</option><option value="stability">Stability</option></select></label>
+</div>
+<p id="fg-invalid" class="fg-bad" role="alert" hidden></p>
+<p class="fg-nums">
+  <span>Rollouts / step = prompts × G<b id="local_rollouts"></b></span>
+  <span>SDE evaluations / step = rollouts × T<b id="local_evals"></b></span>
+</p>
+<svg id="schedule" class="fg-chart" viewBox="0 0 600 120" role="img" aria-label="σ_t at the training steps"></svg>
+<p class="fg-note">σ<sub>t</sub> = a·√(t / (1 − t)), Flow-GRPO's SDE noise level, drawn at the T interior times t = 1 − k/(T + 1), k = 1…T. The axis is fixed at 0–3 so a change of a shows; bars above 3 are drawn at 3 (marked). The times and the cap are this demo's choices.</p>
+<label class="fg-scratch">Scratch notes (this page only, not saved) <textarea id="scratch" rows="2"></textarea></label>
+<div class="fg-row">
+  <button id="recompute" type="submit">Recompute with agent</button>
+  <button id="ask_recompute" type="button">Ask, then recompute</button>
+  <button id="stop" type="button" disabled>Stop</button>
+  <span id="fg-status" role="status">idle</span>
+</div>
+<section id="agent" class="fg-agent" aria-label="Agent result" data-fresh="none">
+  <p class="fg-nums">
+    <span>Rollouts / step (agent)<b id="agent_rollouts">—</b></span>
+    <span>SDE evaluations / step (agent)<b id="agent_evals">—</b></span>
+    <span>GPU hours / 100 steps (agent)<b id="agent_gpu">—</b></span>
+    <span>Focus (agent)<b id="agent_focus">—</b></span>
+  </p>
+  <p id="agent_invalid" class="fg-bad" role="alert" hidden></p>
+  <svg id="phases" class="fg-chart" viewBox="0 0 600 120" role="img" aria-label="seconds per training step, by phase, from the agent"></svg>
+  <p id="agent_text"></p>
+</section>
+<pre id="fg-log" aria-label="Task updates"></pre>
+<script>
+(function () {
+  var ui = window.oasisUI
+  var $ = function (id) { return document.getElementById(id) }
+  // integer fields and their bounds (the inputs' own min/max/step say the same)
+  var INTS = { group_size: [2, 64], prompts: [1, 512], sde_steps: [1, 40] }
+  var saved = ui.getState()
+  ;['group_size', 'prompts', 'sde_steps', 'noise', 'kl_beta', 'focus'].forEach(function (k) { if (saved[k] !== undefined && saved[k] !== null) $(k).value = saved[k] })
+
+  /** The values when every field is valid; otherwise null, and the problems shown. Nothing is computed, saved or
+   *  sent from an empty, fractional or out-of-range field (Number('') would be 0). */
+  function read() {
+    var problems = [], v = {}
+    Object.keys(INTS).forEach(function (k) {
+      var el = $(k), raw = el.value.trim(), n = Number(raw), lo = INTS[k][0], hi = INTS[k][1]
+      if (raw === '' || !el.checkValidity() || !Number.isInteger(n) || n < lo || n > hi) problems.push(el.parentNode.firstChild.textContent.trim() + ': an integer from ' + lo + ' to ' + hi)
+      else v[k] = n
+    })
+    var kl = $('kl_beta'), klRaw = kl.value.trim(), klN = Number(klRaw)
+    if (klRaw === '' || !kl.checkValidity() || !(klN >= 0 && klN <= 1)) problems.push('KL β: a number from 0 to 1')
+    else v.kl_beta = klN
+    v.noise = Number($('noise').value)
+    v.focus = $('focus').value
+    $('fg-invalid').hidden = problems.length === 0
+    $('fg-invalid').textContent = problems.length ? 'Not computed — ' + problems.join('; ') + '.' : ''
+    return problems.length ? null : v
+  }
+
+  var SVG = 'http://www.w3.org/2000/svg'
+  function node(name, attrs, text) {
+    var n = document.createElementNS(SVG, name)
+    Object.keys(attrs).forEach(function (a) { n.setAttribute(a, String(attrs[a])) })
+    if (text !== undefined) n.textContent = text
+    return n
+  }
+  /** Bars in a 600×120 box: a plot area x 34..596, y 8..96, labels below. `top` fixes the axis (values above it are
+   *  drawn at it, class capped); without it the axis is the largest value. */
+  function bars(svg, items, opts) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild)
+    var top = opts.top || Math.max.apply(null, items.map(function (i) { return i.value }).concat([1e-9]))
+    var x0 = 34, x1 = 596, y0 = 96, h0 = 88
+    svg.appendChild(node('line', { x1: x0, y1: y0, x2: x1, y2: y0 }))
+    svg.appendChild(node('text', { x: 0, y: 12 }, opts.axis(top)))
+    svg.appendChild(node('text', { x: 0, y: y0 }, opts.axis(0)))
+    var w = (x1 - x0) / Math.max(1, items.length)
+    items.forEach(function (item, i) {
+      var capped = item.value > top
+      var h = Math.max(1, h0 * Math.min(item.value, top) / top)
+      var r = node('rect', { x: x0 + i * w + 2, y: y0 - h, width: Math.max(1, w - 4), height: h, 'data-label': item.label, 'data-value': item.value })
+      if (capped) r.setAttribute('class', 'capped')
+      r.appendChild(node('title', {}, item.label + ': ' + item.value + (capped ? ' (above the axis, drawn at ' + top + ')' : '')))
+      svg.appendChild(r)
+      svg.appendChild(node('text', { x: x0 + i * w + 2, y: 112 }, opts.label(item)))
+    })
+  }
+  // sigma_t = a * sqrt(t / (1 - t)) at t = 1 - k/(T+1), k = 1..T (interior points; t = 1 itself is infinite)
+  function schedule(v) {
+    var items = []
+    for (var k = 1; k <= v.sde_steps; k++) {
+      var t = 1 - k / (v.sde_steps + 1)
+      items.push({ label: 'k' + k, value: Math.round(v.noise * Math.sqrt(t / (1 - t)) * 1000) / 1000 })
+    }
+    bars($('schedule'), items, { top: 3, axis: function (y) { return 'σ ' + y }, label: function (it) { return v.sde_steps <= 20 ? it.label : '' } })
+  }
+  function drawLocal() {
+    var v = read()
+    $('noise_out').textContent = Number($('noise').value).toFixed(1)
+    $('recompute').disabled = v === null || current !== null || typeof ui.run !== 'function'
+    $('ask_recompute').disabled = $('recompute').disabled
+    if (v === null) {
+      $('local_rollouts').textContent = '—'
+      $('local_evals').textContent = '—'
+      while ($('schedule').firstChild) $('schedule').removeChild($('schedule').firstChild)
+      return null
+    }
+    $('local_rollouts').textContent = String(v.prompts * v.group_size)
+    $('local_evals').textContent = String(v.prompts * v.group_size * v.sde_steps)
+    schedule(v)
+    return v
+  }
+  ;['group_size', 'prompts', 'sde_steps', 'noise', 'kl_beta', 'focus'].forEach(function (k) {
+    $(k).addEventListener('input', function () { var v = drawLocal(); if (v) ui.setState(v) })
+  })
+
+  // ---- the agent's result: shown only when it has the fields this page reads, as the action's prompt asks
+  var PHASES = ['sampling', 'reward', 'update']
+  function finite(x) { return typeof x === 'number' && isFinite(x) }
+  function validData(d) {
+    return !!d && typeof d === 'object' && finite(d.rollouts_per_step) && finite(d.sde_evals_per_step) && finite(d.gpu_hours)
+      && typeof d.focus === 'string' && Array.isArray(d.phases) && d.phases.length === PHASES.length
+      && d.phases.every(function (p, i) { return p && p.label === PHASES[i] && finite(p.value) })
+  }
+  function clearResult(note) {
+    ;['agent_rollouts', 'agent_evals', 'agent_gpu', 'agent_focus'].forEach(function (id) { $(id).textContent = '—' })
+    while ($('phases').firstChild) $('phases').removeChild($('phases').firstChild)
+    $('agent_invalid').hidden = true
+    $('agent_text').textContent = note
+    $('agent').setAttribute('data-fresh', 'pending')
+  }
+  function showData(d) {
+    if (d === null || d === undefined) return
+    if (!validData(d)) {
+      $('agent_invalid').hidden = false
+      $('agent_invalid').textContent = 'The agent returned data without the fields this page reads; nothing is shown from it.'
+      return
+    }
+    $('agent_invalid').hidden = true
+    $('agent_rollouts').textContent = String(d.rollouts_per_step)
+    $('agent_evals').textContent = String(d.sde_evals_per_step)
+    $('agent_gpu').textContent = String(d.gpu_hours)
+    $('agent_focus').textContent = d.focus
+    bars($('phases'), d.phases, { axis: function (y) { return Math.round(y * 10) / 10 + ' s' }, label: function (it) { return it.label + ' ' + it.value + ' s' } })
+    $('agent').setAttribute('data-fresh', 'data')
+  }
+
+  var current = null          // the task this page shows (its own, or one it found running)
+  var starting = false        // a run() asked, no update of it yet
+  var seen = {}
+  function busy(taskId) {
+    current = taskId
+    $('stop').disabled = taskId === null
+    drawLocal()
+  }
+  function log(line) { $('fg-log').textContent += line + '\n' }
+  function showResult(r) {
+    $('fg-status').textContent = r.status + (r.error ? ' (' + r.error.code + ': ' + r.error.message + ')' : '')
+    if (r.status === 'succeeded') showData(r.data)
+    $('agent_text').textContent = r.text || ''
+    $('agent').setAttribute('data-fresh', r.status)
+    busy(null)
+  }
+  // the page's run actions: both end in the same data (ask_recompute asks the person first, with request_input)
+  var ACTIONS = ['recompute', 'ask_recompute']
+  // every update, whichever way it came (run's onProgress, onTask — a task started before this page loaded or from
+  // the card's own button included); an update seen twice is shown once; another task's updates are not mixed in
+  function onUpdate(u) {
+    var key = JSON.stringify(u)
+    if (seen[key] || ACTIONS.indexOf(u.action_id) < 0) return
+    seen[key] = true
+    // a task is taken up by its first status update (queued or running): this page's own, or one started elsewhere
+    if (current === null && u.type === 'status') {
+      if (!starting) clearResult('A task started elsewhere; waiting for its result…')
+      starting = false
+      busy(u.task_id)
+    }
+    if (u.task_id !== current) return
+    if (u.type === 'status') $('fg-status').textContent = u.status
+    else if (u.type === 'text') $('agent_text').textContent = u.text
+    else if (u.type === 'tool') log('tool ' + u.name + ': ' + u.summary)
+    else if (u.type === 'data') { showData(u.data); log('data from ' + u.task_id) }
+    else if (u.type === 'done') { showResult(u.result); log('done ' + u.result.status) }
+  }
+
+  if (typeof ui.run !== 'function') {
+    drawLocal()
+    $('fg-status').textContent = 'this host cannot start agent tasks'
+    return
+  }
+  ui.onTask(onUpdate)
+  ui.tasks().then(function (list) {
+    var last = list.filter(function (t) { return ACTIONS.indexOf(t.action_id) >= 0 })[0]
+    if (!last || current !== null || starting) return
+    if (last.status === 'queued' || last.status === 'running') { clearResult('Waiting for the running task…'); busy(last.task_id); $('fg-status').textContent = last.status; showData(last.data) }
+    else showResult({ status: last.status, text: last.text, data: last.data, error: last.error })
+  })
+  drawLocal()
+  function start(action) {
+    var v = read()
+    if (v === null) return
+    ui.setState(v)
+    starting = true
+    clearResult(action === 'ask_recompute' ? 'The agent asks first (a form in the conversation), then recomputes.' : 'Recomputing — the earlier result is cleared until the agent answers.')
+    $('fg-status').textContent = 'starting'
+    $('recompute').disabled = true
+    $('ask_recompute').disabled = true
+    ui.run(action, { input: { focus: v.focus }, onProgress: onUpdate }).then(function (r) {
+      if (r.status === 'refused') {
+        starting = false
+        $('fg-status').textContent = 'refused (' + r.error.code + ': ' + r.error.message + ')'
+        $('agent').setAttribute('data-fresh', 'none')
+        busy(null)
+        return
+      }
+      if (r.task_id === current || current === null) showResult(r)
+    })
+  }
+  $('recompute').addEventListener('click', function () { start('recompute') })
+  $('ask_recompute').addEventListener('click', function () { start('ask_recompute') })
+  $('stop').addEventListener('click', function () {
+    if (current) ui.stop(current).then(function (ok) { log(ok ? 'stop accepted' : 'stop refused') })
+  })
+})()
+</script>

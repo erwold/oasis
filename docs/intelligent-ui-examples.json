@@ -1,0 +1,85 @@
+{
+  "$comment": "Example present_ui payloads for docs/intelligent-ui.md, in the shared v1 design (contract owner: workstream A; field names are aligned at integration). Non-coding on purpose. frontend/tests/ui_sandbox_examples.test.ts checks their structure; frontend/e2e/intelligent-ui-sandbox.e2e.ts runs the HTML one in the sandbox.",
+  "examples": [
+    {
+      "name": "trip-split",
+      "summary": "预算 / 分账计算器（native）：总花费、人数、小费滑块，本地即时重算；动作把结果放入草稿。",
+      "spec": {
+        "version": 1,
+        "surface_id": "trip-split",
+        "title": "周末旅行分账",
+        "fallback": "周末旅行总花费 1260 元，4 人，加 10% 小费后合计 1386 元，每人约 347 元（住宿 600、餐饮 420、交通 240）。",
+        "kind": "native",
+        "initial_state": { "total": 1260, "people": 4, "tip_pct": 10 },
+        "actions": [
+          { "id": "draft_split", "label": "写一段发给大家的分账说明", "prompt": "根据当前的总花费、人数和小费比例，写一段简短、礼貌的群消息，说明每人应付多少以及计算依据。" }
+        ],
+        "root": "root",
+        "elements": {
+          "root": { "type": "stack", "props": {}, "children": ["intro", "inputs", "numbers", "breakdown", "send"] },
+          "intro": { "type": "text", "props": { "text": "改动任一输入，下方金额立即重算；数字只在本地计算，不会调用模型。" } },
+          "inputs": { "type": "row", "props": { "title": "输入" }, "children": ["total", "people", "tip"] },
+          "total": { "type": "input", "props": { "label": "总花费（元）", "key": "total", "inputType": "number", "min": 0, "required": true } },
+          "people": { "type": "input", "props": { "label": "人数", "key": "people", "inputType": "number", "min": 1, "max": 50, "required": true } },
+          "tip": { "type": "slider", "props": { "label": "小费 %", "key": "tip_pct", "min": 0, "max": 25, "step": 1 } },
+          "numbers": { "type": "row", "props": {}, "children": ["sum", "each"] },
+          "sum": { "type": "metric", "props": { "label": "含小费合计", "unit": "元",
+            "value": { "op": "round", "args": [{ "op": "multiply", "args": [{ "state": "total" }, { "op": "add", "args": [1, { "op": "divide", "args": [{ "state": "tip_pct" }, 100] }] }] }] } } },
+          "each": { "type": "metric", "props": { "label": "每人", "unit": "元",
+            "value": { "op": "round", "args": [{ "op": "divide", "args": [{ "op": "multiply", "args": [{ "state": "total" }, { "op": "add", "args": [1, { "op": "divide", "args": [{ "state": "tip_pct" }, 100] }] }] }, { "op": "max", "args": [{ "state": "people" }, 1] }] }] } } },
+          "breakdown": { "type": "chart", "props": { "kind": "bar", "label": "花费构成（元）", "data": [
+            { "label": "住宿", "value": 600 }, { "label": "餐饮", "value": 420 }, { "label": "交通", "value": 240 } ] } },
+          "send": { "type": "button", "props": { "label": "放入草稿", "action": "draft_split" } }
+        }
+      }
+    },
+    {
+      "name": "daycare-compare",
+      "summary": "研究比较 + 选项表单（native）：三家托育机构的比较表，加上偏好选择；动作把“按我的偏好深入调研”放入草稿。",
+      "spec": {
+        "version": 1,
+        "surface_id": "daycare-compare",
+        "title": "三家托育机构比较",
+        "fallback": "A 园：月费 4200 元，师生比 1:5，步行 8 分钟；B 园：月费 3600 元，师生比 1:7，步行 15 分钟；C 园：月费 5100 元，师生比 1:4，开车 12 分钟。数据为示例，请以实地核实为准。",
+        "kind": "native",
+        "initial_state": { "priority": "ratio", "budget": 4500, "need_meals": true, "notes": "" },
+        "actions": [
+          { "id": "dig_deeper", "label": "按我的偏好深入调研", "prompt": "按照我在表单里选的优先级、预算和是否需要餐食，挑出最合适的一家，列出还需要实地核实的问题。" }
+        ],
+        "root": "root",
+        "elements": {
+          "root": { "type": "stack", "props": {}, "children": ["table", "prefs", "go"] },
+          "table": { "type": "table", "props": { "caption": "示例数据，非实时来源",
+            "columns": [ { "key": "name", "label": "机构" }, { "key": "fee", "label": "月费（元）" }, { "key": "ratio", "label": "师生比" }, { "key": "commute", "label": "通勤" } ],
+            "rows": [
+              { "name": "A 园", "fee": 4200, "ratio": "1:5", "commute": "步行 8 分钟" },
+              { "name": "B 园", "fee": 3600, "ratio": "1:7", "commute": "步行 15 分钟" },
+              { "name": "C 园", "fee": 5100, "ratio": "1:4", "commute": "开车 12 分钟" } ] } },
+          "prefs": { "type": "card", "props": { "title": "我的偏好" }, "children": ["priority", "budget", "meals", "notes"] },
+          "priority": { "type": "select", "props": { "label": "最看重", "key": "priority", "options": [
+            { "label": "师生比", "value": "ratio" }, { "label": "费用", "value": "fee" }, { "label": "通勤", "value": "commute" } ] } },
+          "budget": { "type": "slider", "props": { "label": "月预算上限（元）", "key": "budget", "min": 3000, "max": 6000, "step": 100 } },
+          "meals": { "type": "checkbox", "props": { "label": "需要提供午餐", "key": "need_meals" } },
+          "notes": { "type": "input", "props": { "label": "其他要求", "key": "notes", "inputType": "text", "placeholder": "例如：需要双语" } },
+          "go": { "type": "button", "props": { "label": "放入草稿", "action": "dig_deeper" } }
+        }
+      }
+    },
+    {
+      "name": "savings-simulator",
+      "summary": "HTML 小模拟器（隔离预览）：储蓄复利增长，滑块即时重绘画布；状态经 oasisUI 回传，按钮提出“解释这条曲线”的动作提议。",
+      "spec": {
+        "version": 1,
+        "surface_id": "savings-simulator",
+        "title": "储蓄复利模拟器",
+        "fallback": "每月存 2000 元、年化 4%、存 20 年：本金 48 万元，期末约 73 万元（按月复利估算，非投资建议）。",
+        "kind": "html",
+        "initial_state": { "monthly": 2000, "rate": 4, "years": 20 },
+        "actions": [
+          { "id": "explain", "label": "解释这条曲线", "prompt": "用通俗的话解释当前参数下复利曲线的形状，以及利率和年限各自的影响。" }
+        ],
+        "html": "<style>body{font-family:system-ui,sans-serif;margin:12px}label{display:block;margin:6px 0}output{font-weight:600}canvas{width:100%;height:180px;border:1px solid #ddd;border-radius:8px}.big{font-size:20px;font-weight:700}</style><h3>储蓄复利模拟器</h3><label>每月存入 <output id=\"mv\"></output> 元<input id=\"monthly\" type=\"range\" min=\"100\" max=\"10000\" step=\"100\"></label><label>年化利率 <output id=\"rv\"></output> %<input id=\"rate\" type=\"range\" min=\"0\" max=\"10\" step=\"0.5\"></label><label>年限 <output id=\"yv\"></output> 年<input id=\"years\" type=\"range\" min=\"1\" max=\"40\" step=\"1\"></label><p>本金 <span id=\"principal\"></span> 元，期末约 <span id=\"final\" class=\"big\"></span> 元</p><canvas id=\"c\" width=\"600\" height=\"180\"></canvas><p><button id=\"explain\">解释这条曲线</button></p><script>const s=oasisUI.getState();const $=(id)=>document.getElementById(id);$('monthly').value=s.monthly;$('rate').value=s.rate;$('years').value=s.years;function grow(m,r,y){const pts=[];let v=0;for(let k=1;k<=y*12;k++){v=v*(1+r/100/12)+m;if(k%12===0)pts.push(v)}return pts}function draw(){const m=Number($('monthly').value),r=Number($('rate').value),y=Number($('years').value);$('mv').textContent=m;$('rv').textContent=r;$('yv').textContent=y;const pts=grow(m,r,y),fin=pts[pts.length-1]||0;$('principal').textContent=Math.round(m*12*y).toLocaleString();$('final').textContent=Math.round(fin).toLocaleString();const c=$('c'),g=c.getContext('2d');g.clearRect(0,0,c.width,c.height);const max=Math.max(fin,1);g.strokeStyle='#2563eb';g.lineWidth=2;g.beginPath();pts.forEach((v,i)=>{const x=(i+1)/pts.length*(c.width-10)+5,yy=c.height-5-v/max*(c.height-10);i?g.lineTo(x,yy):g.moveTo(x,yy)});g.stroke();g.strokeStyle='#9ca3af';g.beginPath();pts.forEach((_,i)=>{const x=(i+1)/pts.length*(c.width-10)+5,yy=c.height-5-m*12*(i+1)/max*(c.height-10);i?g.lineTo(x,yy):g.moveTo(x,yy)});g.stroke();oasisUI.setState({monthly:m,rate:r,years:y,final:Math.round(fin)})}['monthly','rate','years'].forEach((id)=>$(id).addEventListener('input',draw));$('explain').addEventListener('click',()=>oasisUI.action('explain'));draw()</script>"
+      }
+    }
+  ]
+}

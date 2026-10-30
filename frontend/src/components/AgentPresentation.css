@@ -1,0 +1,41 @@
+/* The agent surfaces' shared presentation: the desk card's state line, the state dot, the timeline's live head.
+ * Every colour and face comes from the app's tokens through an optional --agent-* layer (none is set on :root; a
+ * theme scope may set them):
+ *   --agent-bg, --agent-line, --agent-line-soft, --agent-ink, --agent-ink-2, --agent-ink-3, --agent-sel-bg,
+ *   --agent-live (the latest point, the now line), --agent-ok, --agent-wait, --agent-bad, --agent-mute,
+ *   --agent-radius, --agent-card-shadow, --agent-title-font, --agent-title-weight, --agent-title-tracking,
+ *   --agent-data-font, --agent-label-font. */
+
+.ap-strip { flex: none; display: flex; align-items: center; gap: 10px; height: 26px; padding: 0 10px; border-bottom: 1px solid var(--agent-line-soft, var(--line)); background: var(--agent-bg, var(--surface));
+  font: 500 11px/1 var(--agent-data-font, var(--font-body)); color: var(--agent-ink-3, var(--ink-3)); font-variant-numeric: tabular-nums; min-width: 0; }
+.ap-state { flex: none; display: inline-flex; align-items: center; gap: 5px; color: var(--agent-ink-2, var(--ink-2)); }
+.ap-strip.tone-live .ap-state { color: var(--agent-live, var(--accent-ink)); }
+.ap-strip.tone-ok .ap-state { color: var(--agent-ok, var(--success-foreground)); }
+.ap-strip.tone-bad .ap-state { color: var(--agent-bad, var(--red)); }
+.ap-strip.tone-wait .ap-state { color: var(--agent-wait, var(--ink-2)); }
+.ap-work { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--agent-ink-2, var(--ink-2)); font-weight: 400; }
+.ap-work.is-tool { font-family: var(--agent-data-font, var(--font-mono)); font-size: 10.5px; color: var(--agent-ink, var(--ink)); }
+.ap-nums { flex: none; display: inline-flex; align-items: center; gap: 9px; }
+.ap-nums b { font-weight: 600; color: var(--agent-ink, var(--ink)); }
+.ap-elapsed { color: var(--agent-ink, var(--ink)); min-width: 4.6em; text-align: right; }
+
+/* the state dot: filled in its tone; a live one breathes only while its run works (a tool running: quicker) */
+.ap-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: currentColor; }
+.ap-strip.tone-wait .ap-dot, .ap-strip.tone-mute .ap-dot { background: transparent; box-shadow: inset 0 0 0 1.2px currentColor; }
+.ap-dot[data-state="thinking"] { animation: ap-breathe 2.4s ease-in-out infinite; }
+.ap-dot[data-state="working"] { animation: ap-breathe 1.1s ease-in-out infinite; }
+/* (ap-breathe: index.css, shared with the outline's and the card title's dots) */
+
+/* the timeline: a live bar's head — a hollow ring on its growing end — and an ended bar's end mark */
+.rg-head { fill: var(--agent-bg, var(--surface)); stroke: var(--agent-live, var(--accent)); stroke-width: 1.5; pointer-events: none; }
+.rg-head-halo { fill: none; stroke: var(--agent-live, var(--accent)); stroke-width: 1; opacity: 0; pointer-events: none; transform-box: fill-box; transform-origin: center; }
+.rg-head-halo.busy { animation: rg-halo 1.8s ease-out infinite; }
+@keyframes rg-halo { from { opacity: .55; transform: scale(.6); } to { opacity: 0; transform: scale(1.9); } }
+.rg-cap { pointer-events: none; }
+.rg-bar.is-error .rg-cap { fill: var(--agent-bad, var(--red)); }
+.rg-bar.is-cancelled .rg-cap { fill: var(--agent-mute, var(--ink-3)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-dot[data-state] { animation: none; }
+  .rg-head-halo.busy { animation: none; }
+}

@@ -1,0 +1,1639 @@
+{
+  "surface": "director.v1",
+  "note": "generated from main 3d06c7b0cb2ede86f3c4e5423037fa05536a478f (schema v24) by scripts/director_surface_snapshot.ts; read as data at runtime, never regenerated from code",
+  "connector": {
+    "instructions": "oasis-code is the user's harness on their own computer: its agents read, search and change files, run commands and research there. The user may be away and reach that computer only through you.\n\ncurrent_session names the session the user writes from in oasis-code, if any. Projects are opened folders (list_projects, open_project); a session is a conversation with its own working folder (create_session).\n\nAgents see nothing of this chat: what start_run sends is all they know. A run outlasts a tool call (about a minute): get_run reads its progress or result, waiting up to wait_s. A later start_run in the same session continues its conversation. read_file and bash work in a session's folder directly.\n\nReuse request_id when retrying a start. Permissions belong to the user.",
+    "tools": [
+      {
+        "name": "current_session",
+        "description": "Get the active session, if any, and whether the app reads this chat.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list_models",
+        "description": "List model routes, IDs, availability, context windows, input capabilities and supported thinking efforts (null when unknown).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list_projects",
+        "description": "List opened folders and their sessions.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "open_project",
+        "description": "Open a folder. By default, agents work in the folder itself; snapshot works on a copy, attached reads the original without writing it. Reuse an existing project unless requested otherwise.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "an absolute folder path on the person's machine"
+            },
+            "name": {
+              "description": "the project's name; default: the folder's name",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "instructions": {
+              "description": "standing instructions every run of this project reads first",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "reuse": {
+              "default": true,
+              "description": "return the existing project of this folder instead of opening it again",
+              "type": "boolean"
+            },
+            "mode": {
+              "default": "direct",
+              "description": "direct: agents edit the folder itself (each run's file edits can be undone in the app); snapshot copies the folder; attached reads the original with the user's current access permissions.",
+              "type": "string",
+              "enum": [
+                "direct",
+                "snapshot",
+                "attached"
+              ]
+            },
+            "request_id": {
+              "description": "Unique key, 8-100 characters. Reuse it only when retrying the same request.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "path"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "set_project_config",
+        "description": "Update project instructions, checks, protected paths or the default model. Omitted fields stay unchanged.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string"
+            },
+            "instructions": {
+              "description": "standing instructions every run of the project reads first",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "checks": {
+              "description": "[{id, command, parser: pytest|node_test|exit_code, timeout_s, required}]; the checks the project has stay as they are",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "protected_paths": {
+              "description": "globs no run may write; the paths the project protects stay protected",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "default_model": {
+              "description": "the model new sessions of this project use",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "project_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "create_session",
+        "description": "Start a conversation with its own working folder in a project.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string"
+            },
+            "title": {
+              "default": "New task",
+              "description": "what this session is for; the person sees it in oasis-code",
+              "type": "string"
+            },
+            "model": {
+              "description": "Model ID from list_models. Omit to keep the current default.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "request_id": {
+              "description": "Unique key, 8-100 characters. Reuse it only when retrying the same request.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "project_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_session",
+        "description": "Read a session, its runs and pending approvals.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "post_director_note",
+        "description": "Mirror one final exchange into the app when it does not read this chat.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            },
+            "question": {
+              "type": "string",
+              "description": "The user's original message."
+            },
+            "answer": {
+              "type": "string",
+              "description": "Your complete final answer."
+            },
+            "model": {
+              "default": "",
+              "description": "the model that answered, as the chat shows it (e.g. GPT-6 Pro)",
+              "type": "string"
+            },
+            "source": {
+              "default": "chatgpt",
+              "description": "where the conversation is held",
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id",
+            "question",
+            "answer"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "start_run",
+        "description": "Send a message to an agent. Continue the session by default; separate starts an independent conversation (direct projects share their folder; snapshot projects have copies); resume_run_id continues a finished run. source_turn_id uses that turn’s persisted message envelope.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "description": "Session ID. Omit only when current_session identifies exactly one session.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "type": "string",
+              "description": "Message for the agent, including any context it cannot see."
+            },
+            "request_id": {
+              "description": "Unique key, 8-100 characters. Reuse it only when retrying the same request.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model": {
+              "description": "Model ID from list_models. Omit to keep the current default.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "thinking": {
+              "description": "reasoning effort: off, minimal, low, medium, high, xhigh or max; default: the model's",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "attachments": {
+              "description": "Session attachment asset IDs (images, UTF-8 text/code, PDF, video) uploaded through the session API. Route capabilities apply; PDF/video support is route-specific, not inferred from images. attach_image uploads images only. Separate runs do not accept attachments.",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fresh": {
+              "default": false,
+              "description": "start without earlier conversation history",
+              "type": "boolean"
+            },
+            "mentions": {
+              "default": [],
+              "description": "file or symbol references supplied with the message",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "source_turn_id": {
+              "description": "original user turn of this session; its stored envelope supplies the message and limits",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "separate": {
+              "default": false,
+              "description": "Start a separate conversation. Snapshot projects have a file copy; direct projects share their folder. Native directors and original-turn-bound dispatches refuse this flag. Default: false.",
+              "type": "boolean"
+            },
+            "resume_run_id": {
+              "description": "Finished run to continue, with its conversation and files. Cannot be combined with separate.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "base_checkpoint_id": {
+              "description": "Saved file version to start from. Only for a separate run; omit to use the current session files.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "constraints": {
+              "description": "Optional run restrictions. They can narrow, but never expand, the user's permissions.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "attach_image",
+        "description": "Attach a PNG, JPEG or WebP to a session: up to 5 MiB and 8000 pixels per side. Pass its asset_id to start_run.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "description": "Session ID. Omit only when current_session identifies exactly one session.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "name": {
+              "default": "image",
+              "description": "a label for the image, shown in the thread",
+              "type": "string"
+            },
+            "data_base64": {
+              "type": "string",
+              "description": "the image's bytes, base64 (a data: URL prefix is accepted)"
+            }
+          },
+          "required": [
+            "data_base64"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_run",
+        "description": "Read a run result or its recorded steps. Use cursor for more. wait_s optionally waits for completion.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "type": "string"
+            },
+            "view": {
+              "default": "result",
+              "description": "result or events. Default: result. A result gives the final answer 6000 characters at a time: final_text_chars is its length, next_cursor reads the rest.",
+              "type": "string",
+              "enum": [
+                "result",
+                "events"
+              ]
+            },
+            "cursor": {
+              "description": "Cursor returned by a previous response, for either view. Omit for the first page.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "wait_s": {
+              "default": 0,
+              "description": "Seconds to wait, from 0 to 55. Default: 0. Unavailable to the native director.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 55
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "cancel_run",
+        "description": "Stop a run. Completed file changes remain.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get_workspace",
+        "description": "Read a working folder, its source_mount read-only boundary and saved file versions. include_diff includes file changes.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string"
+            },
+            "include_diff": {
+              "default": false,
+              "description": "Include file changes. Default: false.",
+              "type": "boolean"
+            },
+            "path": {
+              "description": "Optional relative file path to limit the diff.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cursor": {
+              "description": "Cursor returned with a truncated diff.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "read_file",
+        "description": "Read a text file with line numbers, or list a folder. Use next_offset to continue.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string"
+            },
+            "path": {
+              "default": ".",
+              "description": "File or folder path relative to this working folder.",
+              "type": "string"
+            },
+            "offset": {
+              "default": 1,
+              "description": "First line or folder entry, starting at 1. Default: 1.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "default": 400,
+              "description": "Maximum lines or folder entries. Default: 400; folder pages are capped at 500.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "bash",
+        "description": "Run a shell command in a session's working folder, sandboxed as an agent's command is, under the session's permissions. Returns the exit code and the head and tail of its output; one still running returns its execution_id to wait on again. An attached folder is a symlink there (grep -r needs its name with a trailing slash).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string"
+            },
+            "command": {
+              "description": "The command, run by the shell.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "execution_id": {
+              "description": "Instead of a command: one still running, to wait on and read again.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cwd": {
+              "description": "File or folder path relative to this working folder.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "wait_s": {
+              "default": 30,
+              "description": "Seconds to wait before returning (up to 55). Default: 30.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 55
+            },
+            "timeout_s": {
+              "description": "Seconds before the command is stopped. Default: the harness's.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "workspace_id"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "start_interaction",
+        "description": "Create 2–6 independent agent participants in the same session. The harness assigns each participant its ID and names it by its model; a participant the original message named keeps its ID. Each has its own conversation and isolated output workspace. independent runs each once, without peer input. discussion adds cross_rounds waves receiving the other participants’ complete preceding answers; default one cross wave. Both stop after their fixed plan. Thinking effort: per participant or for all; the original message's own participant/global choices take precedence over the caller's; unset, each model uses its default. Each first participant receives the same pre-group history unless fresh is explicit, then continues its own history. A live source folder is read-only, including when attached_write is granted. Source paths and shared workspaces cannot be selected. Returns the interaction, participant, node, workspace and started-run IDs; later steps are scheduled by the harness.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "description": "Session ID. Omit only when current_session identifies exactly one session.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "default": "",
+              "description": "the original message",
+              "type": "string"
+            },
+            "participants": {
+              "minItems": 2,
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "thinking": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              }
+            },
+            "mode": {
+              "default": "independent",
+              "type": "string",
+              "enum": [
+                "independent",
+                "discussion"
+              ]
+            },
+            "cross_rounds": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "thinking": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "attachments": {
+              "default": [],
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mentions": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "max_runs": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 30
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "concurrency": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source_turn_id": {
+              "description": "original user turn of the same session; its stored message supplies dispatch input",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "request_id": {
+              "description": "Unique key, 8-100 characters. Reuse it only when retrying the same request.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "participants"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "schedule",
+        "description": "Plan an interaction the app asked you to plan, or add steps to one. The app runs the plan: each step is one run of one participant; a step starts once the steps it depends on have ended, is handed the answers of the steps it receives, and works on its participant's own copy of the files, the session's folder or another step's copy (in a session that edits its folder in place, every step works in that folder). A plan that is not sound is refused whole, with every problem named.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "interaction_id": {
+              "type": "string",
+              "description": "The interaction named in the app's request."
+            },
+            "title": {
+              "description": "A few words saying what the user asked, in the user's language: the session's title while the user has not named it. Give it with the first plan when the app asks for one.",
+              "type": "string",
+              "maxLength": 60
+            },
+            "nodes": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                  },
+                  "participant": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,39}$"
+                  },
+                  "instruction": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "depends_on": {
+                    "default": [],
+                    "maxItems": 12,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                    }
+                  },
+                  "receives": {
+                    "default": [],
+                    "maxItems": 12,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                    }
+                  },
+                  "workspace": {
+                    "default": "own",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "own"
+                      },
+                      {
+                        "type": "string",
+                        "const": "shared"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "participant"
+                ]
+              },
+              "description": "The steps. id: a short name you choose (letters, digits, - or _). participant: the participant's id, exactly as the app lists it. depends_on: the steps that must end first; a step also comes after everything those wait for. receives: the steps whose answers it is handed, among those it comes after; none means it works without seeing the others; a participant's own earlier answers are already in its conversation. workspace: own (the participant's own copy, made at its first step and kept for all its steps; naming its own earlier step means the same; in a session that edits its folder in place, the folder itself, as every workspace is there), shared (the session's working folder, one step at a time), or another participant's step id (that step's copy, after it). instruction (optional): what the step is in the plan, in the user's language — for example: answer on your own, or respond to the answers you were handed. Never a position, an angle, a question or facts of your own: every participant has the user's message and decides how to answer."
+            },
+            "then": {
+              "default": "stop",
+              "description": "After the last step: stop (the user decides) or director (you are asked what comes next). Default: stop.",
+              "type": "string",
+              "enum": [
+                "stop",
+                "director"
+              ]
+            },
+            "expected_revision": {
+              "description": "The plan revision you read; the call is refused if the plan changed meanwhile. Omit on the first plan.",
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "interaction_id",
+            "nodes"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "integrate",
+        "description": "Apply saved file changes from separate runs to a working folder. Conflicts or a changed destination stop the operation. Configured checks run before applying changes.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "description": "Destination working-folder ID."
+            },
+            "checkpoint_ids": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Saved file version IDs to apply, in order."
+            },
+            "note": {
+              "default": "integration by the director",
+              "type": "string"
+            }
+          },
+          "required": [
+            "workspace_id",
+            "checkpoint_ids"
+          ],
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      }
+    ]
+  },
+  "native": {
+    "instructions": "An agent run handles one message. It can answer questions, research, or work with files. Read its answer and tool results with get_run.\n\nUse start_run when work needs an agent. Include the request and context it cannot see; agents do not see this chat. Use resume_run_id for a follow-up. Runs use the user's model quota.\n\nAn interaction the app asks you to plan: call schedule; the app runs it.\n\nReuse request_id when retrying the same start after a timeout.\n\nRead the evidence relevant to the task. A check that did not run is not a passing check. Use integrate only to bring file changes from separate runs into the session.\n\nPermissions belong to the user. Report pending approvals without trying another route.\n\nUse the session named in the context. After starting runs, end your turn; completion messages arrive automatically. Answer in the user's language. Do not wait for runs or post notes.\n\nThe user may name an agent as @[Label](agent:<route>): that agent is the route, for start_run's model. Agents see only what you send them: hand over the user's words as written and the material they need (earlier answers, files), quoted as it is rather than summarized — never an angle, a position or conclusions of your own.\n\nInteractions the app creates: when the user names several agents and chooses a plan by the director, the app creates the interaction and asks you to plan how they work together; schedule is for that request. You are the router, not a participant and not an author: each participant is handed the user's message as written; you plan only the order with schedule (its description gives the plan's format), adding no position, angle, question or content of your own; the app runs the plan — it starts each step when the steps before it have ended, hands it the answers the plan says, and asks you again only where the plan ends with then: director.\n\nMessages the user writes in this session come to you first, with the original message (its mentions and the metadata of its attachments). Agents do the work. start_run sends the message to the session's agent and continues its conversation; with resume_run_id it continues that finished run's own conversation and files instead, a participant's run of an interaction included. start_interaction starts 2 to 6 participants, each with its own conversation and output workspace; one route can be several distinct participants. In its independent mode each participant answers once without seeing the others, and the interaction stops for the user to choose. In its discussion mode each participant answers alone first, then in each of 1 to 4 cross rounds receives the other participants' complete previous answers and answers again. An interaction starts N runs (independent) or N x (1 + cross rounds) runs (discussion), at most 30, two at a time by default and at most four; every run uses the user's model quota, and a higher thinking effort takes longer and uses more. Thinking efforts are the user's: those chosen in the message come with it; start_run and start_interaction take an effort, and with none each model uses its default. The harness hands each participant the original message, its mentions and attachments, keeps a direct or attached source folder read-only for participants, and starts each later step itself. When an interaction ends, a message with its nodes, runs and answer references arrives; while answering it, starting runs or interactions is refused. Your report of it gives what the participants answered and where they differ, in their terms; it adds no judgment or conclusion of your own. Watches and session-scoped panels belong to the session's main agent; a director has no timer.",
+    "tools": [
+      {
+        "name": "list_models",
+        "description": "List model routes, IDs, availability, context windows, input capabilities and supported thinking efforts (null when unknown).",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "set_project_config",
+        "description": "Update project instructions, checks, protected paths or the default model. Omitted fields stay unchanged.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string"
+            },
+            "instructions": {
+              "description": "standing instructions every run of the project reads first",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "checks": {
+              "description": "[{id, command, parser: pytest|node_test|exit_code, timeout_s, required}]; the checks the project has stay as they are",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "protected_paths": {
+              "description": "globs no run may write; the paths the project protects stay protected",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "default_model": {
+              "description": "the model new sessions of this project use",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "project_id"
+          ]
+        }
+      },
+      {
+        "name": "get_session",
+        "description": "Read a session, its runs and pending approvals.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "session_id"
+          ]
+        }
+      },
+      {
+        "name": "start_run",
+        "description": "Send a message to an agent. Continue the session by default; separate starts an independent conversation (direct projects share their folder; snapshot projects have copies); resume_run_id continues a finished run. source_turn_id uses that turn’s persisted message envelope.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "description": "Session ID. Omit only when current_session identifies exactly one session.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "type": "string",
+              "description": "Message for the agent, including any context it cannot see."
+            },
+            "request_id": {
+              "description": "Unique key, 8-100 characters. Reuse it only when retrying the same request.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model": {
+              "description": "Model ID from list_models. Omit to keep the current default.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "thinking": {
+              "description": "reasoning effort: off, minimal, low, medium, high, xhigh or max; default: the model's",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "attachments": {
+              "description": "Session attachment asset IDs (images, UTF-8 text/code, PDF, video) uploaded through the session API. Route capabilities apply; PDF/video support is route-specific, not inferred from images. attach_image uploads images only. Separate runs do not accept attachments.",
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fresh": {
+              "default": false,
+              "description": "start without earlier conversation history",
+              "type": "boolean"
+            },
+            "mentions": {
+              "default": [],
+              "description": "file or symbol references supplied with the message",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "source_turn_id": {
+              "description": "original user turn of this session; its stored envelope supplies the message and limits",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "separate": {
+              "default": false,
+              "description": "Start a separate conversation. Snapshot projects have a file copy; direct projects share their folder. Native directors and original-turn-bound dispatches refuse this flag. Default: false.",
+              "type": "boolean"
+            },
+            "resume_run_id": {
+              "description": "Finished run to continue, with its conversation and files. Cannot be combined with separate.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "base_checkpoint_id": {
+              "description": "Saved file version to start from. Only for a separate run; omit to use the current session files.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "constraints": {
+              "description": "Optional run restrictions. They can narrow, but never expand, the user's permissions.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "get_run",
+        "description": "Read a run result or its recorded steps. Use cursor for more. wait_s optionally waits for completion.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "type": "string"
+            },
+            "view": {
+              "default": "result",
+              "description": "result or events. Default: result. A result gives the final answer 6000 characters at a time: final_text_chars is its length, next_cursor reads the rest.",
+              "type": "string",
+              "enum": [
+                "result",
+                "events"
+              ]
+            },
+            "cursor": {
+              "description": "Cursor returned by a previous response, for either view. Omit for the first page.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "wait_s": {
+              "default": 0,
+              "description": "Seconds to wait, from 0 to 55. Default: 0. Unavailable to the native director.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 55
+            }
+          },
+          "required": [
+            "run_id"
+          ]
+        }
+      },
+      {
+        "name": "cancel_run",
+        "description": "Stop a run. Completed file changes remain.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "run_id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "run_id"
+          ]
+        }
+      },
+      {
+        "name": "get_workspace",
+        "description": "Read a working folder, its source_mount read-only boundary and saved file versions. include_diff includes file changes.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string"
+            },
+            "include_diff": {
+              "default": false,
+              "description": "Include file changes. Default: false.",
+              "type": "boolean"
+            },
+            "path": {
+              "description": "Optional relative file path to limit the diff.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cursor": {
+              "description": "Cursor returned with a truncated diff.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "workspace_id"
+          ]
+        }
+      },
+      {
+        "name": "read_file",
+        "description": "Read a text file with line numbers, or list a folder. Use next_offset to continue.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string"
+            },
+            "path": {
+              "default": ".",
+              "description": "File or folder path relative to this working folder.",
+              "type": "string"
+            },
+            "offset": {
+              "default": 1,
+              "description": "First line or folder entry, starting at 1. Default: 1.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "limit": {
+              "default": 400,
+              "description": "Maximum lines or folder entries. Default: 400; folder pages are capped at 500.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2000
+            }
+          },
+          "required": [
+            "workspace_id"
+          ]
+        }
+      },
+      {
+        "name": "start_interaction",
+        "description": "Create 2–6 independent agent participants in the same session. The harness assigns each participant its ID and names it by its model; a participant the original message named keeps its ID. Each has its own conversation and isolated output workspace. independent runs each once, without peer input. discussion adds cross_rounds waves receiving the other participants’ complete preceding answers; default one cross wave. Both stop after their fixed plan. Thinking effort: per participant or for all; the original message's own participant/global choices take precedence over the caller's; unset, each model uses its default. Each first participant receives the same pre-group history unless fresh is explicit, then continues its own history. A live source folder is read-only, including when attached_write is granted. Source paths and shared workspaces cannot be selected. Returns the interaction, participant, node, workspace and started-run IDs; later steps are scheduled by the harness.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "session_id": {
+              "description": "Session ID. Omit only when current_session identifies exactly one session.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "default": "",
+              "description": "the original message",
+              "type": "string"
+            },
+            "participants": {
+              "minItems": 2,
+              "maxItems": 6,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "thinking": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "model"
+                ]
+              }
+            },
+            "mode": {
+              "default": "independent",
+              "type": "string",
+              "enum": [
+                "independent",
+                "discussion"
+              ]
+            },
+            "cross_rounds": {
+              "default": 1,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 4
+            },
+            "thinking": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "attachments": {
+              "default": [],
+              "maxItems": 8,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mentions": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
+              }
+            },
+            "max_runs": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 30
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "concurrency": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "source_turn_id": {
+              "description": "original user turn of the same session; its stored message supplies dispatch input",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "request_id": {
+              "description": "Unique key, 8-100 characters. Reuse it only when retrying the same request.",
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 8,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "participants"
+          ]
+        }
+      },
+      {
+        "name": "schedule",
+        "description": "Plan an interaction the app asked you to plan, or add steps to one. The app runs the plan: each step is one run of one participant; a step starts once the steps it depends on have ended, is handed the answers of the steps it receives, and works on its participant's own copy of the files, the session's folder or another step's copy (in a session that edits its folder in place, every step works in that folder). A plan that is not sound is refused whole, with every problem named.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "interaction_id": {
+              "type": "string",
+              "description": "The interaction named in the app's request."
+            },
+            "title": {
+              "description": "A few words saying what the user asked, in the user's language: the session's title while the user has not named it. Give it with the first plan when the app asks for one.",
+              "type": "string",
+              "maxLength": 60
+            },
+            "nodes": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                  },
+                  "participant": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,39}$"
+                  },
+                  "instruction": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2000
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "depends_on": {
+                    "default": [],
+                    "maxItems": 12,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                    }
+                  },
+                  "receives": {
+                    "default": [],
+                    "maxItems": 12,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                    }
+                  },
+                  "workspace": {
+                    "default": "own",
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "const": "own"
+                      },
+                      {
+                        "type": "string",
+                        "const": "shared"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_-]{0,23}$"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "participant"
+                ]
+              },
+              "description": "The steps. id: a short name you choose (letters, digits, - or _). participant: the participant's id, exactly as the app lists it. depends_on: the steps that must end first; a step also comes after everything those wait for. receives: the steps whose answers it is handed, among those it comes after; none means it works without seeing the others; a participant's own earlier answers are already in its conversation. workspace: own (the participant's own copy, made at its first step and kept for all its steps; naming its own earlier step means the same; in a session that edits its folder in place, the folder itself, as every workspace is there), shared (the session's working folder, one step at a time), or another participant's step id (that step's copy, after it). instruction (optional): what the step is in the plan, in the user's language — for example: answer on your own, or respond to the answers you were handed. Never a position, an angle, a question or facts of your own: every participant has the user's message and decides how to answer."
+            },
+            "then": {
+              "default": "stop",
+              "description": "After the last step: stop (the user decides) or director (you are asked what comes next). Default: stop.",
+              "type": "string",
+              "enum": [
+                "stop",
+                "director"
+              ]
+            },
+            "expected_revision": {
+              "description": "The plan revision you read; the call is refused if the plan changed meanwhile. Omit on the first plan.",
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "interaction_id",
+            "nodes"
+          ]
+        }
+      },
+      {
+        "name": "integrate",
+        "description": "Apply saved file changes from separate runs to a working folder. Conflicts or a changed destination stop the operation. Configured checks run before applying changes.",
+        "parameters_json_schema": {
+          "type": "object",
+          "properties": {
+            "workspace_id": {
+              "type": "string",
+              "description": "Destination working-folder ID."
+            },
+            "checkpoint_ids": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Saved file version IDs to apply, in order."
+            },
+            "note": {
+              "default": "integration by the director",
+              "type": "string"
+            }
+          },
+          "required": [
+            "workspace_id",
+            "checkpoint_ids"
+          ]
+        }
+      }
+    ]
+  },
+  "templates": {
+    "director.context": "Session: {session_id}. Project: {project_name}. Workspace: {workspace_id}.",
+    "director.task_event": "App note: Runs finished: {run_ids}.\nRead their results with get_run. These are completed runs, not new requests.",
+    "director.person_runs": "App note: Since your last turn the user also ran agents directly, not through you: {run_ids}.\nRead one with get_run when the message below needs it. They are completed runs, not requests.",
+    "director.plan": "App note: Plan interaction {interaction_id}.\nYou are running an interaction: the user addressed one message to several agents and left how they work together to you. You are its router: every participant is handed the user's message as written, and you decide only the order — who runs when and whose answers each step is handed. Give no participant a position, an angle, a sub-question, facts or claims of your own; each decides how to answer, and a step's instruction says only what the step is in the plan. Plan it with one schedule call — do not answer the request yourself, and do not start runs for it with start_run. Once the plan is taken, tell the user in a few sentences what it does; the app shows the plan itself.\n\nInteraction: {interaction_id}\nParticipants ({count}):\n{participants}\nBudget: at most {max_runs} runs in all, {concurrency} at once.\nAttachments the user attached: {images}\nTools: schedule (the plan; its description gives the format), get_run (a step's full answer, once steps have run).\n{folder}{title}\nThe user's request:\n{text}",
+    "director.plan_title": "Session title: none yet. Give the plan a title — a few words saying what the user asked, in the user's language; the app names the session with it.",
+    "director.plan_in_place": "Folder: this session edits its folder in place, so there are no copies here: every step works in that one folder, whatever its workspace says, and the steps that write take turns.",
+    "director.plan_images": "{count}, seen by every participant's first step (not by you)",
+    "director.decide": "App note: Interaction {interaction_id}: every step of the plan ended.\nSteps:\n{steps}\nRuns left in the budget: {runs_left}.\nTools: get_run (a step's full answer), schedule (more steps: depends_on may name ended steps, receives hands their answers on, a participant keeps its workspace; you still add no content of your own).\nIf nothing more is needed, answer the user with what came of it: the interaction ends then, and the user decides what to adopt.",
+    "director.decide_step": "- step {node} ({speaker}, run {run_id}): {measured}\n  answer (head): {head}",
+    "director.plan_none": "the director planned nothing; continue asks it again",
+    "director.interaction_question": "oasis-code interaction {interaction_id}: {what}",
+    "director.native_wait_refusal": "Waiting is not available here. End this turn; completed runs will be reported.",
+    "director.session_refusal": "This call refers to another session. Use session {session_id}. Nothing was run.",
+    "native.envelope_prefix": "Original message envelope (attachment IDs are forwarded unchanged to agents): "
+  },
+  "golden": {
+    "task_event_message": "App note: Runs finished: run_0a1b2c3d4e5f, ix_golden.\nRead their results with get_run. These are completed runs, not new requests.\nsession: s_golden\n- run run_0a1b2c3d4e5f \"fix\" on m:a — started by your instruction (turn turn_golden1)\n  status: done; checks 2 passed / 0 failed / 0 unknown / 1 not run; 1 failed command(s)\n  measured: 4 tool calls, 0 refused; 1 file(s) changed (+3 −1); checkpoint: cp_1\n  instruction (head): make add() add\n  the agent's last words (head, its own account — judge by the receipt): patched\n- interaction execution index (all nodes, answer references; no inferred verdict): {\"interaction_id\":\"ix_golden\",\"status\":\"done\",\"nodes\":[{\"id\":\"a1\",\"run_id\":\"run_0a1b2c3d4e60\",\"answer_ref\":{\"run_id\":\"run_0a1b2c3d4e60\",\"endpoint\":\"/api/runs/run_0a1b2c3d4e60\",\"field\":\"receipt.final_text\"}}]}",
+    "person_runs_message": "App note: Since your last turn the user also ran agents directly, not through you: run_0a1b2c3d4e5f.\nRead one with get_run when the message below needs it. They are completed runs, not requests.\n- run run_0a1b2c3d4e5f \"fix\" on m:a — started by your instruction (turn turn_golden1)\n  status: done; checks 2 passed / 0 failed / 0 unknown / 1 not run; 1 failed command(s)\n  measured: 4 tool calls, 0 refused; 1 file(s) changed (+3 −1); checkpoint: cp_1\n  instruction (head): make add() add\n  the agent's last words (head, its own account — judge by the receipt): patched"
+  },
+  "sha256": {
+    "connector_tools": "b25e8f63457c19650bc165b4defb26f6d6f0ae22de12068dbe23f211b3b71186",
+    "connector_instructions": "083b7bc4bd90e31c0c0857c8e61acf653e38805a1a212cca74be4ef15c6d9550",
+    "native_tools": "a35991c1bef7514b5bd623c3d361f0d5353c6f8dd7c8e1d31853acb66d6bf8ff",
+    "native_instructions": "56324c0e94b337c49cf9d527c62439ee6263fe2191d90efb54dbf53f10521034",
+    "templates": "e21a2dda708018e1534bd0dc1cbbe298fab736d11610e21c2968597732161fd5",
+    "golden": "78d5e587dd886d0be78df668d4b6b459084c2a5559e03a54bccbb741cf31b582"
+  }
+}

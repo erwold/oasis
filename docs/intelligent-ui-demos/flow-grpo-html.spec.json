@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "surface_id": "flow_grpo",
+  "title": "Flow-GRPO cost and noise schedule",
+  "fallback": "Flow-GRPO planner (illustrative): group size 16, 32 prompts per step, 10 training SDE steps, noise level a 0.7, KL beta 0.04 — 512 rollouts and 5120 SDE evaluations per step. The page plots sigma_t = a*sqrt(t/(1-t)) and can ask the agent to recompute an illustrative cost from demo constants (not measurements).",
+  "kind": "html",
+  "initial_state": {
+    "group_size": 16,
+    "prompts": 32,
+    "sde_steps": 10,
+    "noise": 0.7,
+    "kl_beta": 0.04,
+    "focus": "cost"
+  },
+  "actions": [
+    {
+      "id": "recompute",
+      "label": "Recompute with agent",
+      "prompt": "Recompute this page's illustrative Flow-GRPO cost from the values above and send it with return_ui_result as data of exactly this shape: {\"rollouts_per_step\": number, \"sde_evals_per_step\": number, \"gpu_hours\": number, \"focus\": string, \"phases\": [{\"label\": \"sampling\", \"value\": number}, {\"label\": \"reward\", \"value\": number}, {\"label\": \"update\", \"value\": number}]}. rollouts_per_step = prompts × group_size; sde_evals_per_step = rollouts_per_step × sde_steps; phase values are seconds per training step from the page's demo constants: sampling = sde_evals_per_step × 0.05, reward = rollouts_per_step × 0.02, update = sde_evals_per_step × 0.03, each rounded to one decimal; gpu_hours = (sampling + reward + update) × 100 / 3600 for 100 training steps, rounded to two decimals; focus = the focus in the input. The constants are the page's assumptions, not hardware measurements or published figures; say so in the answer, and say which focus was asked for. The page shows nothing from data without these fields.",
+      "mode": "run"
+    },
+    {
+      "id": "ask_recompute",
+      "label": "Ask, then recompute",
+      "prompt": "Before recomputing, ask the person with request_input for the prompts per step to use (an integer from 1 to 512) and the focus (cost or stability); then recompute as the \"Recompute with agent\" action does, with the prompts per step and the focus they gave in place of the page's, and send it with return_ui_result as data of the same shape. If they decline, send nothing and say so.",
+      "mode": "run"
+    }
+  ],
+  "html_file": "flow-grpo.html"
+}

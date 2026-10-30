@@ -1,0 +1,10 @@
+/* The live link's page, beyond the share pages' shell (../../viewer/shell.css): its status in the header, the
+   read-only word, and the short lines under the thread. */
+.live-status .run-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); flex: none; }
+.live-status.is-reconnecting .run-dot, .live-status.is-paused .run-dot { background: var(--orange); }
+.live-status.is-ended { color: var(--red); }
+.live-status.is-ended .run-dot { background: var(--red); }
+.share-readonly { flex: none; }
+.live-waiting { white-space: normal; }
+.live-note, .live-truncated { margin: 12px 0 4px; }
+@media (max-width: 560px) { .share-readonly { display: none; } }

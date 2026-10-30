@@ -1,0 +1,652 @@
+{
+ "note": "diagnosis only, never a performance sample. PERF_FP_DUMP made the frozen harness write the exact normalized text each fingerprint hashes; diff_fp.py compared those texts recursively by JSON path (no further normalization). Values are synthetic.",
+ "formal_ab_fingerprints": {
+  "before-long": {
+   "last": {
+    "record_bytes": 4046052,
+    "record_sha": "b8fb205dd9ae8683",
+    "get_run_sha": "adab4d45f26ca1c5",
+    "run_sse_sha": "771c5dfdcc73af1c",
+    "run_sse_frames": 8,
+    "events_page_sha": "6200e2b83749f4a5",
+    "transcript_sha": "fcdaeaa586ff488d",
+    "session_replay_sha": "4f7a38486270e00d",
+    "session_frames": 185,
+    "session_types": {
+     "run_started": 23,
+     "text_delta": 92,
+     "model_request": 23,
+     "text_block": 23,
+     "run_finished": 23,
+     "stream_ready": 1
+    }
+   },
+   "seed": {
+    "record_bytes": 4016060,
+    "record_sha": "e6c46d4984a41305",
+    "get_run_sha": "488c623e996157fb",
+    "run_sse_sha": "40d7f1ec4706e477",
+    "run_sse_frames": 8,
+    "events_page_sha": "576c5aab2e215136",
+    "transcript_sha": "7103d2d7a7f8b4ba",
+    "session_replay_sha": "4f7a38486270e00d",
+    "session_frames": 185,
+    "session_types": {
+     "run_started": 23,
+     "text_delta": 92,
+     "model_request": 23,
+     "text_block": 23,
+     "run_finished": 23,
+     "stream_ready": 1
+    }
+   }
+  },
+  "after-long": {
+   "last": {
+    "record_bytes": 4046052,
+    "record_sha": "b8fb205dd9ae8683",
+    "get_run_sha": "b0809c1db751b57f",
+    "run_sse_sha": "771c5dfdcc73af1c",
+    "run_sse_frames": 8,
+    "events_page_sha": "6200e2b83749f4a5",
+    "transcript_sha": "fcdaeaa586ff488d",
+    "session_replay_sha": "30ac2ea44b34f973",
+    "session_frames": 185,
+    "session_types": {
+     "run_started": 23,
+     "text_delta": 92,
+     "model_request": 23,
+     "text_block": 23,
+     "run_finished": 23,
+     "stream_ready": 1
+    }
+   },
+   "seed": {
+    "record_bytes": 4016060,
+    "record_sha": "e6c46d4984a41305",
+    "get_run_sha": "a80a9f6225025a24",
+    "run_sse_sha": "39787df3029a17f3",
+    "run_sse_frames": 8,
+    "events_page_sha": "8921c52f61ac3ebe",
+    "transcript_sha": "7103d2d7a7f8b4ba",
+    "session_replay_sha": "30ac2ea44b34f973",
+    "session_frames": 185,
+    "session_types": {
+     "run_started": 23,
+     "text_delta": 92,
+     "model_request": 23,
+     "text_block": 23,
+     "run_finished": 23,
+     "stream_ready": 1
+    }
+   }
+  }
+ },
+ "runs": {
+  "short": {
+   "params": "--long-history 500 --long-runs 2 --long-warmup 2 --window 2000000; order b1,a1,b2,a2",
+   "stages": {
+    "a1": {
+     "runner_blob": "3cba8b1d0855f3a6209c9a4612c0dd36d8bde44c",
+     "exit": 0,
+     "start_utc": "2026-10-18T16:01:17.505+00:00",
+     "end_utc": "2026-10-18T16:01:21.232+00:00",
+     "monotonic_elapsed_ns": 3727021250,
+     "fingerprints": {
+      "last": {
+       "record_bytes": 4021487,
+       "record_sha": "0137706c2f8f9c1d",
+       "get_run_sha": "8028bdb30cba3475",
+       "run_sse_sha": "2b4d0ee5f3c4723f",
+       "run_sse_frames": 8,
+       "events_page_sha": "f01ca8cc8e7d5c28",
+       "transcript_sha": "87ceac45740f34b0",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      },
+      "seed": {
+       "record_bytes": 4016060,
+       "record_sha": "e6c46d4984a41305",
+       "get_run_sha": "9b3fd8e99dba6fba",
+       "run_sse_sha": "55ed87bcc160ca0b",
+       "run_sse_frames": 8,
+       "events_page_sha": "af55238812747293",
+       "transcript_sha": "7103d2d7a7f8b4ba",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      }
+     }
+    },
+    "a2": {
+     "runner_blob": "3cba8b1d0855f3a6209c9a4612c0dd36d8bde44c",
+     "exit": 0,
+     "start_utc": "2026-10-18T16:01:25.971+00:00",
+     "end_utc": "2026-10-18T16:01:29.771+00:00",
+     "monotonic_elapsed_ns": 3799619250,
+     "fingerprints": {
+      "last": {
+       "record_bytes": 4021487,
+       "record_sha": "0137706c2f8f9c1d",
+       "get_run_sha": "8028bdb30cba3475",
+       "run_sse_sha": "2b4d0ee5f3c4723f",
+       "run_sse_frames": 8,
+       "events_page_sha": "f01ca8cc8e7d5c28",
+       "transcript_sha": "87ceac45740f34b0",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      },
+      "seed": {
+       "record_bytes": 4016060,
+       "record_sha": "e6c46d4984a41305",
+       "get_run_sha": "9b3fd8e99dba6fba",
+       "run_sse_sha": "55ed87bcc160ca0b",
+       "run_sse_frames": 8,
+       "events_page_sha": "af55238812747293",
+       "transcript_sha": "7103d2d7a7f8b4ba",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      }
+     }
+    },
+    "b1": {
+     "runner_blob": "70c282c3cfa782a27956b18ac1fc8843b71c6039",
+     "exit": 0,
+     "start_utc": "2026-10-18T16:01:12.839+00:00",
+     "end_utc": "2026-10-18T16:01:17.370+00:00",
+     "monotonic_elapsed_ns": 4530633000,
+     "fingerprints": {
+      "last": {
+       "record_bytes": 4021487,
+       "record_sha": "0137706c2f8f9c1d",
+       "get_run_sha": "a5dadf96e5a7e338",
+       "run_sse_sha": "2b4d0ee5f3c4723f",
+       "run_sse_frames": 8,
+       "events_page_sha": "f01ca8cc8e7d5c28",
+       "transcript_sha": "87ceac45740f34b0",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      },
+      "seed": {
+       "record_bytes": 4016060,
+       "record_sha": "e6c46d4984a41305",
+       "get_run_sha": "ab858cce234dbd72",
+       "run_sse_sha": "55ed87bcc160ca0b",
+       "run_sse_frames": 8,
+       "events_page_sha": "af55238812747293",
+       "transcript_sha": "7103d2d7a7f8b4ba",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      }
+     }
+    },
+    "b2": {
+     "runner_blob": "70c282c3cfa782a27956b18ac1fc8843b71c6039",
+     "exit": 0,
+     "start_utc": "2026-10-18T16:01:21.371+00:00",
+     "end_utc": "2026-10-18T16:01:25.819+00:00",
+     "monotonic_elapsed_ns": 4447768292,
+     "fingerprints": {
+      "last": {
+       "record_bytes": 4021487,
+       "record_sha": "0137706c2f8f9c1d",
+       "get_run_sha": "a5dadf96e5a7e338",
+       "run_sse_sha": "2b4d0ee5f3c4723f",
+       "run_sse_frames": 8,
+       "events_page_sha": "f01ca8cc8e7d5c28",
+       "transcript_sha": "87ceac45740f34b0",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      },
+      "seed": {
+       "record_bytes": 4016060,
+       "record_sha": "e6c46d4984a41305",
+       "get_run_sha": "9519445cb43a0670",
+       "run_sse_sha": "55ed87bcc160ca0b",
+       "run_sse_frames": 8,
+       "events_page_sha": "af55238812747293",
+       "transcript_sha": "7103d2d7a7f8b4ba",
+       "session_replay_sha": "f7f02b226c7ddf10",
+       "session_frames": 41,
+       "session_types": {
+        "run_started": 5,
+        "text_delta": 20,
+        "model_request": 5,
+        "text_block": 5,
+        "run_finished": 5,
+        "stream_ready": 1
+       }
+      }
+     }
+    }
+   },
+   "comparisons": {
+    "control_before": {
+     "last_record": {
+      "identical": true
+     },
+     "last_get_run": {
+      "identical": true
+     },
+     "last_run_sse": {
+      "identical": true
+     },
+     "last_page": {
+      "identical": true
+     },
+     "last_transcript": {
+      "identical": true
+     },
+     "last_session": {
+      "identical": true
+     },
+     "seed_record": {
+      "identical": true
+     },
+     "seed_get_run": {
+      "diffs": [
+       {
+        "path": "$.requests[0].context_estimate_tokens",
+        "b1": "11793",
+        "b2": "11788"
+       }
+      ]
+     },
+     "seed_run_sse": {
+      "identical": true
+     },
+     "seed_page": {
+      "identical": true
+     },
+     "seed_transcript": {
+      "identical": true
+     },
+     "seed_session": {
+      "identical": true
+     }
+    },
+    "control_after": {
+     "last_record": {
+      "identical": true
+     },
+     "last_get_run": {
+      "identical": true
+     },
+     "last_run_sse": {
+      "identical": true
+     },
+     "last_page": {
+      "identical": true
+     },
+     "last_transcript": {
+      "identical": true
+     },
+     "last_session": {
+      "identical": true
+     },
+     "seed_record": {
+      "identical": true
+     },
+     "seed_get_run": {
+      "identical": true
+     },
+     "seed_run_sse": {
+      "identical": true
+     },
+     "seed_page": {
+      "identical": true
+     },
+     "seed_transcript": {
+      "identical": true
+     },
+     "seed_session": {
+      "identical": true
+     }
+    },
+    "treatment_1": {
+     "last_record": {
+      "identical": true
+     },
+     "last_get_run": {
+      "diffs": [
+       {
+        "path": "$.manifest.build.source_fingerprint",
+        "b1": "\"d494b571514a\"",
+        "a1": "\"1119cfa2cce9\""
+       }
+      ]
+     },
+     "last_run_sse": {
+      "identical": true
+     },
+     "last_page": {
+      "identical": true
+     },
+     "last_transcript": {
+      "identical": true
+     },
+     "last_session": {
+      "identical": true
+     },
+     "seed_record": {
+      "identical": true
+     },
+     "seed_get_run": {
+      "diffs": [
+       {
+        "path": "$.manifest.build.source_fingerprint",
+        "b1": "\"d494b571514a\"",
+        "a1": "\"1119cfa2cce9\""
+       },
+       {
+        "path": "$.requests[0].context_estimate_tokens",
+        "b1": "11793",
+        "a1": "11790"
+       }
+      ]
+     },
+     "seed_run_sse": {
+      "identical": true
+     },
+     "seed_page": {
+      "identical": true
+     },
+     "seed_transcript": {
+      "identical": true
+     },
+     "seed_session": {
+      "identical": true
+     }
+    },
+    "treatment_2": {
+     "last_record": {
+      "identical": true
+     },
+     "last_get_run": {
+      "diffs": [
+       {
+        "path": "$.manifest.build.source_fingerprint",
+        "b2": "\"d494b571514a\"",
+        "a2": "\"1119cfa2cce9\""
+       }
+      ]
+     },
+     "last_run_sse": {
+      "identical": true
+     },
+     "last_page": {
+      "identical": true
+     },
+     "last_transcript": {
+      "identical": true
+     },
+     "last_session": {
+      "identical": true
+     },
+     "seed_record": {
+      "identical": true
+     },
+     "seed_get_run": {
+      "diffs": [
+       {
+        "path": "$.manifest.build.source_fingerprint",
+        "b2": "\"d494b571514a\"",
+        "a2": "\"1119cfa2cce9\""
+       },
+       {
+        "path": "$.requests[0].context_estimate_tokens",
+        "b2": "11788",
+        "a2": "11790"
+       }
+      ]
+     },
+     "seed_run_sse": {
+      "identical": true
+     },
+     "seed_page": {
+      "identical": true
+     },
+     "seed_transcript": {
+      "identical": true
+     },
+     "seed_session": {
+      "identical": true
+     }
+    }
+   },
+   "treatment_path_classes": {
+    "last_get_run $.manifest.build.source_fingerprint": [
+     "state_only"
+    ],
+    "seed_get_run $.manifest.build.source_fingerprint": [
+     "state_only"
+    ],
+    "seed_get_run $.requests[0].context_estimate_tokens": [
+     "also_in_control"
+    ]
+   }
+  },
+  "full": {
+   "params": "--long-history 500 --long-runs 20 --long-warmup 2 --window 2000000; order b1,a1",
+   "stages": {
+    "a1": {
+     "runner_blob": "3cba8b1d0855f3a6209c9a4612c0dd36d8bde44c",
+     "exit": 0,
+     "start_utc": "2026-10-18T16:03:32.693+00:00",
+     "end_utc": "2026-10-18T16:03:43.676+00:00",
+     "monotonic_elapsed_ns": 10982740042,
+     "fingerprints": {
+      "last": {
+       "record_bytes": 4046052,
+       "record_sha": "f2e1cad02fd2f302",
+       "get_run_sha": "b0809c1db751b57f",
+       "run_sse_sha": "771c5dfdcc73af1c",
+       "run_sse_frames": 8,
+       "events_page_sha": "6200e2b83749f4a5",
+       "transcript_sha": "fcdaeaa586ff488d",
+       "session_replay_sha": "d64d79ae1591d860",
+       "session_frames": 185,
+       "session_types": {
+        "run_started": 23,
+        "text_delta": 92,
+        "model_request": 23,
+        "text_block": 23,
+        "run_finished": 23,
+        "stream_ready": 1
+       }
+      },
+      "seed": {
+       "record_bytes": 4016060,
+       "record_sha": "e6c46d4984a41305",
+       "get_run_sha": "9b3fd8e99dba6fba",
+       "run_sse_sha": "55ed87bcc160ca0b",
+       "run_sse_frames": 8,
+       "events_page_sha": "af55238812747293",
+       "transcript_sha": "7103d2d7a7f8b4ba",
+       "session_replay_sha": "d64d79ae1591d860",
+       "session_frames": 185,
+       "session_types": {
+        "run_started": 23,
+        "text_delta": 92,
+        "model_request": 23,
+        "text_block": 23,
+        "run_finished": 23,
+        "stream_ready": 1
+       }
+      }
+     }
+    },
+    "b1": {
+     "runner_blob": "70c282c3cfa782a27956b18ac1fc8843b71c6039",
+     "exit": 0,
+     "start_utc": "2026-10-18T16:03:20.405+00:00",
+     "end_utc": "2026-10-18T16:03:32.549+00:00",
+     "monotonic_elapsed_ns": 12143383042,
+     "fingerprints": {
+      "last": {
+       "record_bytes": 4046052,
+       "record_sha": "f2e1cad02fd2f302",
+       "get_run_sha": "adab4d45f26ca1c5",
+       "run_sse_sha": "771c5dfdcc73af1c",
+       "run_sse_frames": 8,
+       "events_page_sha": "6200e2b83749f4a5",
+       "transcript_sha": "fcdaeaa586ff488d",
+       "session_replay_sha": "d64d79ae1591d860",
+       "session_frames": 185,
+       "session_types": {
+        "run_started": 23,
+        "text_delta": 92,
+        "model_request": 23,
+        "text_block": 23,
+        "run_finished": 23,
+        "stream_ready": 1
+       }
+      },
+      "seed": {
+       "record_bytes": 4016060,
+       "record_sha": "e6c46d4984a41305",
+       "get_run_sha": "ab858cce234dbd72",
+       "run_sse_sha": "55ed87bcc160ca0b",
+       "run_sse_frames": 8,
+       "events_page_sha": "af55238812747293",
+       "transcript_sha": "7103d2d7a7f8b4ba",
+       "session_replay_sha": "d64d79ae1591d860",
+       "session_frames": 185,
+       "session_types": {
+        "run_started": 23,
+        "text_delta": 92,
+        "model_request": 23,
+        "text_block": 23,
+        "run_finished": 23,
+        "stream_ready": 1
+       }
+      }
+     }
+    }
+   },
+   "comparisons": {
+    "treatment_1": {
+     "last_record": {
+      "identical": true
+     },
+     "last_get_run": {
+      "diffs": [
+       {
+        "path": "$.manifest.build.source_fingerprint",
+        "b1": "\"d494b571514a\"",
+        "a1": "\"1119cfa2cce9\""
+       }
+      ]
+     },
+     "last_run_sse": {
+      "identical": true
+     },
+     "last_page": {
+      "identical": true
+     },
+     "last_transcript": {
+      "identical": true
+     },
+     "last_session": {
+      "identical": true
+     },
+     "seed_record": {
+      "identical": true
+     },
+     "seed_get_run": {
+      "diffs": [
+       {
+        "path": "$.manifest.build.source_fingerprint",
+        "b1": "\"d494b571514a\"",
+        "a1": "\"1119cfa2cce9\""
+       },
+       {
+        "path": "$.requests[0].context_estimate_tokens",
+        "b1": "11793",
+        "a1": "11790"
+       }
+      ]
+     },
+     "seed_run_sse": {
+      "identical": true
+     },
+     "seed_page": {
+      "identical": true
+     },
+     "seed_transcript": {
+      "identical": true
+     },
+     "seed_session": {
+      "identical": true
+     }
+    }
+   },
+   "treatment_path_classes": {
+    "last_get_run $.manifest.build.source_fingerprint": [
+     "state_only"
+    ],
+    "seed_get_run $.manifest.build.source_fingerprint": [
+     "state_only"
+    ],
+    "seed_get_run $.requests[0].context_estimate_tokens": [
+     "state_only"
+    ]
+   }
+  }
+ }
+}

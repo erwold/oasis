@@ -1,0 +1,74 @@
+# Minimal continuous integration: license / export / secret checks, typecheck and build. Read-only token, no secrets,
+# no pull_request_target, nothing signed, packaged or published. Actions are pinned to the commit of a release tag
+# (checked with `git ls-remote --tags` on 2026-10-18): checkout v7.0.1, setup-node v7.1.0, setup-bun v2.2.0.
+# macOS on Apple silicon is the platform the product is developed and run on; this job does not claim others.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: Also run the backend and frontend unit test suites (slower)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    name: macOS arm64
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.0
+
+      - name: Tests of the export, scan and license scripts (offline, scratch repositories)
+        run: node --test scripts/oss/test/*.test.mjs
+      - name: Secret scan of the committed snapshot (fails on a likely secret; findings are redacted)
+        run: node scripts/oss/scan-secrets.mjs --snapshot HEAD
+      - name: Public export dry run (fails on a finding, a broken reference or a missing required file; writes nothing)
+        run: node scripts/oss/export-public.mjs --commit HEAD
+
+      - name: Install (contract and backend with bun, frontend and desktop with npm, from the lock files)
+        run: |
+          (cd contract && bun install --frozen-lockfile)
+          (cd backend-ts && bun install --frozen-lockfile)
+          (cd frontend && npm ci --no-audit --no-fund)
+          (cd desktop && npm ci --no-audit --no-fund)
+      - name: Backend typecheck
+        working-directory: backend-ts
+        run: bun run typecheck
+      - name: Frontend typecheck and build
+        working-directory: frontend
+        run: npm run build
+      - name: Desktop packaging and license-resource tests (these two files only, not the whole desktop suite)
+        working-directory: desktop
+        run: node --test test/licenses.test.js test/packaging.test.js
+      - name: THIRD_PARTY_NOTICES.md matches the locks and the real build inputs
+        run: node scripts/oss/notices.mjs --work-dir "$RUNNER_TEMP/notices" --check
+
+      - name: Backend tests (opt-in)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_tests }}
+        working-directory: backend-ts
+        run: bun run test
+      - name: Frontend tests (opt-in)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_tests }}
+        working-directory: frontend
+        run: npm test

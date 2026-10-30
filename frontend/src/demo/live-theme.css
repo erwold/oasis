@@ -1,0 +1,135 @@
+/* The live UI demo: its page layout and its two skins. Atelier is the product's claude theme (index.css); Signal
+   re-points the product's tokens while the demo holds the page — html[data-live-theme] is set by the demo and removed
+   when it leaves — so the components keep their own rules. New tokens are the demo's own (--live-*), each with a
+   fallback.
+   Atelier: white paper, one ink with a warm second ink, hairlines instead of cards, a light serif for the page's
+   title only, Helvetica Neue for every number and label. Signal: a dark working surface in layers, items not in
+   focus stepped back, colour only for state. */
+
+@font-face {
+  font-family: 'Fraunces';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('./fonts/fraunces-300-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Atelier is the app's claude theme (index.css: the palette, and the components' scope that .live-demo joins with the
+   class `atelier`; liveEntry.tsx puts data-theme="claude" on the root while the demo holds the page): the demo adds
+   only its page title's serif and its marks. */
+html[data-live-theme='atelier'] {
+  --live-display: 'Fraunces', 'Fraunces Fallback', serif;
+  --live-mark: var(--uis-latest, #e2401f);
+  --live-label-ink: var(--ink);
+}
+
+/* Signal re-points the page and, over the app's Atelier scope, the components it draws */
+html[data-live-theme='signal'], html[data-live-theme='signal'] :is(.uis, .agents-board, .desk-win, .atelier) {
+  color-scheme: dark;
+  --page: #0f1012; --canvas: #0b0c0e; --surface: #15161a; --inset: #191a1e; --hover: #1e1f24; --hover-2: #25272c; --field: #1c1d22;
+  --ink: #e8e9eb; --ink-2: #a2a5ab; --ink-3: #6d7179;
+  --line: #222429; --line-strong: #2e3036; --line-soft: #1a1b1f;
+  --accent: #8f9bea; --accent-ink: #b4bcf3; --accent-tint: #20233a;
+  --green: #4cb782; --green-tint: #15291f; --orange: #e0a243; --orange-tint: #2b2214; --red: #eb5f57; --red-tint: #2d1716;
+  --warning-foreground: #e9b45c; --success-foreground: #6fcf9b;
+  --shadow-xs: none; --shadow-sm: none; --shadow-md: 0 8px 20px rgb(0 0 0 / 0.35);
+  --shadow-hairline: 0 0 0 1px var(--line); --shadow-btn: 0 0 0 1px var(--line-strong); --shadow-card: 0 0 0 1px var(--line);
+  --shadow-raised: 0 0 0 1px var(--line-strong); --shadow-overlay: 0 0 0 1px var(--line-strong), 0 16px 40px rgb(0 0 0 / 0.5);
+  --radius: 10px; --radius-md: 8px; --radius-sm: 6px; --radius-chip: 5px;
+  --font-body: Inter, 'Inter Variable', -apple-system, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  --font-heading: var(--font-body);
+  --live-display: var(--font-body);
+  --live-mark: #f2f3f5;
+  --live-label-ink: var(--ink-3);
+  /* the intelligent-UI surfaces: one layer above the page, bright data, muted chrome, no glow */
+  --uis-bg: #15161a; --uis-head-bg: #15161a; --uis-shadow: 0 0 0 1px #222429; --uis-rule: #212328; --uis-grid: #1c1e22;
+  --uis-ink: #e8e9eb; --uis-ink-2: #a2a5ab; --uis-muted: #6d7179; --uis-field: #1c1d22; --uis-btn-shadow: 0 0 0 1px #2e3036;
+  --uis-font-title: var(--font-body); --uis-title-weight: 600; --uis-title-track: -0.01em; --uis-font-data: var(--font-body);
+  --uis-label-size: 11px; --uis-label-weight: 500; --uis-label-track: 0.02em; --uis-metric-size: 22px; --uis-metric-weight: 500;
+  --uis-stroke: 1.5px;
+  --uis-series-0: #e6e7ea; --uis-series-1: #8a8f98; --uis-series-2: #8f9bea; --uis-series-3: #6fb39a; --uis-series-4: #c9a36a;
+  --uis-series-5: #b48ead; --uis-series-6: #7d8590; --uis-series-7: #5d6470;
+  --uis-latest: #f2f3f5; --uis-cursor: #a2a5ab; --uis-fresh: #e8e9eb;
+  /* the agents' outline, timeline and cards */
+  --agent-bg: #15161a; --agent-title-bg: #191a1e; --agent-line: #222429; --agent-line-soft: #1b1c20;
+  --agent-ink: #e8e9eb; --agent-ink-2: #b4b7bd; --agent-ink-3: #80848c; --agent-sel-bg: #1f2127;
+  --agent-live: #8f9bea; --agent-ok: #4cb782; --agent-wait: #e0a243; --agent-bad: #eb5f57; --agent-mute: #4a4d54;
+  --agent-radius: 6px; --agent-card-radius: 8px; --agent-card-shadow: 0 0 0 1px #2a2c31, 0 12px 28px rgb(0 0 0 / 0.4);
+  --agent-title-font: var(--font-body); --agent-title-weight: 600; --agent-title-tracking: -0.01em; --agent-title-size: 12.5px;
+  --agent-data-font: var(--font-body); --agent-label-font: var(--font-body);
+}
+
+/* ---- the page ---- */
+
+html[data-live-theme='signal'] .live-title { font: 600 17px/1.2 var(--font-body); letter-spacing: -0.015em; }
+
+.live-demo { position: fixed; inset: 0; display: flex; flex-direction: column; overflow: auto; background: var(--page); color: var(--ink); font: 13px/1.45 var(--font-body); letter-spacing: -0.005em; }
+.live-head { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; min-height: 52px; padding: 8px 20px; border-bottom: 1px solid var(--line); }
+.live-title { margin: 0; font: 300 26px/1.1 var(--live-display, serif); letter-spacing: -0.03em; color: var(--ink); white-space: nowrap; }
+.live-title span { color: var(--ink-2); }
+.live-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 0; margin: 0; color: var(--ink-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.live-status > span + span::before { content: '·'; margin: 0 8px; color: var(--ink-3); }
+.live-status > .live-sim::before, .live-status > .live-sim + span::before { content: none; }
+.live-status b { font-weight: 500; color: var(--ink); }
+.live-mode { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); }
+.live-mode i { width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--live-mark, var(--red)); }
+.live-mode.paused i { box-shadow: inset 0 0 0 1.5px var(--ink-3); }
+.live-sim { margin: 0 12px 0 8px; padding: 0 5px; border-radius: 2px; box-shadow: inset 0 0 0 1px var(--live-mark, var(--red)); color: var(--live-mark, var(--red)); font-size: 9.5px; font-weight: 600; line-height: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+.live-spacer { flex: 1; }
+.live-tabs { display: inline-flex; gap: 2px; }
+.live-tabs button, .live-seg button, .live-btn { height: 26px; padding: 0 10px; border-radius: var(--radius-sm); color: var(--ink-2); font-size: 12px; font-weight: 500; }
+.live-tabs button span { margin-left: 4px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.live-tabs button:hover, .live-seg button:hover, .live-btn:hover { background: var(--hover); color: var(--ink); }
+.live-tabs button.on { background: var(--field); color: var(--ink); }
+.live-controls { display: inline-flex; align-items: center; gap: 6px; }
+.live-btn { gap: 5px; box-shadow: var(--shadow-btn); }
+.live-seg { display: inline-flex; padding: 2px; border-radius: calc(var(--radius-sm) + 2px); box-shadow: var(--shadow-btn); }
+.live-seg button { height: 22px; padding: 0 8px; }
+.live-seg button.on { background: var(--ink); color: var(--page); }
+.live-label { margin: 0 0 6px; font: 500 11.5px/1.2 var(--font-body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--live-label-ink, var(--ink)); }
+
+/* ---- the run view: the surfaces, the team, the cards, the timeline at once ---- */
+
+.live-run { flex: 1; display: grid; gap: 12px 16px; padding: 12px 20px 16px; min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: 'metrics side' 'cards side' 'board side'; }
+.live-metrics { grid-area: metrics; min-width: 0; }
+.live-metrics .uis { margin: 0; }
+.live-side { grid-area: side; display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+.live-panel { min-width: 0; }
+.live-outline-body { height: 132px; overflow: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.live-evals { flex: 1; min-height: 0; overflow: auto; }
+.live-evals .uis { margin: 0; }
+.live-cards { grid-area: cards; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; min-width: 0; }
+.live-card-slot { position: relative; min-width: 0; }
+.live-card-slot > .desk-win { transition: none; }
+.live-board { grid-area: board; min-width: 0; min-height: 0; overflow: auto; }
+.live-board .agents-board { margin: 0; }
+.live-board .turn-group { margin: 0; max-width: none; }
+
+/* ---- the agents view: the desk itself ---- */
+
+.live-agents { flex: 1; position: relative; display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; padding: 12px 20px 16px; min-height: 620px; }
+.live-agents-side { min-width: 0; }
+.live-outline-body.tall { height: auto; max-height: calc(100vh - 120px); }
+.live-desk-host { position: relative; min-width: 0; }
+.live-desk-host .desk-layer { inset: 8px 0 0 0; }
+
+/* ---- narrower windows: one column, nothing wider than the page ---- */
+
+@media (max-width: 1180px) {
+  .live-run { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: 'metrics' 'cards' 'side' 'board'; }
+  .live-side { flex-direction: row; flex-wrap: wrap; }
+  .live-side > * { flex: 1 1 320px; }
+  .live-evals { max-height: 300px; }
+  .live-agents { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(560px, 1fr); }
+}
+@media (max-width: 760px) {
+  .live-head { padding: 8px 12px; }
+  .live-title { font-size: 22px; }
+  .live-run { padding: 10px 12px 14px; }
+  .live-cards { grid-template-columns: minmax(0, 1fr); }
+  .live-side { flex-direction: column; }
+  .live-controls { flex-wrap: wrap; }
+}

@@ -1,0 +1,24 @@
+/* A walkthrough's stage (DemoStage): the picture, the cursor and the controls. Motion is transform and opacity on
+   event boundaries; [data-instant] (a chosen step, reduced motion) and the reduced-motion query draw without it. */
+.demo { margin: 2px 0 10px; border-radius: 12px; background: var(--inset); box-shadow: 0 0 0 1px var(--line); overflow: hidden; }
+.demo-stage { position: relative; height: 224px; overflow: hidden; }
+.demo-scene { position: absolute; inset: 12px; animation: demo-scene-in 320ms cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes demo-scene-in { from { opacity: 0; transform: translateY(6px) scale(.985); } }
+.demo-cursor { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; transition: transform 520ms cubic-bezier(.45, .05, .25, 1); }
+.demo-cursor:not([data-at]) { opacity: 0; }
+.demo-cursor svg { display: block; fill: var(--ink); stroke: var(--surface); stroke-width: 1.2; filter: drop-shadow(0 1px 1.5px oklch(0 0 0 / .25)); }
+.demo-click { position: absolute; left: -9px; top: -9px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); opacity: 0; animation: demo-click 420ms ease-out; }
+@keyframes demo-click { from { opacity: .5; transform: scale(.3); } to { opacity: 0; transform: scale(1.4); } }
+.demo-stage[data-instant], .demo-stage[data-instant] *, .demo-stage[data-instant] *::before, .demo-stage[data-instant] *::after { transition: none !important; animation: none !important; }
+.demo-bar { display: flex; align-items: center; gap: 2px; padding: 3px 6px; border-top: 1px solid var(--line); background: var(--surface); }
+.demo-btn { flex: none; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: none; border-radius: 7px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.demo-btn:hover:not(:disabled) { background: var(--hover); color: var(--ink); }
+.demo-btn:disabled { opacity: .35; cursor: default; }
+.demo-btn:focus-visible, .demo-dot:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.demo-dots { flex: none; display: inline-flex; margin: 0 4px; }
+.demo-dot { position: relative; width: 14px; height: 22px; padding: 0; border: none; border-radius: 4px; background: transparent; cursor: pointer; }
+.demo-dot::after { content: ''; position: absolute; left: 4px; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); transition: background-color 160ms, transform 160ms; }
+.demo-dot:hover::after { background: var(--ink-3); }
+.demo-dot[aria-current]::after { background: var(--ink); transform: scale(1.2); }
+.demo-step { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) { .demo, .demo *, .demo *::before, .demo *::after { transition: none !important; animation: none !important; } }

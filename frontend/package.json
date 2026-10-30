@@ -1,0 +1,47 @@
+{
+  "name": "oasis-code-frontend",
+  "private": true,
+  "license": "Apache-2.0",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "predev": "npm run build:share && npm run build:live-share",
+    "build": "tsc -b && npm run build:share && npm run build:live-share && vite build",
+    "build:share": "vite build -c vite.share.config.ts",
+    "build:live-share": "vite build -c vite.live-share.config.ts",
+    "typecheck:tests": "tsc -p tsconfig.tests.json",
+    "test": "npm run typecheck:tests && node --test tests/*.test.ts",
+    "e2e": "node --test --test-concurrency=1 e2e/*.e2e.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@oasis-code/contract": "file:../contract",
+    "katex": "0.18.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "jsdom": "^29.1.1",
+    "playwright-core": "^1.58.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0"
+  },
+  "overrides": {
+    "katex": "$katex",
+    "source-map-js": "^1.2.2"
+  },
+  "allowScripts": {
+    "fsevents": false
+  }
+}

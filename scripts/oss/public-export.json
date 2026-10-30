@@ -1,0 +1,1363 @@
+{
+  "comment": "What scripts/oss/export-public.mjs may put in a public candidate tree. A committed path is exported only when it matches an include entry, matches no exclude entry / excluded name / forbidden type, and — for media — is explicitly allowed. Entries ending in / are folders; no globs. docs/ is never included wholesale: each public document is named. Changing this file is a publication decision; review it like code (PUBLIC_EXPORT.md).",
+  "include": [
+    "README.md",
+    "README.en.md",
+    "INSTALL.md",
+    "CONFIGURATION.md",
+    "FAQ.md",
+    "PRIVACY.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "PUBLIC_EXPORT.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md",
+    ".gitignore",
+    ".github/",
+    "licenses/",
+    "scripts/oss/",
+    "contract/",
+    "backend-ts/",
+    "frontend/",
+    "desktop/",
+    "docs/REFERENCE.md",
+    "docs/live-session-share.md",
+    "docs/intelligent-ui-examples.json",
+    "docs/intelligent-ui-demos/flow-grpo-native.spec.json",
+    "docs/intelligent-ui-demos/flow-grpo-html.spec.json",
+    "docs/intelligent-ui-demos/flow-grpo.html",
+    "docs/intelligent-ui-demos/flow-grpo-request-input.json",
+    "docs/intelligent-ui-demos/persistent-panel.tool-calls.json",
+    "docs/images/main-window.png"
+  ],
+  "exclude": [
+    "backend-ts/src/remote/TRANSPORT-PROGRESS.md",
+    "backend-ts/scripts/persistent_ui_live_smoke.ts",
+    "backend-ts/scripts/ssh_qa_pod_host_api.ts",
+    "backend-ts/scripts/ssh_qa_pod_transport.ts",
+    "backend-ts/scripts/ssh_qa_gpu_job.py",
+    "backend-ts/scripts/ssh_qa_gpu_workload.py",
+    "backend-ts/scripts/ssh_qa_runpod_cleanup_registry.py",
+    "backend-ts/scripts/ssh_qa_runpod_recover.py",
+    "backend-ts/scripts/ssh_qa_runpod_scenarios.py",
+    "backend-ts/scripts/ssh_qa_runpod_server.ts",
+    "backend-ts/scripts/ssh_qa_runpod_timing.ts",
+    "frontend/e2e/ssh-qa-electron-acceptance.cjs",
+    "frontend/e2e/ssh-qa-jupyter-private.py",
+    "frontend/e2e/ssh-qa-jupyter-electron-private.cjs",
+    "frontend/e2e/ssh-qa-runpod-electron.cjs",
+    "frontend/e2e/ssh-qa-runpod-electron-view.cjs",
+    "frontend/e2e/ssh-qa-runpod-jupyter-electron-private.cjs",
+    "frontend/e2e/ssh-qa-runpod-jupyter-private.py",
+    "backend-ts/scripts/ssh_qa_fault_proxy.py",
+    "backend-ts/scripts/ssh_qa_product_server.ts",
+    "frontend/e2e/ssh-qa-jupyter-context.cjs",
+    "frontend/e2e/ssh-qa-runner.py"
+  ],
+  "exclude_names": [
+    "node_modules/",
+    "dist/",
+    ".git/",
+    ".env",
+    ".env.",
+    ".claude/",
+    ".oasis-code/",
+    ".oasis-code-data/",
+    "data/",
+    "reports/",
+    "test-results/",
+    ".DS_Store",
+    "private-reports/"
+  ],
+  "keep_env_example": true,
+  "forbidden_extensions": [
+    ".log",
+    ".har",
+    ".sqlite",
+    ".sqlite3",
+    ".db",
+    ".p12",
+    ".pfx",
+    ".p8",
+    ".mobileprovision",
+    ".keychain",
+    ".jks",
+    ".keystore",
+    ".zip",
+    ".tar",
+    ".tgz",
+    ".gz",
+    ".dmg",
+    ".mov",
+    ".mp4",
+    ".webm",
+    ".pdf"
+  ],
+  "media": {
+    "extensions": [
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".webp",
+      ".heic",
+      ".svg",
+      ".ico",
+      ".icns",
+      ".woff",
+      ".woff2",
+      ".ttf",
+      ".otf"
+    ],
+    "allow": [
+      {
+        "path": "backend-ts/tests/fixtures/images/dot.gif",
+        "sha256": "693d949d8c3fdc7fd4ace7c340b5f177a9f0c5be7bafee8bc93a7d88b7523d75",
+        "review": "reviewed",
+        "why": "synthetic test image (43 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/dot.svg",
+        "sha256": "38faf4153750fdb3d8b4ac3c34650dce4c2128f5c7b1dce0c1f5efb5c2522809",
+        "review": "reviewed",
+        "why": "synthetic test image (63 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/heic-named.JPG",
+        "sha256": "ba5436f52cf1184d8052e62b99f766ec5aa0fb4e8be7903fdc7bce1f2b2187d0",
+        "review": "reviewed",
+        "why": "synthetic test image (571 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-14x10.png",
+        "sha256": "14272d51ce0d76b3e3a30c8213ed8260f7eed11c97fdabdaa59cd198b7fa604d",
+        "review": "reviewed",
+        "why": "synthetic test image (78 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-3000x1.png",
+        "sha256": "736a615df9db2b419f54001693d2c47bfb8c86ce5258e281d8d9ae5e500f2e46",
+        "review": "reviewed",
+        "why": "synthetic test image (90 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-7x5-alpha.webp",
+        "sha256": "dec0c09fe5ac7fad53853363c70fba3ea5f18a936e4d507fab533506196e8530",
+        "review": "reviewed",
+        "why": "synthetic test image (102 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-7x5-lossless.webp",
+        "sha256": "14a24d9f9fc807cbdceb058f9c98723d6e88e3345829d5b12098dd1ae6408241",
+        "review": "reviewed",
+        "why": "synthetic test image (42 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-7x5-lossy.webp",
+        "sha256": "844d558d44376627d1ea4a9398a368dedf4912a649147426c02c4c3c578da7f9",
+        "review": "reviewed",
+        "why": "synthetic test image (88 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-7x5.heic",
+        "sha256": "ba5436f52cf1184d8052e62b99f766ec5aa0fb4e8be7903fdc7bce1f2b2187d0",
+        "review": "reviewed",
+        "why": "synthetic test image (571 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-7x5.jpg",
+        "sha256": "8bec200f304b0651f1af53a245ff5798fa3caae288fee2d0bdee2ca05be70135",
+        "review": "reviewed",
+        "why": "synthetic test image (658 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "backend-ts/tests/fixtures/images/red-7x5.png",
+        "sha256": "26868b803dbf54ce64326242397b74fd6e35be2171096179db1258e58f86807e",
+        "review": "reviewed",
+        "why": "synthetic test image (86 bytes; a 1x1 dot or a plain red rectangle of a few pixels, checked with file(1))"
+      },
+      {
+        "path": "desktop/build/icon.png",
+        "sha256": "08ce8989efd848f62db2bbc72e012fb574d118b4e3e724e363c241d60aa89486",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/01-keycap.webp",
+        "sha256": "26bd6e231e6b648fb3db18cd45c0fbac71c05f8f93af3ad238f9979bd29c3896",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/02-terminal.webp",
+        "sha256": "8863d74375fba33ec00e08a634e98c986883379df2c805ac44f99e2e743ab345",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/03-cursor.webp",
+        "sha256": "67f94ba180c338b2ca0feb7319b8c3d8c2eec7d215c98e19d618f5eaaa96ec96",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/04-braces.webp",
+        "sha256": "3abc42585c6381f478a601f6afeda8204a3e09ac210083715c68744d716710fd",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/05-bubble.webp",
+        "sha256": "1ea93f8e9d81e4c040335bc86092cf5b399270adcfb8b6db8db1e81216619977",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/06-disc.webp",
+        "sha256": "8b055ec2d386460c377d49322c6e6684d91747b72eba239d4a2a1a9277adfc11",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/07-pixel.webp",
+        "sha256": "58ddfd1c6d31f9b676098d0f6af7dc527ae01223225c7b8c9c008b5883cb6f36",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/08-prompt.webp",
+        "sha256": "eecd35bd68a6da46a514e83e7188482e0b0a104501c8b80f3b9e6ed88cd7a7e8",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/09-spark.webp",
+        "sha256": "7042ad13ed102140334c1e06ba5849b2be227e8d2717fb28852a13f2526a69fe",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/10-hex.webp",
+        "sha256": "ed325209ba1dd5eb8cd526d4df995697023624f1912f52811d9633a3ced7e655",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/11-folder.webp",
+        "sha256": "2682564d8055534024b1f190b5920719e546c5e3c7543928fe972e256f22caf6",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/12-note.webp",
+        "sha256": "ab7f0504262d6a684501b8cbc31144c4e1a7839e89ac041c4de7083b22ff9cf2",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/13-puzzle.webp",
+        "sha256": "3bf9c5b075ee7295727e00291232d289077f622a78396b819a7dfbe53797b4a4",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/14-bolt.webp",
+        "sha256": "35ba325b76f4bb34a3b3e95d8869d0ed25c6581833b7be2ae64cf49b9797a15f",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/15-rocket.webp",
+        "sha256": "fe93b83fc926157224ff83a265adc23e248d92c875226c84f080432614c6e834",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/16-lens.webp",
+        "sha256": "049925aef855e7b722dd7ed8bd914021ae7a308bf2f40ad903de822adf5417e1",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/17-shield.webp",
+        "sha256": "4214047a95443cc6c14ca8fcadd843e2e7939bf47ff76a6ccedaa4f6376cf0ca",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/18-robot.webp",
+        "sha256": "70f15c4de8aa3c87a113290bfd76ef9a0e938c4afaf10b492ec906752c336427",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/19-chip.webp",
+        "sha256": "a489e71e962800f09c5b5aa0662d9fccf63b9376f137cf317135c4bc4dd5a175",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/20-at.webp",
+        "sha256": "37ed6a91a448705ff3a0d6d52aedb3d9f72520a40a4f72e8226c9f83430af3f8",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/blocked/director.webp",
+        "sha256": "d2b6f6877a22ee5dd272e4133c189d8daa383026f4fa0f5bc7a19db6249f53e9",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/01-keycap.webp",
+        "sha256": "c72be45adbdc77625c9319ac2018f0101706c2068ede2e89b419a57420f71f9e",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/02-terminal.webp",
+        "sha256": "c299f51e96ff886d5faf5fb2a92d2224ff781a0dbaa4835f00c3f32eafe10247",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/03-cursor.webp",
+        "sha256": "68aada5b81faf190f8bdb3e7a0c4782fe6d2263ca48396093ddc451f6496f25d",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/04-braces.webp",
+        "sha256": "eb24234992a1b6171f2bc5eb291e8326d96915462f2a337b15c191ccff3945f6",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/05-bubble.webp",
+        "sha256": "9ebffcb532844ac6dc0930d368f50cd9fdb125c327538c5f331ae119503971c9",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/06-disc.webp",
+        "sha256": "94f6824b7dfb0b0b384968b3fcff08c57d5b1cb12f8b3d603d87651e0fb6ba78",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/07-pixel.webp",
+        "sha256": "966ce22d6586c7eeb0724f6afaf48f3c15b6dfd4bb62b84a5dcad9835476b098",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/08-prompt.webp",
+        "sha256": "b6ccf88b22d8d37aa80f0d5a8ab911c612f100a2c2a104f6c7214e177ccfdc3c",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/09-spark.webp",
+        "sha256": "4f8edf965d08ee607a73b1c07e8e8f30b43fd6dafe22db3c7523421ed03b0bf8",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/10-hex.webp",
+        "sha256": "ad21efb4600d646ee5d2c8d0d9da2b88f0595b29e49fe615128aa4e0579dda41",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/11-folder.webp",
+        "sha256": "a176abcfc75b610349357b681a98aa1817ba53195a6e5b81e12367e55e0a8d64",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/12-note.webp",
+        "sha256": "778317bd27d8ac78c8554e6eba495448072c6fdee105fa0a2695c42d6d8cf484",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/13-puzzle.webp",
+        "sha256": "9ec78e5e7e66919e2917c9e199b075773b5e9764b6d7663a0a13f34b63ca6b00",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/14-bolt.webp",
+        "sha256": "26f0eca47312ca870d432aafc020e0b3562001b8c9bfa1f41b05a4077a73e2ef",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/15-rocket.webp",
+        "sha256": "bb564bc5c70aea5577355cde0458d84753d53af6c1b18faceeb0ed0745fa2ccb",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/16-lens.webp",
+        "sha256": "1b51117b2789d9b646ef9872674867dee0747a012d8cbccbd016d6222bb00060",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/17-shield.webp",
+        "sha256": "876d56fff8e96652c914dfb9095afc818bc39955518b9ea1c48869ada924dbd9",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/18-robot.webp",
+        "sha256": "e239f4aa7f62fdf888c573fc36b89b575389bb84dddff620689fdd8953f2c2fe",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/19-chip.webp",
+        "sha256": "9b17dd10b4aa589be74bf15f4a326bee8b7fc13ca3f0eb375ed9788859db387a",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/20-at.webp",
+        "sha256": "a4a93b2a2e6b0f90f17b8dc9f0b6ba7e438fc3c1236bdf51997b905a3782c2d1",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/done/director.webp",
+        "sha256": "255aab9c6dbb3a41e9446f693743cbdd07f89c5d4b42b1059991aa225d8a3855",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/01-keycap.webp",
+        "sha256": "a81d0ad262369d12ccb5bae32cca51c0e4afbac910e091383d62ec596f60825e",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/02-terminal.webp",
+        "sha256": "aff96e9f0c5c076321de60369b79ebdd392ce09d6766bb1f61bc940a85390d27",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/03-cursor.webp",
+        "sha256": "c83562fd97a208e259eab5b3a15a58aeaff0129a14c2a306aebf11202e6dbc52",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/04-braces.webp",
+        "sha256": "93733ef9b94190fbec1bb7a311fa4f9ca8b55bf13e15d4db24840277d58dd532",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/05-bubble.webp",
+        "sha256": "ffa1051be4bb8c8383fd83244811265911f5413ee9fc4496042b59a6ee03bcab",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/06-disc.webp",
+        "sha256": "df44775af06416405de254608613d2a4480c1bb741313b2fc320bb908b94f7c8",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/07-pixel.webp",
+        "sha256": "422a9ed0e25a9c2f5497bb98b28f6a6cd3c49258660e1eac1d1cf337e9519edd",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/08-prompt.webp",
+        "sha256": "f8fe193358c018c029e01c7c4c2be72d8ad7342a918ab581f8aefa7098bc3495",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/09-spark.webp",
+        "sha256": "17ee14e6ec337cfe0d2e1c9cb109042209803d389be423edb80bd6a3458ce868",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/10-hex.webp",
+        "sha256": "aa83facf52408839971139fafc7e7cad287cfa0e3d657f6e221d597af7dc2663",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/11-folder.webp",
+        "sha256": "d9980ea799de7cc8a81ade06351dc2233e7b939589744378f7b4b84b55992159",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/12-note.webp",
+        "sha256": "dc047480f7e61be152bce514c2d7a76e13d6b4862544fcdb3b55c86f3bd28c7a",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/13-puzzle.webp",
+        "sha256": "51c40567d5afafdff04a920938397a90d8d78c01d43a90a3b867e431a05e956e",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/14-bolt.webp",
+        "sha256": "6204bcaa244aa3730363499fa26a6c389e51b2651fcc3819fdc84087e581fc16",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/15-rocket.webp",
+        "sha256": "2dbc053c36be13e0f0dd54e0fffef1ab575fa07d18d8af06a38e763143c7dd6d",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/16-lens.webp",
+        "sha256": "bf3f53f2d793bdc5b0299daba247e6c68a197ce4d967cd8f5183a7555c396b3d",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/17-shield.webp",
+        "sha256": "322e472d6ee858bb032899583e9d3607489692aa92e3be13cfa189587cf0e484",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/18-robot.webp",
+        "sha256": "a21b62c398ae642d5ddd96b61cced062302a3cb5ef737354a1f79788d3af374d",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/19-chip.webp",
+        "sha256": "d90c180c72eff7a67d5610a8284cf2155b38929585958c9f396f65ce41538058",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/20-at.webp",
+        "sha256": "6be47dbb1405f6ce6d09e24ea4416921a8f67daf5044bd76db9b945004bc1f36",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/idle/director.webp",
+        "sha256": "9b6a0b59007e46b1d5504015e1ce2e4f18d3558f0986cd51374bb8a44fa190c4",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/01-keycap.webp",
+        "sha256": "ddbf427bd06921553867512b4e7126c5dd504f94d1de8daf4712fd6f3ffb4dca",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/02-terminal.webp",
+        "sha256": "b20df654d238aa2bd6f713eaff63d79b093aa50e7280aecb016db1957173a151",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/03-cursor.webp",
+        "sha256": "cc5680872090100e02c13c3e18c9bab98569e642dd92563e58a327c62153f12d",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/04-braces.webp",
+        "sha256": "a62c954d62b1e2bf072985f6e25353d63904b9923f1bb3c53e8d5e264e460a9c",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/05-bubble.webp",
+        "sha256": "68229912a54d7da803ce6fcec908cccef79884295381a2d07263e917a388faab",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/06-disc.webp",
+        "sha256": "afb8c502f19379cac774cc227393ecc2ab77c83d2e4119819a0d77cd4cc1ea50",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/07-pixel.webp",
+        "sha256": "fdd0683cf302cf9aba5a76be5c61f511246fe9a1c06c5b7154514200e42a4511",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/08-prompt.webp",
+        "sha256": "67fc33cd13c9ca3217d0ac68f3331301d41b26d60e16091d7f8862c116803f94",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/09-spark.webp",
+        "sha256": "89edc0d47e43dd509d99c1de38ecf324b47473ec56687e4792b16080ed3faa38",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/10-hex.webp",
+        "sha256": "c97114b61a8246949d729c854ca6c820708a69fca7bc6a54846b83203edc9c2e",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/11-folder.webp",
+        "sha256": "e0e81f014e10001e7e6fee80f0d338716552442650dab45837ac2c19f3197bc6",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/12-note.webp",
+        "sha256": "bb5b226958d75ffbd886571832a7dc0f2a2eb7ef751e80f4219bf9aa5aabe035",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/13-puzzle.webp",
+        "sha256": "f14d78bc671a67a12c4898f7a688fbac681465f7e5ea5a7cabb367988b7bba70",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/14-bolt.webp",
+        "sha256": "cf182fb17be04370f5ce988654c7bcdf5874d3817eaae332c2fc2874902c40b3",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/15-rocket.webp",
+        "sha256": "889096329c9293dc179e00f75a9ab12dfd9b6863056dfb38cee71bfc8c78add3",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/16-lens.webp",
+        "sha256": "6bf2d8c522e12ba87cab0fb246653b1b745130bca7cdbd33433f0de8611692aa",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/17-shield.webp",
+        "sha256": "a4a18de2cc55dffce901879cf80f4f161dc8dccc65f74e181cefc3da2300bf35",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/18-robot.webp",
+        "sha256": "9c50e0fbe1f94000391a20aa7ceb5d7b045a6ed9035e15d7daf4865342bda2ab",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/19-chip.webp",
+        "sha256": "fa8fad913c4089b78c0d4da50b712d300d5332a4a063401ef3f8df7104f8945d",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/20-at.webp",
+        "sha256": "ec46ba1408fda41364195d4e29779e0c90fb30cfa1ac6130a96f61d6ebb35abe",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/thinking/director.webp",
+        "sha256": "76b121976624ace2867fe41e733fcc9a122bc4d1e9de4536ec8699fd0c246508",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/01-keycap.webp",
+        "sha256": "fe6521ddd3f6a8437b55185f707d829b6af28a28556430d4cb5210efa85c3488",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/02-terminal.webp",
+        "sha256": "8279cf7bc2fc6f77d53959424a23ca008d8f81bf9a5523e43905426c2dd0bf74",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/03-cursor.webp",
+        "sha256": "1d4df5a31bfff63d943b6eb80c7d5a87f67eacf4e0b93bd0e00d34302afbd234",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/04-braces.webp",
+        "sha256": "63c02c0e5ea3354eaa9a513c78b8d7988c26fef3b04eac4621534e2ecc5f97d2",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/05-bubble.webp",
+        "sha256": "6d8a66b05e467f9a51533e4279794ef0fefc79948c171ce478c8b4359f1b2581",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/06-disc.webp",
+        "sha256": "1bb92b24393b52f3a7fe2d73db456cbbcfc0d4405fba5ea0bced381c187c9355",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/07-pixel.webp",
+        "sha256": "555162d7703db1c16234536ae03a138bc4c87305bfad2634a238909e371bad23",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/08-prompt.webp",
+        "sha256": "1307c5f3f84ef36c3b3814619c2fe2674959d9c18c316841f99a2d2dddc31224",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/09-spark.webp",
+        "sha256": "b83a897aad403eedb4077c11c931f7854efa06c03fde415267972d46f8611174",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/10-hex.webp",
+        "sha256": "9ad89a9add9f224f54c01a8cbb50e48328d0f1e5d246efc7e233c484fe332a35",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/11-folder.webp",
+        "sha256": "516c2a3a74f293d2a595d3490bdb593837dceecd526282bce1c03cc8ce2a8e68",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/12-note.webp",
+        "sha256": "a67d3dc4679a0a46b61f47f2ddd1735a78463e6334a394c3c5e86316309de9b9",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/13-puzzle.webp",
+        "sha256": "513c16fa044ef4c7bc96cfc465ec631548f53278c9c1ba2574fe744211007347",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/14-bolt.webp",
+        "sha256": "283bada6d7df74055f57ebc12a655b79c8e449c7e83c586d49dfbf1403db8e10",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/15-rocket.webp",
+        "sha256": "2799b6d72780cba53eda5f2d64c32615468461f9e09672c2f93f6f4d541154b9",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/16-lens.webp",
+        "sha256": "1b62551d5d02cd9c1e3b45bc528e5ffa072fafc9704869938cea9a874bd00902",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/17-shield.webp",
+        "sha256": "ba4fbeba0c8319f3b4805e2f1153059c8f16e8092b046d0a73b2fa164d12d1b5",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/18-robot.webp",
+        "sha256": "d0a2b8241d0685f9a0e3d8ee16bf2ff504b09480806aa028af1b04cca89415ce",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/19-chip.webp",
+        "sha256": "fa57178147d4646e7a853daaf84c2fba59202bcde9071d5aa221a5f1e9b6d56d",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/20-at.webp",
+        "sha256": "a8cb32cccb61c915ed478be2cd198790554e2165c2b2fb3c30413fbcab318fbd",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/waiting/director.webp",
+        "sha256": "485f969c82ab623f890a714ff9d45b621b0c74828d33b860e0d70458b7544a7a",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/01-keycap.webp",
+        "sha256": "9865bbcc572e2e6ab8fdde0e9ba3fb99d57e74b61e587d4e56e39ed0ed5ffca5",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/02-terminal.webp",
+        "sha256": "b27776f5116c2113647b28896a36e56476722b912d4da4f7666fde525a120cdd",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/03-cursor.webp",
+        "sha256": "9ac9ef08aefd0d0c99226a17d9600b893d1735941a1aa082cdde5eac5954a43f",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/04-braces.webp",
+        "sha256": "544974e779bea9dff1f42d711c20c59d9a300e1cad41aa257f08188be822dfad",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/05-bubble.webp",
+        "sha256": "66ac64e0c86bd0734165dea1d6a5dd979c505588945257757a9e21dfbfa03ef8",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/06-disc.webp",
+        "sha256": "a19fe9b46b1c18b3b33a9ee56d162024636c5c97e405dc0c103d53c45a35bae9",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/07-pixel.webp",
+        "sha256": "c72808b68b82a67a350a5d957beac9715057c6d5f899ecb513d820ec9032d3df",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/08-prompt.webp",
+        "sha256": "d83535dd268c7f35a4d3a145e4a4efcd47cec15c0335368775ad82e450e827f6",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/09-spark.webp",
+        "sha256": "b4d113ae9415562b4cee242085193dfe635f302d8958555a1c156ac0f2639776",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/10-hex.webp",
+        "sha256": "c34ee1dc239b97e003cfb3a7c3c6a7d5b2b48bc50fb692d17558138504b0b469",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/11-folder.webp",
+        "sha256": "8145f6513e7b60075d68add827241075a88d419cf2fba0b42e26cf2c22ff7d5a",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/12-note.webp",
+        "sha256": "3c56900fe352bb13eade4db3c195158052e31d9d6d8dc9a4ff13fca26cd1c657",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/13-puzzle.webp",
+        "sha256": "2750b48256b9af95fc4441a8a7cfc4a47e7676beab165db074a8e398975d2a96",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/14-bolt.webp",
+        "sha256": "6faa47c42cb18d4cf2d95522267a94c14164d970d450763e47e7313ab08f42cb",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/15-rocket.webp",
+        "sha256": "855e8ed04014f77afe92ffd4fc52b82af78c4c079b867b273842e69ace1785d4",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/16-lens.webp",
+        "sha256": "58429bc40381006903e70d774c0f33e10f9e637c592914625db2e8579cd2fe57",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/17-shield.webp",
+        "sha256": "bd6fd4ce544b3be3d3a1a2a4380766f7e530b1634bb0b81938d92f0719e609db",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/18-robot.webp",
+        "sha256": "4d8161588d425e8a613fc6c5fb263fb382f2d5d47b9df35af2b6ce01cabb1035",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/19-chip.webp",
+        "sha256": "7770fcce8ad5de1614a8c6ee710055d00a01c61125e18f11078964fdab0526ee",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/20-at.webp",
+        "sha256": "c51006eb838e31ea11bcc0a7464821e46d29b1fddfaca224c2b3c28e2d6939f5",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/anim/working/director.webp",
+        "sha256": "3f993a5b882248fe00e6186322cae948830903fd0259706c6ae7211f83c55022",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/01-keycap.png",
+        "sha256": "620216171aab1f73a870ba71a0735eda6f10526f5ad223a1c782b0c7f310cef0",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/02-terminal.png",
+        "sha256": "f8fdf6ef0c0ba2adcd1a13521f47ca9f0a808b15291e0b4e68e6369c10e5e693",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/03-cursor.png",
+        "sha256": "edc52c9f948851325d1b5ab0d8522863e3180d95dfa009436417cfc93c21d287",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/04-braces.png",
+        "sha256": "5468e287993adf499cccf102500198396dacb3063749d5504783294aeb8c5ff4",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/05-bubble.png",
+        "sha256": "bb2fdc44d0868db045d3908f3b5c0a2bc8aaf1043225c3abf6cc6864d65d05bb",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/06-disc.png",
+        "sha256": "bd8025c1c1db8495837d7b8e98e81525deb7e7647dfb10cf18490d1fc111d587",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/07-pixel.png",
+        "sha256": "fcf85d12fb767bbd36db7f0bfb81da8540f1caa892aee1699b6abbc8b2acc253",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/08-prompt.png",
+        "sha256": "86af27725ead495ca25f39e347078eb26f6e1f4c7ad7c3d6ddb90e7476279336",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/09-spark.png",
+        "sha256": "1811fbf43857f9d4b71de76e8c13a66e56538eb7ed9a0ddce639122ecdb42af0",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/10-hex.png",
+        "sha256": "71aef8b617f7d75565ed44305fb886e1b59a8ea6de0ae9a3f2f13bb11c97a24f",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/11-folder.png",
+        "sha256": "00e8887c41df1a227d16a92ccfd7235aa10d4be05d399362e1bf9260216a0d84",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/12-note.png",
+        "sha256": "c8e743b93350473c4ddb262b80a0116fe970c5ac1192e54627db317c44bfaa19",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/13-puzzle.png",
+        "sha256": "c95344a1bb1566a2a2d370b8d7b7c69d887d16c29e4349ac4712cf495917ad74",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/14-bolt.png",
+        "sha256": "479999d57dfa167832dfe70020dd70105a5b29d63a1906837ac576221f04cbcd",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/15-rocket.png",
+        "sha256": "4c02384cfc9f182e3c4bee4b3a51bdc7b43a8544353b9072cc5a20614337afef",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/16-lens.png",
+        "sha256": "3a48f65bcd4d55d62ab9527540959ca7f440566830ffc71756044b4a1257d134",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/17-shield.png",
+        "sha256": "8c8ae829bfc88a66c374775f9c2eeb093f5991362160111d5db7ddd4b24099a7",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/18-robot.png",
+        "sha256": "e987ee995e9c51ff7754c381e99619af174600e69f3c40f5d35dd82bac1990ba",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/19-chip.png",
+        "sha256": "b947e76bc0f3185b596814562d21f8061e4a664b0c8e7b4b5b4d5b20bd0d9115",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/20-at.png",
+        "sha256": "aa21aabfb36b89e3804f5bb0c3a0d63421bea6be330361d0d2345da26c14aef1",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/chatgpt.png",
+        "sha256": "7a159d74ebfdb56f58ce85bb501ccd029af195c6e7f8f389b91a338b444bcf53",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/bots/icons/director.png",
+        "sha256": "2fa04e47e40ef367bd5bb69817ad854dec95515727a0f2e2ea40e3cffadb3ecc",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/public/favicon.png",
+        "sha256": "79f89067ecadc05157d83050eeef18877aab142d3daead2cc260e622f5dc292c",
+        "review": "reviewed",
+        "why": "product artwork of this project: the app icon (desktop/build/icon.png, reviewed) scaled to 64 px in this repository (no EXIF or text chunk: IHDR, pHYs, IDAT, IEND only); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/src/assets/logo-antigravity.png",
+        "sha256": "69103d91bd6a7327736cde7d464bb173242b05d19805686925437cd58bbcfe46",
+        "review": "reviewed",
+        "why": "user-supplied Antigravity provider logo; deterministic aspect-preserving conversion to a 128x128 transparent PNG; PNG chunks checked: no EXIF or text metadata; visually reviewed: logo only, no text; labels the provider only, no endorsement implied (NOTICE 5)"
+      },
+      {
+        "path": "frontend/src/assets/logo-claude.png",
+        "sha256": "c2f5586256df5c0de9b0e6622c13e8baec50349f882a4cf223c7dd49a7047ce8",
+        "review": "reviewed",
+        "why": "provider logo, a trademark of its owner, attributed in NOTICE item 5; privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/src/assets/logo-codex.png",
+        "sha256": "9973f23f16288ca08cda7feb1b9ad3d1162dc75225b5bfbd157ef79732775a2b",
+        "review": "reviewed",
+        "why": "provider logo, a trademark of its owner, attributed in NOTICE item 5; privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/src/assets/logo-deepseek.png",
+        "sha256": "39fbe04b395c722284b1c9a2217daaa10ecd27fd2b3977e19ecc905d2c1b189f",
+        "review": "reviewed",
+        "why": "provider logo, a trademark of its owner, attributed in NOTICE item 5; made in this repository from the owner's mark by colour-to-alpha (no EXIF or text chunk: IHDR, pHYs, IDAT, IEND only); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/src/assets/logo-gemini.png",
+        "sha256": "d16dd09e5c66b1b1b3ac798d10606d0449ad3ac4a99517694db469f2d478fa8f",
+        "review": "reviewed",
+        "why": "provider logo, a trademark of its owner, attributed in NOTICE item 5; privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/src/assets/logo-openai.png",
+        "sha256": "7a159d74ebfdb56f58ce85bb501ccd029af195c6e7f8f389b91a338b444bcf53",
+        "review": "reviewed",
+        "why": "provider logo, a trademark of its owner, attributed in NOTICE item 5; privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/src/assets/tool-computer.svg",
+        "sha256": "772ebfd7c0f188a5373372cbb3a0db87ba128e04f61c447df9afa1b4a1751914",
+        "review": "reviewed",
+        "why": "product artwork of this project (bots, icons, app icon); privacy-reviewed at this exact sha256 by an independent audit (EXIF and OCR, every animation frame included; no personal or secret text, the few OCR hits were drawing or binary noise); a privacy check, not a statement about rights"
+      },
+      {
+        "path": "frontend/src/demo/fonts/fraunces-300-latin.woff2",
+        "sha256": "9910f751379dbf3969200832391364980f8bd99fdbf63cb7e676f3c8157f01d8",
+        "review": "reviewed",
+        "why": "Fraunces font subset, SIL OFL 1.1 (NOTICE item 2, licenses/fraunces-OFL-1.1.txt)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/01-keycap.png",
+        "sha256": "cb76e13166d9004cfb4c32c13fd8aa6456c89c57a20c18a6131e7e20cb703014",
+        "review": "reviewed",
+        "why": "the share pages' 01-keycap.png: the reviewed frontend/public/bots/icons/01-keycap.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/02-terminal.png",
+        "sha256": "ad00db0033397e08d7f59aec21be2bc889a547c6bd57f2217ad6043c2e47f50b",
+        "review": "reviewed",
+        "why": "the share pages' 02-terminal.png: the reviewed frontend/public/bots/icons/02-terminal.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/03-cursor.png",
+        "sha256": "daa0443f75e386036c173e4f05ac8343c5f9c295e2dbb0b2a95a26bcac9b4969",
+        "review": "reviewed",
+        "why": "the share pages' 03-cursor.png: the reviewed frontend/public/bots/icons/03-cursor.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/04-braces.png",
+        "sha256": "41dbbbdfced86010cd5391e30da247be25943b47e527210b7c5f51b0bad5c7f1",
+        "review": "reviewed",
+        "why": "the share pages' 04-braces.png: the reviewed frontend/public/bots/icons/04-braces.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/05-bubble.png",
+        "sha256": "716a611ab0010c29bcfe87cf1a18f9702142e59b3c5c8e57cbbd7a878a0a495d",
+        "review": "reviewed",
+        "why": "the share pages' 05-bubble.png: the reviewed frontend/public/bots/icons/05-bubble.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/07-pixel.png",
+        "sha256": "cd9b2cf334e48f386e4a28cd6d2973b265011db4abdfcc070e195b9043497c3c",
+        "review": "reviewed",
+        "why": "the share pages' 07-pixel.png: the reviewed frontend/public/bots/icons/07-pixel.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/08-prompt.png",
+        "sha256": "dcc15ee229919b6826ab37b5b4b9b3619ea8311ed0e4dd710d0804ddbb52794c",
+        "review": "reviewed",
+        "why": "the share pages' 08-prompt.png: the reviewed frontend/public/bots/icons/08-prompt.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/09-spark.png",
+        "sha256": "a9abf0fbacddcdf9896f15eaf814cf9ee40728424393ccdf53ad47100ea90cca",
+        "review": "reviewed",
+        "why": "the share pages' 09-spark.png: the reviewed frontend/public/bots/icons/09-spark.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/10-hex.png",
+        "sha256": "44c9dd11d08e799c4ec144cd2160b693d46e8e860314a80d4de788171802e228",
+        "review": "reviewed",
+        "why": "the share pages' 10-hex.png: the reviewed frontend/public/bots/icons/10-hex.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/13-puzzle.png",
+        "sha256": "93b30971facd1d83c420aaceada97d2ed077618648ad8fbe984a5ff28fb0f9f6",
+        "review": "reviewed",
+        "why": "the share pages' 13-puzzle.png: the reviewed frontend/public/bots/icons/13-puzzle.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/15-rocket.png",
+        "sha256": "ee26ed22c6865c3709017c6f0d2a6eacc8ef95144b0178511dfd89dd9b4c8f46",
+        "review": "reviewed",
+        "why": "the share pages' 15-rocket.png: the reviewed frontend/public/bots/icons/15-rocket.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/16-lens.png",
+        "sha256": "778514dbabcad4bce96cb78fb5fc7ae202ad9428077c34afe4f5302cdfe9a202",
+        "review": "reviewed",
+        "why": "the share pages' 16-lens.png: the reviewed frontend/public/bots/icons/16-lens.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/17-shield.png",
+        "sha256": "19dced4e490df819c7630de20e32f0ab2fb54090fce999a7c094d3f87d22b3c8",
+        "review": "reviewed",
+        "why": "the share pages' 17-shield.png: the reviewed frontend/public/bots/icons/17-shield.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/18-robot.png",
+        "sha256": "95a927b23a82c820868b813f04d0574bdedd5323af83abad6c35b28b8c5a8b8f",
+        "review": "reviewed",
+        "why": "the share pages' 18-robot.png: the reviewed frontend/public/bots/icons/18-robot.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/19-chip.png",
+        "sha256": "05ac2c9d810808ad814acb71f7d659119d6b042151dfa366a50a8401d94a0465",
+        "review": "reviewed",
+        "why": "the share pages' 19-chip.png: the reviewed frontend/public/bots/icons/19-chip.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/20-at.png",
+        "sha256": "c73f52d2dca941ec09576a63b27cad695040b153429e96bc418b963ed17645d1",
+        "review": "reviewed",
+        "why": "the share pages' 20-at.png: the reviewed frontend/public/bots/icons/20-at.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/21-megaphone.png",
+        "sha256": "c1da1735c2afd2972b5e6e1eca53c7234c179e9c3a2de222b5d647a1013ecdc3",
+        "review": "reviewed",
+        "why": "the share pages' 21-megaphone.png: the reviewed frontend/public/bots/icons/21-megaphone.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/22-whistle.png",
+        "sha256": "18d0c84718d5fbb1f4311061f6c28297b01e72b5b4314fe7cc6fb01b602e7a27",
+        "review": "reviewed",
+        "why": "the share pages' 22-whistle.png: the reviewed frontend/public/bots/icons/22-whistle.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/23-signpost.png",
+        "sha256": "272f6988faf746e6cd6e6b1fa1423522c88ab8274a015a2cb5b6d20fc2662403",
+        "review": "reviewed",
+        "why": "the share pages' 23-signpost.png: the reviewed frontend/public/bots/icons/23-signpost.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/24-badge.png",
+        "sha256": "0c36077ac8753ae1e08e4cfe4d4ea35da3416fe6660870f6afc82ee17041114f",
+        "review": "reviewed",
+        "why": "the share pages' 24-badge.png: the reviewed frontend/public/bots/icons/24-badge.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/25-compass.png",
+        "sha256": "4ee49509a612d0a5df6854e9fda2a9f266c6134bb6ff3237de3ce7b587da1bf6",
+        "review": "reviewed",
+        "why": "the share pages' 25-compass.png: the reviewed frontend/public/bots/icons/25-compass.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/26-crownblob.png",
+        "sha256": "7950fc0eb048b218801dd71372ecafb60e2e0f77284d1f4fd501f9392b9df290",
+        "review": "reviewed",
+        "why": "the share pages' 26-crownblob.png: the reviewed frontend/public/bots/icons/26-crownblob.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/27-crown.png",
+        "sha256": "54a7aa979793078bbd91ecc9e57eabac84706806da0d6429331d72144d76db0b",
+        "review": "reviewed",
+        "why": "the share pages' 27-crown.png: the reviewed frontend/public/bots/icons/27-crown.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/28-flag.png",
+        "sha256": "04e059f55ab2f8797856f40db19d1bfbd9c0165565675907461a0a478290b98b",
+        "review": "reviewed",
+        "why": "the share pages' 28-flag.png: the reviewed frontend/public/bots/icons/28-flag.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/29-lighthouse.png",
+        "sha256": "1c7e59fd081a5f02a771d28b9c2340f5b13f6bfcbda18ee1e7b872d3cf123266",
+        "review": "reviewed",
+        "why": "the share pages' 29-lighthouse.png: the reviewed frontend/public/bots/icons/29-lighthouse.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/30-telescope.png",
+        "sha256": "ac32e49a5e7b4e36e3d0f8dc7e1bda6b28e0520a3177f4045335381798a0a4f1",
+        "review": "reviewed",
+        "why": "the share pages' 30-telescope.png: the reviewed frontend/public/bots/icons/30-telescope.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/31-pin.png",
+        "sha256": "3829c43f958acfd956e271e24af9a77ed888889d0422db5e71ed4b2e38ca2b70",
+        "review": "reviewed",
+        "why": "the share pages' 31-pin.png: the reviewed frontend/public/bots/icons/31-pin.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/32-helm.png",
+        "sha256": "c4f410b60812b410f2e49795013f2f8d48d58f243f4fb1e16529dce980cc1c5e",
+        "review": "reviewed",
+        "why": "the share pages' 32-helm.png: the reviewed frontend/public/bots/icons/32-helm.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/33-bell.png",
+        "sha256": "f45743b24922d6b671d2c5f2f288ecd342392f53afc441a6f0b81acd308f20c0",
+        "review": "reviewed",
+        "why": "the share pages' 33-bell.png: the reviewed frontend/public/bots/icons/33-bell.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/chatgpt.png",
+        "sha256": "c4f6201ae9d8cdbc1681df04bbf4851166102e9ba18929420aa3a50d62a63dd3",
+        "review": "reviewed",
+        "why": "the share pages' chatgpt.png: the reviewed frontend/public/bots/icons/chatgpt.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "frontend/src/share/live/viewer/bots/director.png",
+        "sha256": "050d67f18b4a55b049f3139db6ffa38e0eb4ef17f056c6e527106e8122facd6c",
+        "review": "reviewed",
+        "why": "the share pages' director.png: the reviewed frontend/public/bots/icons/director.png drawn at 64 px by frontend/scripts/share-bot-stills.mjs (a canvas re-encode); only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      },
+      {
+        "path": "docs/images/main-window.png",
+        "sha256": "7ade47acc41601306c530f73a727894ac828f504b1595d694fe9e4cc8070f529",
+        "review": "reviewed",
+        "why": "the READMEs' main-window picture: headless Chrome on the isolated e2e backend (fresh data directory, the scripted model, the temporary calc fixture repository), 1440x900 at 2x; it shows only fixture content and a temporary path; only IHDR, IDAT and IEND chunks, no text or metadata (checked at this exact sha256)"
+      }
+    ],
+    "comment": "Every media file is listed with the sha256 of the exact content reviewed; no folders. A new or changed media file is left out (or fails the export if referenced) until it is reviewed and listed. review: reviewed (privacy-reviewed at that exact content) | pending-owner-review (exported and counted in the report)."
+  },
+  "required": [
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES.md",
+    "README.md",
+    "licenses/lucide-ISC-and-feather-MIT.txt",
+    "licenses/katex-fonts-OFL-1.1.txt",
+    "licenses/fraunces-OFL-1.1.txt",
+    "licenses/beautiful-ui-MIT.txt",
+    "contract/package.json",
+    "backend-ts/package.json",
+    "backend-ts/bun.lock",
+    "contract/bun.lock",
+    "frontend/package.json",
+    "frontend/package-lock.json",
+    "desktop/package.json",
+    "desktop/package-lock.json",
+    "scripts/oss/public-export.json"
+  ],
+  "packages": [
+    "backend-ts",
+    "frontend",
+    "desktop",
+    "contract"
+  ],
+  "known_unexported_references": [],
+  "allow": [
+    {
+      "path": "backend-ts/tests/fixtures/tls/pinned.example.test.key",
+      "rule": "private-key",
+      "sha256": "ef373b9a1e5974355a4e6e94d195246231ddd069efbe3af97e73b45ad52fe471",
+      "why": "the throwaway TLS key of the pinned-certificate tests (pinned.example.test, see the README beside it); this exact content only — any other key, or a change to this one, is reported again"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "rule": "personal-email",
+      "sha256": "85e72d033167838ada859a1d0d11aa149c369c3dc8a6a6d36c4431a40ac752ca",
+      "why": "authors' addresses inside third-party license texts, reproduced as those licenses require; regenerating the file changes its hash and needs this entry reviewed again"
+    }
+  ]
+}

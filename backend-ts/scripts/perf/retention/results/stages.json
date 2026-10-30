@@ -1,0 +1,98 @@
+{
+ "note": "the formal A/B (one fresh process per stage, in this order); outputs copied with the --out path replaced by <ab-root>; output_sha256_original is the sha256 of the file as the harness wrote it (before that replacement)",
+ "worktree_base": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+ "base_runner_blob": "70c282c3cfa782a27956b18ac1fc8843b71c6039",
+ "after_runner_blob": "3cba8b1d0855f3a6209c9a4612c0dd36d8bde44c",
+ "harness_sha256": {
+  "bench_lifecycle.ts": "49b40324ccf835ec682b2fd1be2d74b5fadda57256db8326649c29ac212d228a",
+  "lib/app.ts": "0e8215511b8e0577bcf8ec2e1c7a008095a66ed87f1c3a4f5b6a667e437f9521",
+  "lib/env.ts": "207a78cac0cf5c172ef4680301850578191d151cea4d142db1bc8c5403d3289a",
+  "lib/fixtures.ts": "67322f3da3e2cacaa53fe24d4722452c371827166f20bcc8d3f1876171075b5f",
+  "lib/stats.ts": "27fb3ad7fee2dc04dee3cb9031f32ff55644cb54728415c78342000246047816"
+ },
+ "harness_manifest_sha256": "d5692a6a6fc8bb82980702498d55e36a296019cfdb7a12f8060fa2a7a7c6fb3b",
+ "wrapper": {
+  "ab_lifecycle.sh_sha256_as_run": "7a9aecadb418e72eb7057d72cdf52dc9f004b3eb58674c83071d8d08d19afa07",
+  "timed_run.py_sha256": "ac67e3d20f85e2e87125182fcfd39069f22ef2bd59fc351dd43d15e32072912e"
+ },
+ "runtime": {
+  "bun": "1.4.0",
+  "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+  "node_on_path": "v25.5.0",
+  "platform": "darwin arm64 (os_release 27.0.0)",
+  "cpu": "Apple M4 Pro, 12 cores, 48 GB"
+ },
+ "stages": [
+  {
+   "stage": "before-long",
+   "state": "before",
+   "scenario": "long",
+   "runner_blob": "70c282c3cfa782a27956b18ac1fc8843b71c6039",
+   "command": "bun run scripts/perf/bench_lifecycle.ts --long-history 500 --long-runs 20 --long-warmup 2 --window 2000000 --name lifecycle_long --out <ab-root>/before-long/out",
+   "env": "TMPDIR=<fresh per-stage folder under the system temp folder> PERF_FIXED_ROOT=1",
+   "start_utc": "2026-10-18T15:37:42.935+00:00",
+   "end_utc": "2026-10-18T15:37:54.060+00:00",
+   "monotonic_elapsed_ns": 11123229833,
+   "elapsed_basis": "time.monotonic_ns() around subprocess.run in one python process (includes bun process spawn and exit)",
+   "start_loadavg": "{ 4.09 4.50 4.66 }",
+   "end_loadavg": "{ 4.18 4.50 4.66 }",
+   "exit": 0,
+   "output_sha256_original": "a3a448b37a9487176a969766341239c6f70a42777adaaba9a49f3206058f2d28"
+  },
+  {
+   "stage": "before-mixed",
+   "state": "before",
+   "scenario": "mixed",
+   "runner_blob": "70c282c3cfa782a27956b18ac1fc8843b71c6039",
+   "command": "bun run scripts/perf/bench_lifecycle.ts --runs 300 --warmup 30 --sample 25 --out <ab-root>/before-mixed/out",
+   "env": "TMPDIR=<fresh per-stage folder under the system temp folder> PERF_FIXED_ROOT=1",
+   "start_utc": "2026-10-18T15:37:54.158+00:00",
+   "end_utc": "2026-10-18T15:39:16.762+00:00",
+   "monotonic_elapsed_ns": 82601246250,
+   "elapsed_basis": "time.monotonic_ns() around subprocess.run in one python process (includes bun process spawn and exit)",
+   "start_loadavg": "{ 4.18 4.50 4.66 }",
+   "end_loadavg": "{ 4.45 4.50 4.64 }",
+   "exit": 0,
+   "output_sha256_original": "644c4629c472ba4e94ae45632b7c8890f705708eac83c64f5acc5c422aaef486"
+  },
+  {
+   "stage": "after-long",
+   "state": "after",
+   "scenario": "long",
+   "runner_blob": "3cba8b1d0855f3a6209c9a4612c0dd36d8bde44c",
+   "command": "bun run scripts/perf/bench_lifecycle.ts --long-history 500 --long-runs 20 --long-warmup 2 --window 2000000 --name lifecycle_long --out <ab-root>/after-long/out",
+   "env": "TMPDIR=<fresh per-stage folder under the system temp folder> PERF_FIXED_ROOT=1",
+   "start_utc": "2026-10-18T15:39:16.865+00:00",
+   "end_utc": "2026-10-18T15:39:27.027+00:00",
+   "monotonic_elapsed_ns": 10161707333,
+   "elapsed_basis": "time.monotonic_ns() around subprocess.run in one python process (includes bun process spawn and exit)",
+   "start_loadavg": "{ 4.45 4.50 4.64 }",
+   "end_loadavg": "{ 4.31 4.47 4.63 }",
+   "exit": 0,
+   "output_sha256_original": "8bdfb09515229a16553029eccfd569f1a1a7e4f6ec24264d7c919ca435df648e"
+  },
+  {
+   "stage": "after-mixed",
+   "state": "after",
+   "scenario": "mixed",
+   "runner_blob": "3cba8b1d0855f3a6209c9a4612c0dd36d8bde44c",
+   "command": "bun run scripts/perf/bench_lifecycle.ts --runs 300 --warmup 30 --sample 25 --out <ab-root>/after-mixed/out",
+   "env": "TMPDIR=<fresh per-stage folder under the system temp folder> PERF_FIXED_ROOT=1",
+   "start_utc": "2026-10-18T15:39:27.121+00:00",
+   "end_utc": "2026-10-18T15:40:50.320+00:00",
+   "monotonic_elapsed_ns": 83198268667,
+   "elapsed_basis": "time.monotonic_ns() around subprocess.run in one python process (includes bun process spawn and exit)",
+   "start_loadavg": "{ 4.31 4.47 4.63 }",
+   "end_loadavg": "{ 5.58 4.81 4.74 }",
+   "exit": 0,
+   "output_sha256_original": "ad85bb94062262efa2910cb168a9743c70a5877b4559d850846b2549a96ec6f9"
+  }
+ ],
+ "wrapper_exit": 0,
+ "invalid_attempt": {
+  "stages": 4,
+  "exit_each": 1,
+  "elapsed_each_s": "~0.1",
+  "cause": "the harness's assertIsolated refused its data root: the per-stage TMPDIR was under the app's data directory (a conversation temp folder); no bench ran, nothing measured; fixed by putting each stage's TMPDIR under the system temp folder"
+ }
+}

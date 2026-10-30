@@ -1,0 +1,15 @@
+{
+  "real_utc_start": "2026-10-18T17:31:08.198Z",
+  "head_sha": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+  "base_sha": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+  "starts_per_variant": 6,
+  "bun": "1.4.0",
+  "sshd": "OpenSSH_10.3p1, LibreSSL 3.3.6",
+  "tracked_changes": [
+    " M backend-ts/src/remote/loopback.fixture.ts",
+    " M frontend/tests/agentPresentation.test.ts",
+    " M frontend/tests/collabStore.test.ts"
+  ],
+  "note": "the machine may carry unknown background load; not claimed idle",
+  "real_utc_end": "2026-10-18T17:31:19.002Z"
+}

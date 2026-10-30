@@ -1,0 +1,132 @@
+{
+  "name": "oasis-code-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "The oasis-code desktop app: one window around the product, the backend started and stopped with it; packaged with a compiled backend and the built UI",
+  "main": "main.js",
+  "scripts": {
+    "start": "node scripts/start.js",
+    "smoke": "OASIS_CODE_SMOKE=1 node scripts/start.js",
+    "test": "node --test test/*.test.js",
+    "build:ui": "cd ../frontend && npm run build",
+    "build:backend": "cd ../backend-ts && bun run build",
+    "icon": "node scripts/icon.mjs",
+    "dist": "npm run build:ui && npm run build:backend && electron-builder",
+    "dist:dir": "npm run build:ui && npm run build:backend && electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^44.9.0",
+    "electron-builder": "^26.17.0"
+  },
+  "overrides": {
+    "global-agent": "^4.1.3"
+  },
+  "build": {
+    "appId": "dev.oasis-code.desktop",
+    "productName": "oasis-code",
+    "copyright": "oasis-code contributors",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "shell.js",
+      "bridge.js",
+      "chatgpt_dom.js",
+      "chatgpt_tap.js",
+      "remote.js",
+      "gateway_agent.js",
+      "chatgpt_stream.js",
+      "cdp.js",
+      "computer.js",
+      "computer_electron.js",
+      "local_files.js",
+      "package.json"
+    ],
+    "afterPack": "scripts/verify_pack.js",
+    "extraResources": [
+      {
+        "from": "../backend-ts/dist",
+        "to": "backend",
+        "filter": [
+          "oasis-code",
+          "oasis-code.exe"
+        ]
+      },
+      {
+        "from": "../frontend/dist",
+        "to": "ui"
+      },
+      {
+        "from": "../LICENSE",
+        "to": "licenses/LICENSE"
+      },
+      {
+        "from": "../NOTICE",
+        "to": "licenses/NOTICE"
+      },
+      {
+        "from": "../THIRD_PARTY_NOTICES.md",
+        "to": "licenses/THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "../licenses",
+        "to": "licenses/vendored"
+      },
+      {
+        "from": "node_modules/electron/dist/LICENSE",
+        "to": "licenses/electron/LICENSE"
+      },
+      {
+        "from": "node_modules/electron/dist/LICENSES.chromium.html",
+        "to": "licenses/electron/LICENSES.chromium.html"
+      }
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "publish": null,
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.png",
+      "identity": null,
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "title": "oasis-code"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "icon": "build/icon.png",
+      "maintainer": "oasis-code contributors",
+      "executableName": "oasis-code"
+    }
+  },
+  "author": "oasis-code contributors",
+  "allowScripts": {
+    "electron-winstaller": false
+  }
+}

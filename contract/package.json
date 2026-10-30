@@ -1,0 +1,15 @@
+{
+  "name": "@oasis-code/contract",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "oasis-code's frozen contract: the REST bodies and responses, the run events, the receipt, the database rows and the persisted message model, as zod schemas the backend validates with and the frontend types from",
+  "exports": {
+    ".": { "types": "./src/index.ts", "default": "./src/index.ts" },
+    "./modes": { "types": "./src/modes.ts", "default": "./src/modes.ts" },
+    "./ui": { "types": "./src/ui.ts", "default": "./src/ui.ts" },
+    "./bots-golden": { "types": "./src/bots_golden.ts", "default": "./src/bots_golden.ts" }
+  },
+  "dependencies": { "zod": "^4.6.5" }
+}

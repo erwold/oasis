@@ -1,0 +1,40 @@
+{
+  "ok": true,
+  "setup_error": null,
+  "copy_left": false,
+  "close_failed": [],
+  "base": {
+    "starts": 6,
+    "ok": 6,
+    "start_ms": [
+      276.39970800000003,
+      273.4750829999998,
+      273.3753750000001,
+      273.2562079999998,
+      273.632208,
+      275.1905000000006
+    ],
+    "start_ms_median": 273.5536454999999,
+    "pidfile_own": 6,
+    "pidfile_after_spawn_ms_median": 4.8466796875,
+    "connect_ms_median": 711.8712080000005,
+    "alive_at_250ms": 6
+  },
+  "after": {
+    "starts": 6,
+    "ok": 6,
+    "start_ms": [
+      29.364082999999937,
+      28.729749999999967,
+      27.300792,
+      29.04779199999939,
+      29.04583300000013,
+      28.519999999998618
+    ],
+    "start_ms_median": 28.88779150000005,
+    "pidfile_own": 6,
+    "pidfile_after_spawn_ms_median": 4.7685546875,
+    "connect_ms_median": 707.448646,
+    "alive_at_250ms": 6
+  }
+}

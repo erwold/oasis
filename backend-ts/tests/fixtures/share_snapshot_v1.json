@@ -1,0 +1,34 @@
+{
+  "format": "oasis-code.session-share",
+  "version": 1,
+  "generated_at": "2026-10-01T08:00:00.000Z",
+  "title": "Synthetic V1 share",
+  "session": { "created_at": "2026-10-01T07:00:00.000Z", "last_activity_at": "2026-10-01T07:59:00.000Z", "model_label": "Scripted A" },
+  "options": { "include_tool_details": false, "include_images": false },
+  "participants": [{ "key": "p1", "role": "main", "label": "Main agent", "model_label": null }],
+  "runs": [
+    { "key": "r1", "parent": null, "continues": null, "participant": "p1", "role": "main", "surface": "thread", "group": null, "started_by": "person", "request": "message",
+      "client": null, "label": null, "model_label": "Scripted A", "status": "done", "status_label": "Done", "started_at": "2026-10-01T07:01:00.000Z", "finished_at": "2026-10-01T07:02:00.000Z", "error": null },
+    { "key": "r2", "parent": null, "continues": null, "participant": null, "role": null, "surface": "record", "group": null, "started_by": "harness", "request": "action",
+      "client": null, "label": "command (ChatGPT)", "model_label": "unknown model", "status": "done", "status_label": "Done", "started_at": "2026-10-01T07:03:00.000Z", "finished_at": "2026-10-01T07:03:00.000Z", "error": null }
+  ],
+  "items": [
+    { "kind": "message", "key": "i1", "run": "r1", "at": "2026-10-01T07:01:00.000Z", "author": "person", "author_label": "Person", "source": "opening", "text": "list the files", "steer": null },
+    { "kind": "tool", "key": "i2", "run": "r1", "at": "2026-10-01T07:01:10.000Z", "name": "bash", "status": "ok", "target": "ls -la", "details": null, "withheld": null },
+    { "kind": "message", "key": "i3", "run": "r1", "at": "2026-10-01T07:01:20.000Z", "author": "assistant", "author_label": "Scripted A", "source": "answer", "text": "Listed.", "steer": null },
+    { "kind": "notice", "key": "i4", "run": "r2", "at": "2026-10-01T07:03:00.000Z", "code": "recorded_action", "text": "A recorded action of the person (no model ran)" }
+  ],
+  "images": [],
+  "stats": {
+    "omitted": { "thinking": 0, "app_notes": 0, "compaction_summaries": 0, "system_prompts": 1, "retry_prompts": 0, "unknown_parts": 0, "tool_details": 1,
+      "sensitive_tool_content": 0, "ui_surfaces": 0, "ui_inputs": 0, "runs_excluded": 0, "images_off": 0, "images_missing": 0, "images_damaged": 0,
+      "images_unsupported": 0, "images_over_budget": 0, "images_workspace_files": 0, "histories_unreadable": 0, "histories_over_budget": 0 },
+    "redacted": { "session_token": 0, "private_key": 0, "auth_header": 0, "credential_url": 0, "secret_pattern": 0, "credential_assignment": 0, "path": 0,
+      "username": 0, "email": 0, "invisible_chars": 0 },
+    "truncated_fields": 0,
+    "items_truncated": false
+  },
+  "limits": { "max_items": 5000, "max_text_chars": 200000, "max_total_text_chars": 4000000, "max_tool_preview_chars": 2000, "max_images": 40,
+    "max_image_bytes": 5242880, "max_total_image_bytes": 20971520, "max_image_side": 8000, "max_image_pixels": 16777216, "max_excluded_runs": 500,
+    "max_history_bytes": 33554432, "max_total_history_bytes": 134217728 }
+}

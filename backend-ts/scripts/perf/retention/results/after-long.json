@@ -1,0 +1,437 @@
+{
+  "bench": "lifecycle_long",
+  "at": "2026-10-18T15:39:25.455Z",
+  "git_head": "a4dc9ca3bfddfa9cc57b50ba5f68c914a5772d10",
+  "git_branch": "fix/perf-completed-run-retention-20261018",
+  "git_dirty_src": true,
+  "bun": "1.4.0",
+  "bun_revision": "34cbb9a40b4bd1bd767d134a7065e66c2432a676",
+  "platform": "darwin",
+  "arch": "arm64",
+  "os_release": "27.0.0",
+  "cpu": "Apple M4 Pro",
+  "cpu_count": 12,
+  "total_mem_gb": 48,
+  "loadavg_start": [
+    4.31,
+    4.47,
+    4.63
+  ],
+  "argv": [
+    "--long-history",
+    "500",
+    "--long-runs",
+    "20",
+    "--long-warmup",
+    "2",
+    "--window",
+    "2000000",
+    "--name",
+    "lifecycle_long",
+    "--out",
+    "<ab-root>/after-long/out"
+  ],
+  "scenario": "coverage: long synthetic record + consecutive successful continuations (window raised so no compaction triggers); not the default configuration",
+  "level": "POST /chat + GET run SSE + session SSE over in-process app.request; real AnthropicModel mapping to a loopback HTTP stub (Bun.serve port 0)",
+  "params": {
+    "long_history_turns": 500,
+    "long_runs": 20,
+    "warmup_runs": 2,
+    "window_tokens": 2000000,
+    "seed_record_bytes": 4016060
+  },
+  "statuses": {
+    "done": 22
+  },
+  "compactions": 0,
+  "submit_to_provider_ms": {
+    "n": 20,
+    "median": 127.124,
+    "min": 85.919,
+    "max": 183.343,
+    "mean": 132.523,
+    "p95": 175.942,
+    "stdev": 30.198
+  },
+  "run_wall_ms": {
+    "n": 20,
+    "median": 328.826,
+    "min": 285.65,
+    "max": 384.11,
+    "mean": 333.614,
+    "p95": 376.416,
+    "stdev": 30.197
+  },
+  "growth_over_measured_runs": {
+    "runs": 20,
+    "heap_used_mb": 0.86,
+    "rss_mb": 222.89,
+    "stash_json_mb": 0,
+    "persisted_record_mb": 76.925,
+    "handle_events": 160,
+    "handles": 20
+  },
+  "samples": [
+    {
+      "run": 0,
+      "rss_mb": 639.61,
+      "heap_used_mb": 85.03,
+      "heap_total_mb": 36.02,
+      "jsc_heap_mb": 85.03,
+      "objects": 815158,
+      "protected_objects": 531,
+      "fds": 14,
+      "handles": 3,
+      "handle_events": 24,
+      "live_run_queues": 0,
+      "stash_json_mb": 0,
+      "transient_events": 12,
+      "session_queues": 1,
+      "built_models": 0,
+      "stash_json_bytes": 0,
+      "handles_with_stash": 0,
+      "persisted_record_bytes": 12052214,
+      "provider_requests": 3,
+      "last_request_bytes": 3819024
+    },
+    {
+      "run": 5,
+      "rss_mb": 703.56,
+      "heap_used_mb": 86.62,
+      "heap_total_mb": 37.21,
+      "jsc_heap_mb": 86.62,
+      "objects": 822885,
+      "protected_objects": 531,
+      "fds": 14,
+      "handles": 8,
+      "handle_events": 64,
+      "live_run_queues": 0,
+      "stash_json_mb": 0,
+      "transient_events": 32,
+      "session_queues": 1,
+      "built_models": 0,
+      "stash_json_bytes": 0,
+      "handles_with_stash": 0,
+      "persisted_record_bytes": 32166469,
+      "provider_requests": 8,
+      "last_request_bytes": 3820744
+    },
+    {
+      "run": 10,
+      "rss_mb": 786.25,
+      "heap_used_mb": 87.77,
+      "heap_total_mb": 38.45,
+      "jsc_heap_mb": 87.77,
+      "objects": 830017,
+      "protected_objects": 531,
+      "fds": 14,
+      "handles": 13,
+      "handle_events": 104,
+      "live_run_queues": 0,
+      "stash_json_mb": 0,
+      "transient_events": 52,
+      "session_queues": 1,
+      "built_models": 0,
+      "stash_json_bytes": 0,
+      "handles_with_stash": 0,
+      "persisted_record_bytes": 52314830,
+      "provider_requests": 13,
+      "last_request_bytes": 3822467
+    },
+    {
+      "run": 15,
+      "rss_mb": 830.63,
+      "heap_used_mb": 83.22,
+      "heap_total_mb": 39.6,
+      "jsc_heap_mb": 83.22,
+      "objects": 824959,
+      "protected_objects": 531,
+      "fds": 14,
+      "handles": 18,
+      "handle_events": 144,
+      "live_run_queues": 0,
+      "stash_json_mb": 0,
+      "transient_events": 72,
+      "session_queues": 1,
+      "built_models": 0,
+      "stash_json_bytes": 0,
+      "handles_with_stash": 0,
+      "persisted_record_bytes": 72497315,
+      "provider_requests": 18,
+      "last_request_bytes": 3824192
+    },
+    {
+      "run": 20,
+      "rss_mb": 862.5,
+      "heap_used_mb": 85.89,
+      "heap_total_mb": 40.29,
+      "jsc_heap_mb": 85.89,
+      "objects": 835180,
+      "protected_objects": 531,
+      "fds": 14,
+      "handles": 23,
+      "handle_events": 184,
+      "live_run_queues": 0,
+      "stash_json_mb": 0,
+      "transient_events": 92,
+      "session_queues": 1,
+      "built_models": 0,
+      "stash_json_bytes": 0,
+      "handles_with_stash": 0,
+      "persisted_record_bytes": 92713925,
+      "provider_requests": 23,
+      "last_request_bytes": 3825917
+    }
+  ],
+  "fingerprints_last_run": {
+    "record_bytes": 4046052,
+    "record_sha": "b8fb205dd9ae8683",
+    "get_run_sha": "b0809c1db751b57f",
+    "run_sse_replay": {
+      "frames": 8,
+      "types": {
+        "run_started": 1,
+        "text_delta": 4,
+        "model_request": 1,
+        "text_block": 1,
+        "run_finished": 1
+      },
+      "sha": "771c5dfdcc73af1c"
+    },
+    "events_page": {
+      "events": 8,
+      "types": {
+        "run_started": 1,
+        "text_delta": 4,
+        "model_request": 1,
+        "text_block": 1,
+        "run_finished": 1
+      },
+      "sha": "6200e2b83749f4a5"
+    },
+    "transcript_sha": "fcdaeaa586ff488d",
+    "session_replay": {
+      "frames": 185,
+      "types": {
+        "run_started": 23,
+        "text_delta": 92,
+        "model_request": 23,
+        "text_block": 23,
+        "run_finished": 23,
+        "stream_ready": 1
+      },
+      "sha": "30ac2ea44b34f973"
+    }
+  },
+  "fingerprints_seed_run": {
+    "record_bytes": 4016060,
+    "record_sha": "e6c46d4984a41305",
+    "get_run_sha": "a80a9f6225025a24",
+    "run_sse_replay": {
+      "frames": 8,
+      "types": {
+        "run_started": 1,
+        "text_delta": 4,
+        "model_request": 1,
+        "text_block": 1,
+        "run_finished": 1
+      },
+      "sha": "39787df3029a17f3"
+    },
+    "events_page": {
+      "events": 8,
+      "types": {
+        "run_started": 1,
+        "text_delta": 4,
+        "model_request": 1,
+        "text_block": 1,
+        "run_finished": 1
+      },
+      "sha": "8921c52f61ac3ebe"
+    },
+    "transcript_sha": "7103d2d7a7f8b4ba",
+    "session_replay": {
+      "frames": 185,
+      "types": {
+        "run_started": 23,
+        "text_delta": 92,
+        "model_request": 23,
+        "text_block": 23,
+        "run_finished": 23,
+        "stream_ready": 1
+      },
+      "sha": "30ac2ea44b34f973"
+    }
+  },
+  "retention_attribution": {
+    "note": "counterfactual, bench process only, after fingerprints; not a product behavior",
+    "handle_field_json_bytes_total": {
+      "tool_snapshot": 1724508,
+      "events": 113406,
+      "collab": 10442,
+      "cfg": 10304,
+      "final_text": 3772,
+      "steer": 2162,
+      "produced": 1058,
+      "user_text": 483,
+      "participant_id": 437,
+      "token": 391,
+      "run_id": 368,
+      "resumes_run_id": 356
+    },
+    "heap_measured": {
+      "rss_mb": 871.13,
+      "heap_used_mb": 86.32,
+      "heap_total_mb": 40.4,
+      "jsc_heap_mb": 86.32,
+      "objects": 836093,
+      "protected_objects": 530,
+      "fds": 14
+    },
+    "steps": [
+      {
+        "cleared": "meter.contextEstimate",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 836095
+      },
+      {
+        "cleared": "meter.record",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 836102
+      },
+      {
+        "cleared": "meter.emit",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 836104
+      },
+      {
+        "cleared": "meter.wrapped",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 836092
+      },
+      {
+        "cleared": "stash_json",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 836095
+      },
+      {
+        "cleared": "task",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 836084
+      },
+      {
+        "cleared": "meter",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 836068
+      },
+      {
+        "cleared": "steer",
+        "heap_used_mb": 86.32,
+        "freed_mb": 0,
+        "objects": 835946
+      },
+      {
+        "cleared": "token",
+        "heap_used_mb": 86.33,
+        "freed_mb": -0.01,
+        "objects": 835922
+      },
+      {
+        "cleared": "tool_snapshot",
+        "heap_used_mb": 82.93,
+        "freed_mb": 3.4,
+        "objects": 807033
+      },
+      {
+        "cleared": "events",
+        "heap_used_mb": 82.83,
+        "freed_mb": 0.1,
+        "objects": 804973
+      },
+      {
+        "cleared": "cfg",
+        "heap_used_mb": 82.83,
+        "freed_mb": 0,
+        "objects": 804946
+      },
+      {
+        "cleared": "collab",
+        "heap_used_mb": 82.83,
+        "freed_mb": 0,
+        "objects": 804860
+      },
+      {
+        "cleared": "budget",
+        "heap_used_mb": 82.83,
+        "freed_mb": 0,
+        "objects": 804838
+      },
+      {
+        "cleared": "work_order",
+        "heap_used_mb": 82.83,
+        "freed_mb": 0,
+        "objects": 804839
+      },
+      {
+        "cleared": "mentions",
+        "heap_used_mb": 82.83,
+        "freed_mb": 0,
+        "objects": 804781
+      },
+      {
+        "cleared": "produced",
+        "heap_used_mb": 82.82,
+        "freed_mb": 0.01,
+        "objects": 804621
+      },
+      {
+        "cleared": "handover",
+        "heap_used_mb": 82.82,
+        "freed_mb": 0,
+        "objects": 804621
+      },
+      {
+        "cleared": "queues",
+        "heap_used_mb": 82.82,
+        "freed_mb": 0,
+        "objects": 804576
+      },
+      {
+        "cleared": "final_text",
+        "heap_used_mb": 82.82,
+        "freed_mb": 0,
+        "objects": 804554
+      },
+      {
+        "cleared": "finished handles (map entries)",
+        "heap_used_mb": 82.8,
+        "freed_mb": 0.02,
+        "objects": 804331
+      }
+    ],
+    "heap_without_finished_handles": {
+      "rss_mb": 871.14,
+      "heap_used_mb": 82.8,
+      "heap_total_mb": 36.04,
+      "jsc_heap_mb": 82.8,
+      "objects": 804331,
+      "protected_objects": 529,
+      "fds": 14
+    },
+    "freed_total_mb": 3.52,
+    "rss_after_mb": 871.14,
+    "finished_handles_dropped": 23
+  },
+  "loadavg_end": [
+    4.31,
+    4.47,
+    4.63
+  ]
+}
