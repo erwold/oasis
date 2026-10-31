@@ -11,6 +11,7 @@ import { safeProviderStreamError } from './standard_errors.ts'
  *  pages as links, so the `url_citation` annotations are kept on the part only to go back with it. */
 
 import { newId } from '../../ids.ts'
+import { redactSecrets } from '../redact.ts'
 import { cleanSchema, postJson, readSse, type HttpOptions } from '../http.ts'
 import {
   argsText, isBuiltinCall, isRequest, isResponse, isRetryPrompt, isSystemPromptPart, isText, isThinking, isToolCall, isToolReturn, isUserPrompt,
@@ -160,7 +161,16 @@ export class OpenAIResponsesModel implements Model {
   }
 
   async requestStream(messages: ModelMessage[], settings: ModelSettings, params: ModelRequestParameters, ctx?: RequestContext): Promise<StreamedResponse> {
-    const response = await postJson(this.url, this.body(messages, settings, params), this.headers(settings), this.model_name, { ...this.opts, requestProtocol: 'openai' }, ctx?.signal)
+    // The subscription signer injects auth in beforeSend, possibly refreshing it between attempts. Keep the
+    // credentials local to this request so even an opaque token echoed bare by the provider is masked.
+    const credentials = new Set<string>()
+    const beforeSend: HttpOptions['beforeSend'] = this.opts.codex ? async (request) => {
+      await this.opts.beforeSend?.(request)
+      const authorization = request.headers.get('authorization')
+      if (authorization) credentials.add(authorization.replace(/^(?:Bearer|Basic)\s+/i, ''))
+    } : this.opts.beforeSend
+    const response = await postJson(this.url, this.body(messages, settings, params), this.headers(settings), this.model_name,
+      { ...this.opts, beforeSend, requestProtocol: 'openai' }, ctx?.signal)
     const builder = new ResponseBuilder(this.system, this.model_name, this.route)
     const modelName = this.model_name
     const system = this.system
@@ -255,10 +265,7 @@ export class OpenAIResponsesModel implements Model {
         } else if (type === 'response.failed' || type === 'error') {
           const r = (data.response as Record<string, unknown> | undefined) ?? data
           const error = (r.error as Record<string, unknown> | undefined) ?? (data.error as Record<string, unknown> | undefined)
-          if (codex) {
-            if (error?.code === 'server_error') throw new ModelAPIError(modelName, 'Codex stream error (server_error)')
-            throw new ModelAPIError(modelName, 'Codex response failed; check provider access and limits')
-          }
+          if (codex) throw codexFailure(modelName, error ?? data, credentials)
           if (system === 'deepseek') throw safeProviderStreamError(error ?? data, system, modelName)
           if (system !== 'openai') throw new ModelAPIError(modelName, `${system} response failed`)
           throw new ModelAPIError(modelName, `OpenAI response failed: ${String(error?.code ?? error?.type ?? 'error')}: ${String(error?.message ?? '')}`.trim())
@@ -271,6 +278,24 @@ export class OpenAIResponsesModel implements Model {
     }
     return streamedResponse(builder, events)
   }
+}
+
+/** Keep only the diagnostic strings, never the response/request envelope or a raw cause. The official Codex
+ * client recognises context_length_exceeded; retaining it lets the runner compact instead of retrying unchanged. */
+function codexFailure(model: string, error: Record<string, unknown>, credentials: Set<string>): ModelAPIError {
+  const code = typeof error.code === 'string' ? error.code.trim() : ''
+  const message = typeof error.message === 'string' ? error.message.trim() : ''
+  const safe = (text: string): string => {
+    for (const credential of [...credentials].sort((a, b) => b.length - a.length)) {
+      if (credential) text = text.split(credential).join('…')
+    }
+    return redactSecrets(text)
+  }
+  const safeCode = safe(code)
+  const detail = [safeCode, safe(message)].filter(Boolean).join(': ')
+  // Preserve the existing server_error transport-recovery signal, now with the safe upstream diagnosis.
+  const prefix = code === 'server_error' ? 'Codex stream error' : 'Codex response failed'
+  return new ModelAPIError(model, detail ? `${prefix}: ${detail}` : 'Codex response failed; check provider access and limits', safeCode || null)
 }
 
 function partOf(item: Record<string, unknown>, system = 'openai'): ResponsePart | null {

@@ -115,7 +115,8 @@ function bodyText(body: unknown): string {
 /** The provider's stream or answer was not what the protocol promises (no status behind it). */
 export class ModelAPIError extends Error {
   readonly model_name: string
-  constructor(modelName: string, message: string) {
+  /** provider_code is a sanitized diagnostic code, never the raw error envelope. */
+  constructor(modelName: string, message: string, readonly provider_code: string | null = null) {
     super(message)
     this.name = 'ModelAPIError'
     this.model_name = modelName

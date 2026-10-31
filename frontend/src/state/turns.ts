@@ -68,7 +68,7 @@ export function receiptOf(run: Pick<Run, 'receipt'>): Receipt | null {
 }
 
 export type TurnPart = { kind: 'work'; entries: ThreadEntry[] } | { kind: 'agent'; entry: ThreadEntry } | { kind: 'ui'; entry: ThreadEntry } | { kind: 'input'; entry: ThreadEntry }
-  | { kind: 'steer'; entry: ThreadEntry }
+  | { kind: 'steer'; entry: ThreadEntry } | { kind: 'compaction'; entry: ThreadEntry }
 
 /** The steers of a run still queued: they stand at the run's tail (under its work, over its live line), not in its flow. */
 export function queuedSteers(entries: ThreadEntry[]): ThreadEntry[] {
@@ -88,6 +88,7 @@ export function turnParts(entries: ThreadEntry[]): TurnPart[] {
     if (entry.kind === 'user') { if (entry.steer && entry.steer.status !== 'queued') parts.push({ kind: 'steer', entry }); continue }
     if (entry.kind === 'agent') parts.push({ kind: 'agent', entry })
     else if (entry.kind === 'ui') parts.push({ kind: 'ui', entry })
+    else if (entry.kind === 'compaction') parts.push({ kind: 'compaction', entry })
     else if (entry.kind === 'input') parts.push({ kind: 'input', entry })
     else if (last?.kind === 'work') last.entries.push(entry)
     else parts.push({ kind: 'work', entries: [entry] })

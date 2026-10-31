@@ -280,7 +280,7 @@ export class ContextKeeper {
   /** The messages the loop goes on with: the same when the next request fits under the threshold; otherwise the
    *  record with a compaction request appended — or, when the summary could not be had, the same record and a
    *  report that says why (the request is then made as it is; the provider decides). */
-  async maybeCompact(messages: ModelMessage[], seam: RequestSeam, pending: RequestPart[] = []): Promise<[ModelMessage[], CompactionReport | null]> {
+  async maybeCompact(messages: ModelMessage[], seam: RequestSeam, pending: RequestPart[] = [], onStart?: () => void): Promise<[ModelMessage[], CompactionReport | null]> {
     const overflow = this.overflow
     this.overflow = null
     if (seam.observed) this.observe(seam.observed)
@@ -325,6 +325,8 @@ export class ContextKeeper {
     let summary: string
     let summaryInput: number | null = null
     let modelName: string | null = null
+    // Only an actual summary request starts progress, never a below-threshold / backoff / budget skip.
+    onStart?.()
     try {
       // streamed like every other request (a summary can run long), drained here: nothing of it is shown as it forms;
       // it carries the run's Stop, and it counts as one of the run's requests once it has gone out

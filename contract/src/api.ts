@@ -604,7 +604,9 @@ export const TranscriptEntrySchema = z.object({
   // ui: a surface the run presented (Intelligent UI), its latest revision, after the call that first presented it;
   // input: a form the run's request_input showed (contract/src/ui_interaction.ts), as it stands — pending, submitted,
   // dismissed or closed — right after the call that showed it (its toolCallId)
-  kind: z.enum(['user', 'agent', 'activity', 'thinking', 'note', 'ui', 'input']),
+  kind: z.enum(['user', 'agent', 'activity', 'thinking', 'note', 'ui', 'input', 'compaction']),
+  /** Compaction lifecycle/report from run_events, not the model's summary text. */
+  compaction: z.record(z.string(), z.unknown()).optional(),
   text: z.string().optional(),
   tool: z.string().optional(),
   toolCallId: z.string().optional(),

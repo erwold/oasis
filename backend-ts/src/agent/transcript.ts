@@ -50,14 +50,15 @@ const SUMMARY_KEYS = new Set(['status', 'reason', 'path', 'op', 'exit_code', 'ex
  *  inherited and shows under the runs that made them. `ended` is the status a finished run ended with: a call of its
  *  no return answered (a crash, a record from before the harness answered every call of a stopped run) is closed
  *  as the run ended — cancelled, or interrupted — never left running; null while the run runs. */
-export function rebuildTranscript(historyJson: string | null, from = 0, ended: string | null = null, surfaces: UiSurfaceRecord[] = [], inputs: UiInputRecord[] = [], steers: SteerRecord[] = []): TranscriptEntry[] {
+export function rebuildTranscript(historyJson: string | null, from = 0, ended: string | null = null, surfaces: UiSurfaceRecord[] = [], inputs: UiInputRecord[] = [], steers: SteerRecord[] = [], compactions: repo.StoredEvent[] = []): TranscriptEntry[] {
+  const maintenance = compactionEntries(compactions, ended)
   // a steer delivered in the run: where its steer_delivered event stands among the run's events
   const steerSeq = new Map(steers.map((st) => [st.id, st.delivered_seq]))
   // the surfaces the run presented, each shown once — where its first successful present_ui ran (see uiAt)
   const pending = new Map(surfaces.map((s) => [s.surface_id, s]))
   // the run's request_input forms as they stand (pending, answered or closed), each right after the call that showed it
   const forms = new Map(inputs.map((i) => [i.tool_call_id, i]))
-  const rest = (entries: TranscriptEntry[]): TranscriptEntry[] => [...entries, ...[...pending.values()].map((surface) => ({ kind: 'ui' as const, surface })),
+  const rest = (entries: TranscriptEntry[]): TranscriptEntry[] => [...entries, ...maintenance.values(), ...[...pending.values()].map((surface) => ({ kind: 'ui' as const, surface })),
     ...[...forms.values()].sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0)).map((input) => ({ kind: 'input' as const, toolCallId: input.tool_call_id, input }))]
   if (!historyJson) return rest([])
   // a record that no longer reads is said to be unavailable: an empty transcript would pass for a run that said nothing
@@ -67,16 +68,23 @@ export function rebuildTranscript(historyJson: string | null, from = 0, ended: s
   if (!Array.isArray(messages)) return rest(unreadable)
   const entries: TranscriptEntry[] = []
   const calls = new Map<string, TranscriptEntry>()
-  const own = from > 0 && from <= messages.length ? (messages as Record<string, unknown>[]).slice(from) : (messages as Record<string, unknown>[])
-  for (const message of own) {
+  const firstOwn = from > 0 && from <= messages.length ? from : 0
+  const own = (messages as Record<string, unknown>[]).slice(firstOwn)
+  for (const [index, message] of own.entries()) {
+    // covers is an absolute message index in the append-only record, including the inherited prefix.
+    let reported = false
+    for (const [id, entry] of maintenance) if (entry.compaction?.covers === firstOwn + index) {
+      entries.push(entry)
+      maintenance.delete(id)
+      reported ||= entry.compaction.status === 'compacted'
+    }
     const kind = message.kind
     const parts = Array.isArray(message.parts) ? (message.parts as Record<string, unknown>[]) : []
     if (kind === 'request' && message.compaction && typeof message.compaction === 'object') {
-      // a compaction: its first part is the summary the model reads on from (shown as the harness's note); the rest
-      // says the pending tail again, which the entries before it already show
-      const first = parts[0]
-      const content = first?.content
-      if (typeof content === 'string') entries.push({ kind: 'note', text: content })
+      // The lifecycle event supplies the before/after estimates. Older records have only the before count;
+      // neither invent an after count nor repeat the model's private maintenance summary in the thread.
+      const compaction = message.compaction as Record<string, unknown>
+      if (!reported) entries.push({ kind: 'compaction', compaction: { status: 'compacted', estimate_tokens: compaction.tokens_before, after_tokens: null }, running: false })
       continue
     }
     // a response's text parts that follow each other are one answer (a provider that cites splits it at each citation)
@@ -163,6 +171,23 @@ export function rebuildTranscript(historyJson: string | null, from = 0, ended: s
     }
   }
   return rest(entries)
+}
+
+/** One static record per attempt when reopening a finished run, including failed / stopped summaries without
+ *  a history marker. A start without its end after a crash is interrupted, never an everlasting spinner. */
+function compactionEntries(events: repo.StoredEvent[], ended: string | null): Map<string, TranscriptEntry> {
+  const entries = new Map<string, TranscriptEntry>()
+  for (const event of events) {
+    if (event.event !== 'context_compacting' && event.event !== 'context_compacted') continue
+    const id = typeof event.data.compaction_id === 'string' ? event.data.compaction_id : `event-${event.seq}`
+    const previous = entries.get(id)
+    if (event.event === 'context_compacting' && previous) continue
+    const running = event.event === 'context_compacting' && ended === null
+    const status = event.event === 'context_compacting' ? (running ? 'running' : 'interrupted') : event.data.status
+    entries.set(id, { kind: 'compaction', seq: previous?.seq ?? event.seq, running,
+      compaction: { ...previous?.compaction, ...event.data, status } })
+  }
+  return entries
 }
 
 /** The 'ui' entry a tool return stands for: present_ui's successful return of a surface not shown yet. A tool runs

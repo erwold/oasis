@@ -12,6 +12,7 @@ import { freezeProviderFrame } from './provider_surface.ts'
 import './tools/index.ts'
 import { loopTools, visibleToolNames } from './tools/registry.ts'
 import { text } from '../prompt_texts.ts'
+import { newId } from '../ids.ts'
 
 /** The notes appended to the pending request (the one about to go out, never one a provider has seen), then the
  *  keeper's word on the record: unchanged while the next request fits under the threshold, else one compaction
@@ -33,9 +34,19 @@ async function processHistory(deps: AgentDeps, messagesIn: ModelMessage[], seam:
   // the closing turn is one request, the report: no summary is asked in it
   if (deps.context !== null && deps.closing() === null) {
     // the person's words waiting for this request count toward its size: a compaction makes room for them whole
-    const [kept, report] = await deps.context.maybeCompact(messages, seam, deps.steering?.peek() ?? [])
-    messages = kept
-    if (report !== null) deps.emit('context_compacted', report as unknown as Record<string, unknown>)
+    let compactionId: string | null = null
+    try {
+      const [kept, report] = await deps.context.maybeCompact(messages, seam, deps.steering?.peek() ?? [], () => {
+        compactionId = newId('compact')
+        deps.emit('context_compacting', { compaction_id: compactionId, covers: messages.length })
+      })
+      messages = kept
+      if (report !== null) deps.emit('context_compacted', { ...report, ...(compactionId ? { compaction_id: compactionId } : {}) })
+    } catch (error) {
+      // A stopped summary or an unrecoverable overflow still closes its progress row; the loop handles the error.
+      if (compactionId) deps.emit('context_compacted', { compaction_id: compactionId, covers: messages.length, status: seam.ctx?.signal?.aborted ? 'cancelled' : 'failed' })
+      throw error
+    }
   }
   deps.on_history(messages)
   return messages

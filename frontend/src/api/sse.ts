@@ -79,7 +79,7 @@ function runStream(
 export const KNOWN_EVENTS = [
   'run_started', 'text_delta', 'text_block', 'thinking_delta', 'thinking_block', 'tool_call', 'tool_result',
   'execution_started', 'checkpoint', 'action_gated', 'budget_closing', 'slot_wait', 'slot_acquired', 'run_continued',
-  'context_compacted', 'model_request', 'error', 'run_finished', 'run_queued', 'lock_violation', 'integration',
+  'context_compacting', 'context_compacted', 'model_request', 'error', 'run_finished', 'run_queued', 'lock_violation', 'integration',
   'tool_call_progress',
   'ui_surface', 'ui_task', 'ui_input',
   // in-run steering: words sent while the run worked, queued, then delivered into a request or not (data { steer })

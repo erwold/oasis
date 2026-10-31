@@ -333,7 +333,7 @@ export const DEFAULT_MODELS: Record<string, unknown>[] = [
   { id: 'anthropic:claude-fable-5-1', label: 'Claude Fable 5.1', provider: 'anthropic', model: 'claude-fable-5-1', auth: 'oauth', max_tokens: CLAUDE_OUTPUT_CAP,
     context_window: 1_000_000, window_source: 'oasis proxy registry (probed 2026-09-23)', capabilities: PDF_PROBED, capability_source: PDF_PROBED_SOURCE },
   { id: 'openai:gpt-6-astra', label: 'GPT-6 Astra', provider: 'openai', model: 'gpt-6-astra', auth: 'oauth',
-    context_window: 1_000_000, window_source: 'oasis owner (900k accepted 2026-09-22)', capabilities: PDF_PROBED, capability_source: PDF_PROBED_SOURCE },
+    context_window: 920_000, window_source: 'local model_requests estimates: 919,228 succeeded; 922,673 / 922,698 failed (checked 2026-10-31; conservative window, not an exact provider limit)', capabilities: PDF_PROBED, capability_source: PDF_PROBED_SOURCE },
   // the Codex backend refused effort 'none' for gpt-6.1-sol, naming what it takes: low, medium, high, xhigh, max (2026-10-01)
   { id: 'openai:gpt-6.1-sol', label: 'GPT-6.1 Sol', provider: 'openai', model: 'gpt-6.1-sol', auth: 'oauth', reasoning_efforts: ['low', 'medium', 'high', 'xhigh', 'max'],
     context_window: 272_000, window_source: 'Codex /models context_window (probed 2026-09-30)', capabilities: PDF_PROBED, capability_source: PDF_PROBED_SOURCE },

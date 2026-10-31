@@ -50,6 +50,7 @@ import { Prose } from './Prose'
 import { SourcesRow } from './SourceChip'
 import { UiSurfaceBlock } from './UiSurface'
 import { UiInputBlock } from './UiInput'
+import { CompactionRow } from './CompactionRow'
 
 const COMMANDS = new Set(['bash', 'bash_output', 'stop_command'])
 const WEB = new Set(['web_search', 'fetch_url', 'computer_observe', 'computer_act'])
@@ -183,6 +184,8 @@ export const RunTurn = memo(function RunTurn({ run, entries, live, latest, relay
               <WorkGroup entries={part.entries} live={live && i === parts.length - 1} opened={latest || live} receipt={!live && i === lastWork ? receipt : null} />
               {!shared && i === screenAt && <ComputerScreen runId={run.id} sessionId={run.session_id} entries={entries} live={live} />}
             </Fragment>
+          : part.kind === 'compaction'
+          ? <CompactionRow key={`compact-${part.entry.compactionId ?? part.entry.eventId ?? i}`} entry={part.entry} live={live} />
           : part.kind === 'steer'
           ? <SteerRow key={`steer-${part.entry.steer?.id ?? i}`} entry={part.entry} />
           : part.kind === 'input'

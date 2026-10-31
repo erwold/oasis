@@ -7,7 +7,7 @@ import { z } from 'zod'
 export const EVENT_NAMES = [
   'run_started', 'text_delta', 'text_block', 'thinking_delta', 'thinking_block', 'tool_call', 'tool_result',
   'execution_started', 'checkpoint', 'action_gated', 'budget_closing', 'slot_wait', 'slot_acquired', 'run_continued',
-  'integration', 'context_compacted', 'model_request', 'error', 'run_finished', 'lock_violation', 'run_queued',
+  'integration', 'context_compacting', 'context_compacted', 'model_request', 'error', 'run_finished', 'lock_violation', 'run_queued',
   'tool_call_progress',
   // Intelligent UI (contract/src/ui.ts): data { surface: UiSurfaceRecord }, one per successful present_ui
   'ui_surface',

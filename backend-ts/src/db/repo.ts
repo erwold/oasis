@@ -839,6 +839,12 @@ export function listEvents(conn: Conn, runId: string, afterSeq = -1, limit = -1)
     .map((r) => ({ seq: n(r.seq), event: s(r.event), data: d(r.data_json, {}) }))
 }
 
+/** Maintenance records for transcript hydration, without reading every tool result's potentially large payload. */
+export function listCompactionEvents(conn: Conn, runId: string): StoredEvent[] {
+  return conn.all("SELECT seq, event, data_json FROM run_events WHERE run_id=? AND event IN ('context_compacting','context_compacted') ORDER BY seq", [runId])
+    .map((r) => ({ seq: n(r.seq), event: s(r.event), data: d(r.data_json, {}) }))
+}
+
 export function maxEventSeq(conn: Conn, runId: string): number {
   const row = conn.get('SELECT MAX(seq) AS m FROM run_events WHERE run_id=?', [runId])
   return row && row.m !== null && row.m !== undefined ? n(row.m) : -1

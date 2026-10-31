@@ -51,7 +51,7 @@ import { markerOf, recordMarker, snapshotUnavailable, type AttributionMarker } f
 import { buildAgent } from './agent.ts'
 import { diagnose } from './diagnosis.ts'
 import { redactSecrets } from '../llm/redact.ts'
-import { legacyFileCost, nativeRefCost, resolveWindow, type FileCost } from './context.ts'
+import { isContextError, legacyFileCost, nativeRefCost, resolveWindow, type FileCost } from './context.ts'
 import { makeDeps, type AgentDeps } from './deps.ts'
 import { RunEventMapper } from './events.ts'
 import { runEventsPage, SessionEventHub, sessionEvents, snapshotCursor, type MemoryRun, type SessionFrame } from './session_events.ts'
@@ -157,6 +157,9 @@ export function classifyError(error: unknown): string {
   if (error instanceof ContextOverflowUnrecovered) return 'context_overflow'
   const status = providerStatusError(error)
   if (status && providerQuotaExhausted(status[0], status[1])) return 'quota'
+  // HTTP 200 SSE failures (notably Codex context_length_exceeded) have no error status. Reuse the
+  // context markers before generic "stream error" recovery; an explicit HTTP auth/rate status still wins.
+  if (!status && causes(error).some((e) => e instanceof ModelAPIError && isContextError(e))) return 'context_overflow'
   if (transientTransportError(error)) return 'transport'
   if (status) {
     const [code, message] = status

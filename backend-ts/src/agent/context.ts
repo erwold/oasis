@@ -159,6 +159,14 @@ export const CONTEXT_ERROR_MARKERS = ['context_length', 'context window', 'maxim
 
 /** Whether a provider's refusal is about the request's size. */
 export function isContextError(error: unknown): boolean {
+  const rawCode = (error as { provider_code?: unknown })?.provider_code
+  const code = typeof rawCode === 'string' ? rawCode.toLowerCase() : null
+  // Codex's official client names context_length_exceeded. Accept the context_window spelling too;
+  // only absent/generic request codes fall back to words. A server/rate/auth code must not become an
+  // overflow because its message says "request took too long" or mentions context/token limits.
+  if (code && code !== 'invalid_request_error' && code !== 'invalid_prompt') {
+    return code === 'context_length_exceeded' || code === 'context_window_exceeded'
+  }
   const text = String((error as { message?: string })?.message ?? error).toLowerCase()
   return CONTEXT_ERROR_MARKERS.some((marker) => text.includes(marker))
 }

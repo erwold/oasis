@@ -274,7 +274,9 @@ test('every request extends the one before it, across tool calls, an image, a re
   expect(record.filter(isCompaction)).toHaveLength(1)
   expect(repo.getRunHistory(st.conn, compacted.id)!.startsWith(hc.slice(0, -1))).toBe(true) // the record kept every earlier message
   const transcript = rebuildTranscript(repo.getRunHistory(st.conn, compacted.id)!)
-  expect(transcript.filter((e) => e.kind === 'note' && String(e.text).startsWith('App note: The conversation so far was summarized'))).toHaveLength(1)
+  // the thread shows the compaction as one record, never the summary the model reads on from
+  expect(transcript.filter((e) => e.kind === 'compaction' && e.compaction?.status === 'compacted')).toHaveLength(1)
+  expect(transcript.some((e) => String(e.text ?? '').startsWith('App note: The conversation so far was summarized'))).toBe(false)
   expect(compacted.usage.history_compactions).toBe(1)
   // every model request of the run was metered, the summary request among them
   expect(repo.listModelRequests(st.conn, compacted.id).filter((r) => r.status === 'ok')).toHaveLength(4)

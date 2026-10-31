@@ -12,7 +12,7 @@ import { waitingLine, waitingOf } from './outline.ts'
 
 /** `ui`: a surface the agent presented (present_ui) — its own block in the answer, never folded into the work;
  *  `input`: a form the run waits on (request_input) — its own block too, answered in place */
-export type EntryKind = 'user' | 'agent' | 'thinking' | 'activity' | 'note' | 'error' | 'gate' | 'system' | 'ui' | 'input'
+export type EntryKind = 'user' | 'agent' | 'thinking' | 'activity' | 'note' | 'error' | 'gate' | 'system' | 'ui' | 'input' | 'compaction'
 
 export interface ThreadEntry extends Correlated {
   kind: EntryKind
@@ -25,6 +25,8 @@ export interface ThreadEntry extends Correlated {
   status?: string
   model?: string
   eventName?: string
+  /** The summary attempt, shared by its start and end (not a tool call). */
+  compactionId?: string
   /** an answer a broken stream cut off, kept by the harness: the rest joins this row instead of opening another */
   continues?: boolean
   /** the kept words the rest of the answer follows (a closing block carries only the rest) */
@@ -176,8 +178,8 @@ export const EVENT_ROWS: Record<string, Handler> = {
   integration: (thread, runId, d, item, eventId) =>
     pushOnce(thread, { kind: 'note', runId, eventId, eventName: item.event,
         text: `Integration ${str(d.status)}: ${Array.isArray(d.applied) ? d.applied.length : 0} checkpoint(s) applied${Array.isArray(d.conflicts) && d.conflicts.length ? `, conflicts in ${d.conflicts.join(', ')}` : ''}${d.applied_to_workspace ? ', written to the workspace' : d.reason ? ` — ${str(d.reason)}` : ''}`, detail: d }),
-  context_compacted: (thread, runId, d, item, eventId) =>
-    pushOnce(thread, { kind: 'note', runId, eventId, eventName: item.event, text: compactionNote(d), detail: d }),
+  context_compacting: (thread, runId, d, item, eventId) => compactionRow(thread, runId, d, item.event, eventId),
+  context_compacted: (thread, runId, d, item, eventId) => compactionRow(thread, runId, d, item.event, eventId),
   lock_violation: (thread, runId, d, item, eventId) =>
     pushOnce(thread, { kind: 'error', runId, eventId, eventName: item.event,
       text: `Locked content changed by a command: ${(Array.isArray(d.violations) ? d.violations : []).map(String).join('; ')}`, detail: d }),
@@ -234,7 +236,7 @@ export const EVENT_ROWS: Record<string, Handler> = {
   run_finished: (thread, runId, d, item, eventId) => {
       const status = str(d.status)
       // the run is over: nothing of it streams, and no answer of it waits for a rest that can no longer come
-      const closed = withoutForming(thread, runId).map((e) => (e.runId === runId && (e.running || e.continues) ? settled(e) : e))
+      const closed = withoutForming(thread, runId).map((e) => (e.runId === runId && (e.running || e.continues) ? (e.kind === 'compaction' ? { ...e, running: false, status: 'interrupted', text: 'Context compaction interrupted' } : settled(e)) : e))
       // a run done with an answer the provider stopped (its filter, a refusal) is said as such, not as an answer that
       // ended as asked (older events carry the end in the receipt only)
       const receipt = d.receipt as { mechanical?: { answer_end?: unknown } } | undefined
@@ -386,6 +388,12 @@ export function fromTranscript(runId: string, entries: TranscriptEntry[], admit:
     }
     if (e.kind === 'agent') { if (e.text) out.push({ kind: 'agent', runId, text: e.text }) }
     else if (e.kind === 'thinking') out.push({ kind: 'thinking', runId, text: e.text })
+    else if (e.kind === 'compaction') {
+      const detail = e.compaction ?? {}
+      out.push({ kind: 'compaction', runId, compactionId: str(detail.compaction_id) || undefined,
+        eventId: e.seq === undefined ? undefined : String(e.seq), eventName: e.running ? 'context_compacting' : 'context_compacted',
+        detail, status: str(detail.status), running: e.running === true, text: e.running ? 'Compacting context' : compactionNote(detail) })
+    }
     else if (e.kind === 'note') out.push({ kind: 'note', runId, text: e.text })
     else if (e.kind === 'activity') out.push({ kind: 'activity', runId, tool: e.tool, toolCallId: e.toolCallId, summary: e.summary,
       args: e.args ?? null, result: e.result, status: str(e.result?.status) || (e.running ? 'running' : 'ok'), running: e.running ?? false })
@@ -419,14 +427,30 @@ export function formatTokens(n: number): string {
   return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`
 }
 
-/** A context_compacted event as a line: what it freed and the line it was asked over — above the threshold when the
- *  compaction before freed too little — and how much of a long summary was left out. */
+/** One attempt in place, including out-of-order / repeated SSE delivery and old completion-only records. */
+function compactionRow(thread: ThreadEntry[], runId: string, d: Record<string, unknown>, eventName: string, eventId?: string): ThreadEntry[] {
+  const compactionId = str(d.compaction_id) || undefined
+  const running = eventName === 'context_compacting'
+  const at = thread.findIndex((e) => e.kind === 'compaction' && e.runId === runId &&
+    (compactionId ? e.compactionId === compactionId : !!eventId && e.eventId === eventId))
+  // A late/replayed start never reopens a finished attempt. Completion wins regardless of arrival order.
+  if (at >= 0 && (running || thread[at].running === false && thread[at].status !== 'interrupted')) return thread
+  const entry: ThreadEntry = { kind: 'compaction', runId, eventName, eventId, compactionId, running,
+    status: running ? 'running' : str(d.status), text: running ? 'Compacting context' : compactionNote(d), detail: d }
+  if (at < 0) return [...thread, entry]
+  const next = [...thread]
+  next[at] = { ...entry, eventId: thread[at].eventId }
+  return next
+}
+
+/** Counts are predictions, not provider usage; keep the estimate marks without crowding the thread. */
 export function compactionNote(d: Record<string, unknown>): string {
-  if (d.status === 'failed' || d.status === 'skipped') return `Context not compacted: ${str(d.reason)} (~${str(d.estimate_tokens)} tokens, threshold ${str(d.threshold_tokens)})`
-  const raised = typeof d.trigger_tokens === 'number' && typeof d.threshold_tokens === 'number' && d.trigger_tokens > d.threshold_tokens
-    ? `, raised to ${d.trigger_tokens} after a compaction that freed too little` : ''
-  const cut = typeof d.summary_cut_chars === 'number' && d.summary_cut_chars > 0 ? `; ${d.summary_cut_chars} characters of a long summary left out` : ''
-  return `Context compacted: ~${str(d.estimate_tokens)} → ~${str(d.after_tokens)} tokens (threshold ${str(d.threshold_tokens)}${raised}${cut}; the earlier messages stay in the record)`
+  if (d.status === 'failed') return 'Context compaction failed'
+  if (d.status === 'skipped') return 'Context compaction skipped'
+  if (d.status === 'cancelled') return 'Context compaction stopped'
+  if (d.status === 'interrupted') return 'Context compaction interrupted'
+  const tokens = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 ? `~${Math.round(v).toLocaleString('en-US')}` : '?'
+  return `Context compacted · ${tokens(d.estimate_tokens)} → ${tokens(d.after_tokens)} tokens`
 }
 
 /** A request's token counts, or null when the provider reported none: the meter files a request it has no count for

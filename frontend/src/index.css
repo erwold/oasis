@@ -1614,3 +1614,9 @@ body.resizing-nwse, body.resizing-nwse * { cursor: nwse-resize !important; }
 .live-share-dot.is-listening { background: var(--green); }
 .live-share-dot.is-error, .live-share-dot.is-unbuilt { background: var(--red, oklch(0.63 0.2 25)); }
 .live-share-dot.is-starting { background: var(--accent); }
+
+/* Context maintenance stays in the thread, outside foldable tool work. */
+.compaction-row { margin: 6px 0; font-size: 12px; color: var(--ink-3); }
+.compaction-spinner { width: 12px; height: 12px; flex: 0 0 12px; box-sizing: border-box; border: 1.5px solid var(--line); border-top-color: currentColor; border-radius: 50%; animation: compaction-spin 1s linear infinite; }
+@keyframes compaction-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .compaction-spinner { animation: none; } }

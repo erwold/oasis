@@ -12,7 +12,7 @@ import {
   compactionCount, compactionIndex, ContextKeeper, ContextView, historyMetrics, isCompaction, outputReserve, summaryOf, workingView,
   type CompactionReport, type RequestSeam,
 } from '../src/agent/history.ts'
-import { ModelConfig } from '../src/config.ts'
+import { DEFAULT_MODELS, ModelConfig, ModelConfigSchema } from '../src/config.ts'
 import { imagePiece } from '../src/llm/images.ts'
 import {
   dumpJson, isRequest, isText, isToolReturn, isUserPrompt, loadJson, modelRequest, modelResponse, textPart, thinkingPart, toolCallPart, toolReturn,
@@ -96,6 +96,17 @@ test('the window follows the override, then the route, else the assumed fallback
   expect(outputReserve({ max_tokens: 16_000 })).toBe(16_000)
   expect(outputReserve({ max_tokens: 16_000, thinking: 'xhigh' })).toBe(32_768 + 4096)         // the Anthropic mapping raises the cap over the budget
   expect(outputReserve({ max_tokens: 64_000, thinking: 'xhigh' })).toBe(64_000)
+})
+
+test('Astra default compacts at 892400, before the observed successful and refused context estimates', () => {
+  const astra = new ModelConfig(ModelConfigSchema.parse(DEFAULT_MODELS.find((m) => m.id === 'openai:gpt-6-astra')))
+  expect(astra.context_window).toBe(920_000)
+  expect(astra.window_source).toContain('919,228')
+  expect(astra.window_source).toContain('922,673')
+  expect(astra.window_source).toContain('922,698')
+  const threshold = compactionThreshold(astra.context_window!, 16_000)
+  expect(threshold).toBe(892_400)
+  for (const observed of [919_228, 922_673, 922_698]) expect(threshold).toBeLessThan(observed)
 })
 
 test('the prediction anchors on the provider\'s count of the last request plus what was appended, else estimates the whole view', () => {
@@ -252,7 +263,7 @@ test('dangling calls are answered only in the working view; the model boundary c
   })
 })
 
-test('the persisted form round-trips byte for byte, and the transcript shows a compaction as one note', () => {
+test('the persisted form round-trips byte for byte, and the transcript shows a legacy compaction once without inventing its after count', () => {
   const image = imagePiece({ asset_id: 'a_1', media_type: 'image/png', bytes: 3, sha256: 'abc', width: 1, height: 1, name: 'r.png' })
   const record: ModelMessage[] = [
     modelRequest([userPrompt(['look', image])], INSTRUCTIONS),
@@ -265,8 +276,8 @@ test('the persisted form round-trips byte for byte, and the transcript shows a c
   expect(dumpJson(loadJson(once))).toBe(once)
   expect(dumpJson(loadJson(dumpJson(loadJson(once))))).toBe(once)
   const entries = rebuildTranscript(once)
-  expect(entries.map((e) => e.kind)).toEqual(['user', 'thinking', 'activity', 'note', 'agent'])
-  expect(entries[3]!.text).toBe('App note: The conversation so far was summarized. S.')
+  expect(entries.map((e) => e.kind)).toEqual(['user', 'thinking', 'activity', 'compaction', 'agent'])
+  expect(entries[3]!.compaction).toEqual({ status: 'compacted', estimate_tokens: 100, after_tokens: null })
   expect(JSON.stringify(entries)).not.toContain('returned just before the summary')
   expect(countTokens('a b c')).toBeGreaterThan(0)
 })

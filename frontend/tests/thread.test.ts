@@ -171,12 +171,12 @@ test('a request the provider counted nothing for (stopped, failed, or served wit
   assert.deepEqual(reportedTokens({ status: 'error', ...zero, input_tokens: 10 }), { input: 10, output: 0, cached: 0 })
 })
 
-test('a compaction line says when it was asked over a raised line and when a long summary was cut', () => {
+test('a compaction line shows only estimated before/after counts, not maintenance diagnostics', () => {
   const base = { status: 'compacted', estimate_tokens: 11133, after_tokens: 5766, threshold_tokens: 10000 }
-  assert.equal(compactionNote({ ...base, trigger_tokens: 10000 }), 'Context compacted: ~11133 → ~5766 tokens (threshold 10000; the earlier messages stay in the record)')
+  assert.equal(compactionNote({ ...base, trigger_tokens: 10000 }), 'Context compacted · ~11,133 → ~5,766 tokens')
   assert.equal(compactionNote({ ...base, trigger_tokens: 13573, summary_cut_chars: 420 }),
-    'Context compacted: ~11133 → ~5766 tokens (threshold 10000, raised to 13573 after a compaction that freed too little; 420 characters of a long summary left out; the earlier messages stay in the record)')
-  assert.equal(compactionNote({ status: 'failed', reason: 'boom', estimate_tokens: 1, threshold_tokens: 2 }), 'Context not compacted: boom (~1 tokens, threshold 2)')
+    'Context compacted · ~11,133 → ~5,766 tokens')
+  assert.equal(compactionNote({ status: 'failed', reason: 'boom', estimate_tokens: 1, threshold_tokens: 2 }), 'Context compaction failed')
 })
 
 test("a web search row names what it did: a query, or the page the provider's search opened or searched in", () => {

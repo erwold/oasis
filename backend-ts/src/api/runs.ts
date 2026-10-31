@@ -319,7 +319,7 @@ export function runRoutes(api: Api): Hono {
     const ended = ACTIVE_RUN_STATUSES.includes(run.status) ? null : run.status
     const steers = state.runs.steersOf(runId)
     const entries = rebuildTranscript(repo.getRunHistory(state.conn, runId), inheritedMessageCount(state.conn, run), ended, repo.listUiSurfaces(state.conn, run.session_id, runId),
-      repo.listUiInputs(state.conn, run.session_id, { run_id: runId, limit: 1_000 }), steers)
+      repo.listUiInputs(state.conn, run.session_id, { run_id: runId, limit: 1_000 }), steers, repo.listCompactionEvents(state.conn, runId))
     return c.json({ run_id: runId, status: run.status, model: run.model, entries, steers })
   })
 

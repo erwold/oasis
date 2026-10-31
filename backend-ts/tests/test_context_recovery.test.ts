@@ -18,6 +18,8 @@ import {
 import { applySessionMode } from '../src/policy/modes.ts'
 import { ModelHTTPError, type ModelRequestParameters } from '../src/llm/model.ts'
 import { scriptedModel } from '../src/llm/scripted.ts'
+import { OpenAIResponsesModel } from '../src/llm/providers/openai_responses.ts'
+import { codexSse, textOutput } from './providers_fixtures.ts'
 import { PROMPT_TEXT } from '../src/prompt_texts.ts'
 import { appState, buggyRepo, closeState, openSession, setModel, waitDone, type AppState } from './harness.ts'
 
@@ -166,6 +168,101 @@ test('a refusal for size with no request left for a summary: no summary, no seco
   expect(run.status).toBe('error')
   expect(seen.map((s) => s.summary)).toEqual([false, false])
   expect(events.find((e) => e.event === 'error')!.data.kind).toBe('context_overflow')
+})
+
+// HTTP 200 SSE -> OpenAIResponsesModel -> ordinary ModelAPIError -> runner -> one overflow compaction.
+for (const shape of ['response.failed', 'nested error', 'top-level error'] as const) {
+  for (const refusedAgain of [false, true]) {
+    test(`Codex ${shape}: real parser drives one runner compaction; refused again=${refusedAgain}`, async () => {
+      state = await appState()
+      const { session } = await openSession(state, buggyRepo())
+      const seen: { summary: boolean; input: string }[] = []
+      const token = 'opaque-runner-fixture-credential'
+      const reason = 'The request exceeds the context window.' // fixture, not an observed upstream message
+      let normal = 0
+      const model = new OpenAIResponsesModel('gpt-6-astra', {
+        codex: true, baseUrl: 'https://codex.invalid',
+        beforeSend: ({ headers }) => { headers.set('authorization', `Bearer ${token}`) },
+        fetchImpl: async (_url, init) => {
+          const body = JSON.parse(String(init?.body)) as { input: unknown }
+          const input = JSON.stringify(body.input)
+          const summary = input.includes(PROMPT_TEXT['compaction.request'])
+          seen.push({ summary, input })
+          let content: string
+          if (summary) content = codexSse(textOutput('<summary>calc.py was read; add subtracts.</summary>'))
+          else {
+            normal += 1
+            if (normal === 1) content = codexSse([
+              ...textOutput('Working through the file. '.repeat(1_500)),
+              { type: 'function_call', id: 'fc_1', call_id: 'r1', name: 'read_file', arguments: JSON.stringify({ path: 'calc.py' }) },
+            ])
+            else if (normal === 2 || refusedAgain) {
+              const error = { code: 'context_length_exceeded', message: `${reason} ${token}` }
+              const event = shape === 'response.failed' ? { type: shape, response: { error } }
+                : shape === 'nested error' ? { type: 'error', error } : { type: 'error', ...error }
+              content = `data: ${JSON.stringify(event)}\n\n`
+            } else content = codexSse(textOutput('add() subtracts.'))
+          }
+          return new Response(content, { status: 200, headers: { 'content-type': 'text/event-stream' } })
+        },
+      })
+      setModel(state, 'scripted:a', model)
+      const run = await waitDone(state, (await state.runs.start(session, 'read calc.py and explain')).id)
+      const events = repo.listEvents(state.conn, run.id)
+      expect(seen.map((s) => s.summary)).toEqual([false, false, true, false])
+      expect(events.filter((e) => e.event === 'tool_result')).toHaveLength(1)
+      expect(events.filter((e) => e.event === 'run_continued').map((e) => e.data.reason)).toEqual(['context_overflow'])
+      expect(events.filter((e) => e.event === 'context_compacted').map((e) => [e.data.status, e.data.trigger])).toEqual([['compacted', 'overflow']])
+      expect(seen[3]!.input.length).toBeLessThan(seen[1]!.input.length)
+      expect(seen[3]!.input).toContain('calc.py was read')
+      const requests = repo.listModelRequests(state.conn, run.id)
+      expect(requests).toHaveLength(4)
+      const failed = requests.filter((r) => r.status === 'error')
+      expect(failed).toHaveLength(refusedAgain ? 2 : 1)
+      for (const record of failed) {
+        expect(record.error).toContain('ModelAPIError')
+        expect(record.error).toContain('context_length_exceeded')
+        expect(record.error).toContain(reason)
+        expect(record.error).not.toContain(token)
+      }
+      expect(JSON.stringify(events)).not.toContain(token)
+      if (refusedAgain) {
+        expect(run.status).toBe('error')
+        expect(events.find((e) => e.event === 'error')!.data.kind).toBe('context_overflow')
+      } else {
+        expect(run.status).toBe('done')
+        expect(run.receipt.final_text).toBe('add() subtracts.')
+      }
+    })
+  }
+}
+
+test('Codex server_error saying request took too long takes transport recovery, never compaction', async () => {
+  state = await appState()
+  state.runs.transport_backoff_s = [0.01]
+  const { session } = await openSession(state, buggyRepo())
+  let requests = 0
+  setModel(state, 'scripted:a', new OpenAIResponsesModel('gpt-6-astra', {
+    codex: true, fetchImpl: async () => {
+      requests += 1
+      const content = requests === 1 ? codexSse([
+        ...textOutput('Reading calc.py.'),
+        { type: 'function_call', id: 'fc_1', call_id: 'r1', name: 'read_file', arguments: JSON.stringify({ path: 'calc.py' }) },
+      ]) : requests === 2 ? `data: ${JSON.stringify({ type: 'response.failed', response: { error: { code: 'server_error', message: 'request took too long' } } })}\n\n`
+        : codexSse(textOutput('add() subtracts.'))
+      return new Response(content, { status: 200, headers: { 'content-type': 'text/event-stream' } })
+    },
+  }))
+  const run = await waitDone(state, (await state.runs.start(session, 'read calc.py and explain')).id)
+  const events = repo.listEvents(state.conn, run.id)
+  expect(run.status).toBe('done')
+  expect(requests).toBe(3)
+  expect(events.filter((e) => e.event === 'run_continued').map((e) => e.data.reason)).toEqual(['transport_error'])
+  expect(events.filter((e) => e.event === 'context_compacted')).toHaveLength(0)
+  expect(events.filter((e) => e.event === 'tool_result')).toHaveLength(1)
+  const failed = repo.listModelRequests(state.conn, run.id).find((r) => r.status === 'error')!
+  expect(failed.error).toContain('server_error')
+  expect(failed.error).toContain('request took too long')
 })
 
 // ---- the person's latest words through a recovery (Codex's overflow-keeper case, and its neighbours) --------------
