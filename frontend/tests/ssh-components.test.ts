@@ -249,7 +249,7 @@ test('new SSH task creates a target-bound direct project rather than reusing the
   useStore.setState({ watchRun: () => {} })
   handler = (c) => {
     if (c.path === '/api/projects' && c.method === 'POST') return { body: project }
-    if (c.path === '/api/projects/p/sessions' || c.path === '/api/sessions/s') return { body: { ...session, target: undefined } }
+    if (c.path === '/api/projects/p/sessions' || c.path === '/api/sessions/s' || c.path === '/api/sessions/s?transcripts=1') return { body: { ...session, target: undefined } }
     if (c.path === '/api/sessions/s/chat') return { body: { id: 'run', status: 'running' } }
   }
   await useStore.getState().startTask('keep')

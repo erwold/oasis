@@ -51,7 +51,11 @@ let routes: (call: Call) => Reply | undefined = () => undefined
 globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
   const call: Call = { method: init?.method ?? 'GET', path: String(input), body: typeof init?.body === 'string' ? JSON.parse(init.body) : null }
   calls.push(call)
-  const reply = (await routes(call)) ?? { status: 404, body: { detail: 'not found' } }
+  // These grant races also exercise the older backend's unbundled reply. Route only the known opening flag
+  // to the same detail fixture; retain the actual URL in calls so sync/refresh request counts stay exact.
+  const routeCall = call.method === 'GET' && /^\/api\/sessions\/[^/?]+\?transcripts=1$/.test(call.path)
+    ? { ...call, path: call.path.slice(0, -'?transcripts=1'.length) } : call
+  const reply = (await routes(routeCall)) ?? { status: 404, body: { detail: 'not found' } }
   return new Response(JSON.stringify(reply.body), { status: reply.status ?? 200, headers: { 'content-type': 'application/json' } })
 }) as typeof fetch
 const sent = (method: string, path: string) => calls.filter((c) => c.method === method && c.path === path).length
@@ -322,12 +326,16 @@ test('an evidence refresh that left in A\'s first opening, answered after A → 
   const reopened = session('A', false, { workspace, workspace_id: 'w', title: 'A reopened' })
   reset(first)
   const oldRead = held(), newRefresh = held()
-  let second = false, secondReads = 0
+  let second = false, newRefreshRequested = false, reopeningDone = false
   routes = (c) => {
-    // the reopening reads A's detail, then its own refresh reads it again (held)
-    if (c.method === 'GET' && c.path === '/api/sessions/A') return second ? (++secondReads === 1 ? { body: reopened } : newRefresh.promise) : oldRead.promise
+    // Opening already reads A's detail. Hold the trailing refresh's workspace response
+    // so the old answer arrives before the new refresh completes.
+    if (c.method === 'GET' && c.path === '/api/sessions/A') return second ? { body: reopened } : oldRead.promise
     if (c.method === 'GET' && c.path === '/api/sessions/B') return { body: session('B') }
-    if (c.method === 'GET' && c.path === '/api/workspaces/w') return { body: { ...workspace, marker: second ? 'reopened' : 'first' } }
+    if (c.method === 'GET' && c.path === '/api/workspaces/w') {
+      if (second) { newRefreshRequested = true; return newRefresh.promise }
+      return { body: { ...workspace, marker: 'first' } }
+    }
     if (c.method === 'GET' && c.path.startsWith('/api/workspaces/w/diff')) return { body: { files: [] } }
     return undefined
   }
@@ -336,15 +344,19 @@ test('an evidence refresh that left in A\'s first opening, answered after A → 
   await now().openSession('B')
   second = true
   useStore.setState({ refreshEvidence: real.refreshEvidence })
-  const reopening = now().openSession('A')
+  const reopening = now().openSession('A').then(() => { reopeningDone = true })
   await tick()
   assert.equal(now().session?.title, 'A reopened')
+  assert.equal(newRefreshRequested, false, 'the new refresh is coalesced behind the old request')
+  assert.equal(reopeningDone, false, 'the reopening still waits for its evidence refresh')
   oldRead.release({ body: { ...first, title: 'A first' } })
   await tick()
+  assert.equal(newRefreshRequested, true, 'the trailing evidence request left after the old one settled')
+  assert.equal(reopeningDone, false, 'the old answer does not complete the new refresh')
   assert.equal(now().session?.title, 'A reopened', 'the old refresh\'s title never shows')
   assert.equal(now().session?.grants.network, false, 'the old refresh\'s grants never show')
   assert.notEqual((now().workspace as unknown as { marker?: string } | null)?.marker, 'first', 'the old refresh\'s workspace never shows')
-  newRefresh.release({ body: reopened })
+  newRefresh.release({ body: { ...workspace, marker: 'reopened' } })
   await Promise.all([refreshing, reopening])
   await tick()
   assert.equal(now().session?.title, 'A reopened')

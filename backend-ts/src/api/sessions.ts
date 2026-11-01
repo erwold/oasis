@@ -1,5 +1,7 @@
 import { Hono } from 'hono'
-import { ACTIVE_RUN_STATUSES, type BackgroundCommand, type RunCollab, DecisionBodySchema, DirectorNoteBodySchema, GrantsBodySchema, ModelBodySchema, SessionBodySchema, SessionUpdateBodySchema, SessionPinBodySchema, WorkOrderBodySchema, type Session } from '@oasis-code/contract'
+import { setImmediate } from 'node:timers/promises'
+import { storedTranscript } from './transcript.ts'
+import { ACTIVE_RUN_STATUSES, type BackgroundCommand, type RunCollab, DecisionBodySchema, DirectorNoteBodySchema, GrantsBodySchema, ModelBodySchema, SessionBodySchema, SessionUpdateBodySchema, SessionPinBodySchema, WorkOrderBodySchema, type Session, type Run } from '@oasis-code/contract'
 import { contextReportAsync } from '../agent/context_report.ts'
 import { ContextReportUnavailable } from '../agent/context_report_worker_client.ts'
 import { narrowOrder, OrderWidened, parseWorkOrder, WorkOrderInvalid } from '../agent/work_orders.ts'
@@ -34,7 +36,7 @@ export function sessionDetail(state: AppState, session: Session): Record<string,
   // the thread (schema v25): the runs placed in it — the main agent's and a relay's turns, each with its collab; an
   // interaction's steps are on its board, a separate task's runs on their cards (runs/tree, /collaboration)
   const collab = collabOfRuns(state, session.id)
-  const runs = repo.listRuns(state.conn, session.id).filter((r) => collab.get(r.id)?.placement.surface === 'thread')
+  const runs = repo.listDisplayRuns(state.conn, session.id, [...collab].filter(([, c]) => c.placement.surface === 'thread').map(([id]) => id))
   const active = state.runs.activeRunOfSession(session.id)
   const live = state.runs.activeRunsOfSession(session.id)
   const others = live.filter((h) => active === null || h.run_id !== active.run_id)
@@ -42,7 +44,7 @@ export function sessionDetail(state: AppState, session: Session): Record<string,
   const task_sessions = repo.sessionsOfTask(state.conn, session.task_root_id ?? session.id)
     .map((s) => ({ id: s.id, project_id: s.project_id, title: s.title, status: s.status, last_activity_at: s.last_activity_at ?? s.created_at }))
   return {
-    ...session, workspace: ws, task_sessions, runs: runs.map((r) => ({ ...withoutManifest(r), collab: collab.get(r.id) ?? null })),
+    ...session, workspace: ws, task_sessions, runs: runs.map((r) => ({ ...r, collab: collab.get(r.id) ?? null })),
     director_notes: repo.listDirectorNotes(state.conn, session.id),
     director: openDirectorSessionOf(state.conn, session.id),
     active_run: active ? { id: active.run_id, status: active.status, saved_seq: active.saved_seq, steerable: state.runs.steerRefusal(active) === null } : null,
@@ -166,7 +168,26 @@ export function sessionRoutes(api: Api): Hono {
     return c.json(sessionDetail(state, repo.getSession(state.conn, session.id)!))
   })
 
-  app.get('/api/sessions/:session_id', (c) => c.json(sessionDetail(state, requireSession(state, c.req.param('session_id')))))
+  app.get('/api/sessions/:session_id', async (c) => {
+    const detail = sessionDetail(state, requireSession(state, c.req.param('session_id')))
+    if (c.req.query('transcripts') !== '1') return c.json(detail)
+    // Capture the cursor and run list BEFORE reading history. Live runs still belong exclusively to SSE;
+    // events arriving while this envelope is built replay from that cursor. No pagination/partial Find scope.
+    const transcripts: Record<string, ReturnType<typeof storedTranscript>> = {}
+    const transcript_errors: Record<string, string> = {}
+    const active = detail.active_run as { id: string } | null
+    let yieldedAt = performance.now()
+    for (const run of detail.runs as Run[]) {
+      if (c.req.raw.signal.aborted) return new Response(null, { status: 499 })
+      if (ACTIVE_RUN_STATUSES.includes(run.status) || run.id === active?.id) continue
+      try { transcripts[run.id] = storedTranscript(state, run.id) }
+      catch { transcript_errors[run.id] = 'unavailable' } // independent retry, never pass an unread record off as empty
+      // A large session must not monopolize the backend. Small openings incur no extra scheduling round.
+      if (performance.now() - yieldedAt >= 8) { await setImmediate(); yieldedAt = performance.now() }
+    }
+    c.header('Cache-Control', 'no-store')
+    return c.json({ ...detail, transcripts, ...(Object.keys(transcript_errors).length ? { transcript_errors } : {}) })
+  })
 
   app.put('/api/sessions/:session_id', async (c) => {
     const session = requireSession(state, c.req.param('session_id'))

@@ -80,7 +80,7 @@ function held() {
 /** the session's own reads the harness answers while it is open: its detail, its runs' transcripts, its chat */
 function serve(s: SessionDetail, before = routes) {
   routes = (call) => {
-    if (call.method === 'GET' && call.path === `/api/sessions/${s.id}`) return { status: 200, body: s }
+    if (call.method === 'GET' && (call.path === `/api/sessions/${s.id}` || call.path === `/api/sessions/${s.id}?transcripts=1`)) return { status: 200, body: s }
     if (call.method === 'GET' && /^\/api\/runs\/[^/]+\/transcript$/.test(call.path)) return { status: 200, body: { entries: [], steers: [] } }
     if (call.method === 'POST' && call.path === `/api/sessions/${s.id}/chat`) return { status: 200, body: { id: `run_${s.id}_next`, status: 'running' } }
     return before(call)

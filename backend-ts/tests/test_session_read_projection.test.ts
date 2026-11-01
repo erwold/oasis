@@ -150,3 +150,28 @@ test('run metadata and fingerprint reuse SQL without caching live handles; write
     expect(crepo.listRunMetas(conn, session.id)[0]!.history_empty).toBe(false)
   } finally { all.mockRestore(); get.mockRestore() }
 })
+
+test('an external commit between history SELECT and parse cannot publish stale own-history cache entries', async () => {
+  const { conn, run } = await fixture()
+  const r = run()
+  const first = dumpJson([modelResponse([textPart('old')])])
+  const next = dumpJson([modelResponse([textPart('new content')])])
+  repo.saveRunProgress(conn, r.id, first, {}, 1)
+  const { Database } = await import('bun:sqlite')
+  const other = new Database(conn.path)
+  const original = conn.get.bind(conn)
+  let wrote = false
+  const spy = spyOn(conn, 'get').mockImplementation((sql, args) => {
+    const result = original(sql, args)
+    if (!wrote && sql === 'SELECT history_json FROM runs WHERE id=?') {
+      wrote = true
+      other.run('UPDATE runs SET history_json=? WHERE id=?', [next, r.id])
+    }
+    return result
+  })
+  try {
+    rebuildStoredTranscript(conn, r, 'done') // a multi-statement read racing the write may return the old value
+    expect(wrote).toBe(true)
+    for (let i = 0; i < 3; i++) expect(rebuildStoredTranscript(conn, r, 'done')).toEqual(rebuildTranscript(next, 0, 'done'))
+  } finally { spy.mockRestore(); other.close() }
+})

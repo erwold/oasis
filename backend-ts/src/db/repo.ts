@@ -8,6 +8,7 @@ import type {
 } from '@oasis-code/contract'
 import { THREAD_SPAWNERS, RemoteWorkspaceBindingSchema, type RemoteWorkspaceBinding } from '@oasis-code/contract'
 import { accessOf, LEGACY_ACCESS_MODE, type AccessMode } from '@oasis-code/contract/modes'
+import { writeHistoryProjection } from './history_projection.ts'
 import { newId } from '../ids.ts'
 import { budgetLines, parseBudget, parseGrants } from '../models.ts'
 import { nowIso } from '../timebase.ts'
@@ -450,6 +451,15 @@ export function listRuns(conn: Conn, sessionId: string): Run[] {
   return conn.all(`SELECT ${RUN_COLUMNS} FROM runs WHERE session_id=? ORDER BY created_at, rowid`, [sessionId]).map(run)
 }
 
+/** Session detail displays only thread placements and never the manifest. Filter BEFORE reading wide rows
+ * (not after parsing every child/task's metadata). The public/full readers above keep all their fields. */
+export function listDisplayRuns(conn: Conn, sessionId: string, ids: string[]): Omit<Run, 'manifest'>[] {
+  if (!ids.length) return []
+  const columns = RUN_COLUMN_NAMES.filter((c) => c !== 'manifest_json').join(', ')
+  return conn.all(`SELECT ${columns} FROM runs INDEXED BY runs_display WHERE session_id=? AND id IN (SELECT value FROM json_each(?)) ORDER BY created_at, rowid`,
+    [sessionId, JSON.stringify(ids)]).map((row) => { const { manifest: _manifest, ...rest } = run(row); return rest })
+}
+
 export function listRunsWithStatus(conn: Conn, statuses: string[]): Run[] {
   const marks = statuses.map(() => '?').join(',')
   return conn.all(`SELECT ${RUN_COLUMNS} FROM runs INDEXED BY runs_by_status WHERE status IN (${marks}) ORDER BY created_at`, statuses).map(run)
@@ -519,6 +529,10 @@ export function finishRun(conn: Conn, runId: string, status: string, opts: {
     // run the harness cancelled as it shut down (receipt.interrupted, written in the same statement) is no one's
     if (opts.receipt.interrupted !== true) noteSessionActivity(conn, s(row.session_id), s(row.finished_at))
   }
+  // Optional derived data must never turn a successfully persisted completion into a failed run. A missing row
+  // falls back to the original history reader; the derived table is part of the supported v38 schema.
+  try { writeHistoryProjection(conn, runId) } catch { /* source is intact; read-side fallback */ }
+
 }
 
 export const LOST_RUN_ERROR = 'process exited while the run was running; the saved conversation stands'

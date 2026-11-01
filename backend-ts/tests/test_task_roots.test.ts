@@ -109,8 +109,8 @@ for (const [version, fixture] of [[27, 'schema_v27.sql'], [28, 'schema_v28.sql']
     const migrated = connect(path)
     const fresh = connect(join(base, 'fresh', 'index.db'))
     try {
-      expect(SCHEMA_VERSION).toBe(37)
-      expect(migrated.get('PRAGMA user_version')!.user_version).toBe(37)
+      expect(SCHEMA_VERSION).toBe(38)
+      expect(migrated.get('PRAGMA user_version')!.user_version).toBe(38)
       expect(structure(migrated)).toEqual(structure(fresh))
       const sessions = migrated.all('SELECT * FROM sessions ORDER BY id')
       // every column the session had is as it was (v27: v28's access_mode added, full access for every session); the new one is null

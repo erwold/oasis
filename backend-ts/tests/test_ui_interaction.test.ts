@@ -788,7 +788,7 @@ CREATE INDEX ui_surfaces_by_session ON ui_surfaces(session_id, created_at);
 `
 
 test('a v21 database comes to the current schema: the tasks and the forms added, its surfaces kept (scope run), the same structure as a fresh one', () => {
-  expect(SCHEMA_VERSION).toBe(37)  // v26: the session cursor; v27: the sessions' latest activity; v28: the sessions' access; v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs; v33: read-path indexes
+  expect(SCHEMA_VERSION).toBe(38)  // v26: the session cursor; v27: the sessions' latest activity; v28: the sessions' access; v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs; v33: read-path indexes
   const base = tempDir()
   const fresh = connect(join(base, 'fresh', 'index.db'))
   const path = join(base, 'old', 'index.db')
@@ -807,7 +807,7 @@ test('a v21 database comes to the current schema: the tasks and the forms added,
   made.close()
   const migrated = connect(path)
   try {
-    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(37)
+    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(38)
     expect(structure(migrated)).toEqual(structure(fresh))
     const s = structure(migrated) as Record<string, { indexes: unknown[][] }>
     expect(s.ui_tasks!.indexes).toContainEqual(['ui_tasks_by_request', 1])

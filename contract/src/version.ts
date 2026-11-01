@@ -55,7 +55,8 @@ export const API_VERSION = 'code-v1'
  *  v2 link shows, fixed when it is made; NULL for a link of one session). Columns added only.
  *  v36: `sessions.pin_order`, a stable append order independent of activity; leaving open clears it.
  *  v37: `runs_read`, a history-free covering index for session run reads; no stored content changes. */
-export const SCHEMA_VERSION = 37
+/** v38: source-invalidated own-history projections and covering display metadata, with original history intact. */
+export const SCHEMA_VERSION = 38
 /** The run events' record version (`run_events.version`). */
 export const EVENT_VERSION = 1
 /** The receipt's shape (`Receipt.version`). */

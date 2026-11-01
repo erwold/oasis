@@ -12,7 +12,8 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SCHEMA_VERSION } from '@oasis-code/contract'
 import { backfillSessionActivity } from './repo.ts'
-import { RUN_READ_INDEX_SQL } from './run_read_index.ts'
+import { HISTORY_PROJECTION_TABLE, HISTORY_PROJECTION_INVALIDATE, HISTORY_PROJECTION_DELETE, backfillHistoryProjections } from './history_projection.ts'
+import { RUN_DISPLAY_INDEX_SQL, RUN_READ_INDEX_SQL } from './run_read_index.ts'
 
 export { SCHEMA_VERSION }
 export const SCHEMA_PATH = join(dirname(fileURLToPath(import.meta.url)), 'schema.sql')
@@ -718,6 +719,13 @@ CREATE INDEX IF NOT EXISTS share_links_by_session ON share_links(session_id, cre
   }],
   // A derived covering index only; no message, run or history is rewritten.
   [37, RUN_READ_INDEX_SQL],
+  [38, (conn) => {
+    conn.exec(RUN_DISPLAY_INDEX_SQL)
+    conn.exec(HISTORY_PROJECTION_TABLE)
+    conn.run(HISTORY_PROJECTION_INVALIDATE)
+    conn.run(HISTORY_PROJECTION_DELETE)
+    backfillHistoryProjections(conn)
+  }],
 ]
 
 /** v25's tables and indexes, as schema.sql has them (a migrated database equals a fresh one). */
@@ -874,7 +882,7 @@ function ensureSchema(conn: Conn): void {
   const empty = (): boolean => version() === 0
     && Number((conn.get("SELECT count(*) AS n FROM sqlite_master WHERE type='table'") as { n: number }).n) === 0
   if (from === 0 && empty()) {
-    step(SCHEMA_VERSION, () => { conn.exec(SCHEMA_SQL); conn.run(SESSION_PIN_CLEANUP) }, empty)
+    step(SCHEMA_VERSION, () => { conn.exec(SCHEMA_SQL); conn.run(SESSION_PIN_CLEANUP); conn.run(HISTORY_PROJECTION_INVALIDATE); conn.run(HISTORY_PROJECTION_DELETE) }, empty)
   } else {
     if (from > 0 && from < SCHEMA_VERSION) {
       const backup = backUpBeforeUpgrade(conn, from)

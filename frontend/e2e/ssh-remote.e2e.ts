@@ -32,7 +32,8 @@ before(async () => {
     server.once('exit', (code) => { clearTimeout(timer); reject(new Error(`QA SSH server exited ${code}: ${stderr.slice(-3000)}`)) })
   })
   assert.equal(info.port, 8399)
-  browser = await chromium.launch({ executablePath: process.env.OASIS_CODE_E2E_BROWSER ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true })
+  const executablePath = process.env.OASIS_CODE_E2E_BROWSER
+  browser = await chromium.launch(executablePath ? { executablePath, headless: true } : { channel: 'chrome', headless: true })
   page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   page.on('pageerror', (e) => pageErrors.push(e.message))
   await page.goto(`${BASE}/api/auth/session?token=${info.token}`) // fixture token only; never used for real Jupyter

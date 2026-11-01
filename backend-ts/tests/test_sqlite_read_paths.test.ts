@@ -177,9 +177,9 @@ test('a v32 database upgrades to v33 once, after the copy before an upgrade, wit
   const { v32, v33, v33Path, dir } = open()
   const fresh = connect(join(dir, 'fresh', 'index.db'))
   try {
-    expect(SCHEMA_VERSION).toBe(37)
+    expect(SCHEMA_VERSION).toBe(38)
     expect(v32.get('PRAGMA user_version')!.user_version).toBe(32)
-    expect(v33.get('PRAGMA user_version')!.user_version).toBe(37)
+    expect(v33.get('PRAGMA user_version')!.user_version).toBe(38)
     for (const table of ['runs', 'run_events', 'executions', 'remote_jobs', 'file_journal', 'sessions', 'workspaces']) {
       expect(v33.get(`SELECT count(*) AS n FROM ${table}`)!.n, table).toBe(v32.get(`SELECT count(*) AS n FROM ${table}`)!.n)
     }
@@ -201,7 +201,7 @@ test('a v32 database upgrades to v33 once, after the copy before an upgrade, wit
     const before = statSync(backup).mtimeMs
     v33.close()
     const again = connect(v33Path)
-    expect(again.get('PRAGMA user_version')!.user_version).toBe(37)
+    expect(again.get('PRAGMA user_version')!.user_version).toBe(38)
     expect(readdirSync(dir).filter((n) => n.includes('.bak'))).toEqual(['index.db.v32.bak'])
     expect(statSync(backup).mtimeMs).toBe(before)
     again.close()

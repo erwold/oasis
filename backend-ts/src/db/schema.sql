@@ -103,6 +103,11 @@ CREATE INDEX runs_read ON runs (
 CREATE INDEX runs_by_relay ON runs(relay_id);
 CREATE INDEX runs_by_interaction ON runs(interaction_id);
 CREATE UNIQUE INDEX runs_by_client_request ON runs(session_id, client_request_id) WHERE client_request_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS runs_display ON runs (
+  session_id, created_at, id, project_id, workspace_id, parent_run_id, resumes_run_id, spawned_by, label, model,
+  model_config_json, user_text, status, usage_json, budget_json, receipt_json, error, finished_at, saved_seq,
+  work_order_json, attachments_json, client_request_id, relay_id, relay_step, interaction_id, interaction_node
+);
 CREATE INDEX runs_by_status ON runs(status);
 CREATE INDEX runs_by_parent ON runs(parent_run_id);
 
@@ -773,3 +778,12 @@ CREATE INDEX share_links_by_task ON share_links(task_root_id, created_at);
 -- alongside this script by database.ts (splitStatements deliberately does not split trigger bodies).
 ALTER TABLE sessions ADD COLUMN pin_order INTEGER CHECK (pin_order > 0);
 CREATE UNIQUE INDEX sessions_by_pin_order ON sessions(pin_order) WHERE pin_order IS NOT NULL;
+
+-- v38: derived own history; invalidation triggers are installed whole by database.ts.
+CREATE TABLE run_history_projection (
+  run_id TEXT PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
+  continuation_count INTEGER,
+  message_count INTEGER NOT NULL,
+  own_offset INTEGER NOT NULL,
+  own_json TEXT
+);

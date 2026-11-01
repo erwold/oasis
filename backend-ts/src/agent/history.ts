@@ -1,3 +1,4 @@
+import { lastCompactionIndex } from '../llm/history_shape.ts'
 import { isFilePiece, isRefPiece } from '../llm/attachments.ts'
 /** The working context: what a model receives of a conversation's record, and when the record is compacted.
  *
@@ -43,8 +44,7 @@ export function isCompaction(message: ModelMessage): message is CompactionReques
 
 /** The index of the last compaction request (-1 when the record holds none). */
 export function compactionIndex(messages: ModelMessage[]): number {
-  for (let i = messages.length - 1; i >= 0; i -= 1) if (isCompaction(messages[i]!)) return i
-  return -1
+  return lastCompactionIndex(messages)
 }
 
 export function compactionCount(messages: ModelMessage[]): number {

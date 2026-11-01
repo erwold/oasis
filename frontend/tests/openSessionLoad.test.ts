@@ -2,13 +2,14 @@ import assert from 'node:assert/strict'
 import { beforeEach, mock, test } from 'node:test'
 import { registerHooks } from 'node:module'
 import { existsSync } from 'node:fs'
+import type { StoredTranscript } from '../src/api/client.ts'
 import type { Run, SessionDetail } from '../src/api/types.ts'
 
 /** Opening a session with many finished turns (the store as the app drives it; no server, no HTTP: the API and the
  *  EventSource are stand-ins). Each finished run's transcript is read once — a run listed twice, twice — with at most
  *  a few of one opening's reads on their way at once; nothing of the session is shown until every read is back; the
  *  threads keep the session's order whatever order the answers came in; a failed read is an empty thread; an opening
- *  left (another session opened, the session closed) still reads all it asked and changes nothing; and from the commit
+ *  left (another session opened, the session closed) finishes in-flight reads but launches no more and changes nothing; and from the commit
  *  on — stream, session, steers, the reads after, the live runs watched, the evidence — the order is as before. */
 
 registerHooks({ resolve(specifier, context, next) {
@@ -54,8 +55,8 @@ const steerRecord = (id: string, runId: string, sessionId: string) => ({
   queued_seq: 1, delivered_at: null, delivered_seq: null, request_index: null, reason: null,
 })
 /** a finished run's transcript: one answer, named by the run and the read that brought it */
-const transcript = (runId: string, tag: string | number, steers: unknown[] = []) =>
-  ({ run_id: runId, status: 'done', model: 'scripted:a', entries: [{ kind: 'agent', text: `answer ${runId} #${tag}` }], steers })
+const transcript = (runId: string, tag: string | number, steers: unknown[] = []): StoredTranscript =>
+  ({ run_id: runId, status: 'done', model: 'scripted:a', entries: [{ kind: 'agent', text: `answer ${runId} #${tag}` }], steers: steers as StoredTranscript['steers'] })
 const answerOf = (runId: string, tag: string | number) => [{ kind: 'agent', runId, text: `answer ${runId} #${tag}` }]
 /** Every stand-in below answers in promise reactions only (no timers, no I/O), so once the microtask queue has run
  *  dry every reaction to an answer already given has run. Used only to check that something did NOT happen (no
@@ -255,7 +256,7 @@ test('from the last read back on, the order is as before: stream from the detail
   reads.settle(0)
   await evidenceReached.promise
   assert.deepEqual(log, ['session:s', 't:d1', 't:d2', 'stream:/api/sessions/s/events?after=7', 'commit:s', 'steer:st-d1', 'steer:st-d2',
-    ...AFTER, 'watch:l1:-1', 'watch:l2:-1', 'evidence'])
+    'watch:l1:-1', 'watch:l2:-1', ...AFTER, 'evidence'])
   await quiescent()
   assert.equal(opened, false, 'the opening waits for the evidence')
   refreshing.resolve()
@@ -277,7 +278,7 @@ test('a detail without a cursor closes the stream open (none is made); a cursor 
   assert.deepEqual(FakeSource.made.map((s) => s.url), ['/api/sessions/first/events?after=7', '/api/sessions/zero/events?after=0'])
 })
 
-test('A left for B while A\'s reads are on their way: B opens; A still reads every run it asked for, then changes nothing; reopening A reads again', async () => {
+test('A left for B while A\'s reads are on their way: B opens; A finishes its in-flight reads but starts no others and changes nothing; reopening A reads again', async () => {
   const aIds = Array.from({ length: 20 }, (_, i) => `a${i}`)
   mock.method(api, 'session', async (id: string) => detail(id, id === 'A' ? aIds.map((i) => run(i)) : [run('b0'), run('b1')]))
   const reads = heldTranscripts((runId, call) => transcript(runId, call, [steerRecord(`st-${runId}`, runId, runId.startsWith('a') ? 'A' : 'B')]))
@@ -293,7 +294,7 @@ test('A left for B while A\'s reads are on their way: B opens; A still reads eve
   assert.equal(useStore.getState().session?.id, 'B')
   assert.deepEqual(Object.keys(useStore.getState().threads), ['b0', 'b1'])
   await reads.drain(openingA)
-  assert.deepEqual(reads.calls.filter((c) => c.startsWith('a')), aIds, 'A read every run it asked for, once (no cancellation)')
+  assert.deepEqual(reads.calls.filter((c) => c.startsWith('a')), aIds.slice(0, 8), 'a stale opening launches no further reads')
   assert.equal(reads.most, 10)
   assert.equal(useStore.getState().session?.id, 'B')
   assert.deepEqual(Object.keys(useStore.getState().threads), ['b0', 'b1'])
@@ -322,7 +323,7 @@ test('closed while its reads are on their way: every read still comes back, noth
   await reads.started(8)
   useStore.getState().closeSession()
   await reads.drain(opening)
-  assert.deepEqual(reads.calls, ids)
+  assert.deepEqual(reads.calls, ids.slice(0, 8))
   assert.equal(useStore.getState().session, null)
   assert.deepEqual(useStore.getState().threads, {})
   assert.equal(FakeSource.made.length, 0)
@@ -374,4 +375,48 @@ test('a refused session read: the rejection reaches the caller after the opening
   assert.equal(reads.calls.length, 0)
   assert.equal(FakeSource.made.length, 0)
   assert.deepEqual(log, [])
+})
+
+test('complete opening envelope commits all rows once without individual HTTP reads or retaining a duplicate body', async () => {
+  const ids = Array.from({ length: 80 }, (_, i) => `r${i}`)
+  mock.method(api, 'session', async (id: string) => ({ ...detail(id, [...ids.map(id => run(id)), run('live', 'running')]),
+    transcripts: Object.fromEntries(ids.map(id => [id, transcript(id, 'bundled')])) }))
+  const read = mock.method(api, 'transcript', async () => { throw Error('must not fetch individual rows') })
+  await useStore.getState().openSession('s')
+  assert.equal(read.mock.callCount(), 0)
+  assert.deepEqual(Object.keys(useStore.getState().threads), ids)
+  for (const id of ids) assert.deepEqual(useStore.getState().threads[id], answerOf(id, 'bundled'))
+  assert.equal('transcripts' in useStore.getState().session!, false)
+  assert.ok(log.includes('watch:live:-1'))
+  assert.equal(log.filter(l => l.startsWith('commit:')).length, 1)
+})
+
+test('a failed bundled item is retried independently, and a repeated failure is visible and reopenable', async () => {
+  mock.method(api, 'session', async (id: string) => ({ ...detail(id, [run('good'), run('bad')]),
+    transcripts: { good: transcript('good', 'ok') }, transcript_errors: { bad: 'unavailable' } }))
+  const retry = mock.method(api, 'transcript', async () => { throw Error('temporary') })
+  await useStore.getState().openSession('s')
+  assert.equal(retry.mock.callCount(), 1)
+  assert.deepEqual(useStore.getState().threads.good, answerOf('good', 'ok'))
+  assert.equal(useStore.getState().threads.bad![0]!.kind, 'error')
+  retry.mock.mockImplementation(async () => transcript('bad', 'recovered'))
+  await useStore.getState().openSession('s')
+  assert.deepEqual(useStore.getState().threads.bad, answerOf('bad', 'recovered'))
+})
+
+test('A→B→A aborts superseded envelopes; late answers cannot publish, and close aborts the last request', async () => {
+  const pending: { id: string; signal: AbortSignal; answer: ReturnType<typeof deferred<SessionDetail>> }[] = []
+  mock.method(api, 'session', (id: string, opts: { signal: AbortSignal }) => {
+    const answer = deferred<SessionDetail>(); pending.push({ id, signal: opts.signal, answer }); return answer.promise
+  })
+  const a = useStore.getState().openSession('a'), b = useStore.getState().openSession('b'), a2 = useStore.getState().openSession('a')
+  assert.equal(pending[0]!.signal.aborted, true); assert.equal(pending[1]!.signal.aborted, true)
+  pending[2]!.answer.resolve(detail('a', [])); await a2
+  pending[1]!.answer.resolve(detail('b', [])); pending[0]!.answer.resolve(detail('a', [])); await Promise.all([a, b])
+  assert.equal(useStore.getState().session?.id, 'a')
+  assert.equal(log.filter(l => l.startsWith('commit:')).length, 1)
+  const c = useStore.getState().openSession('c'); useStore.getState().closeSession()
+  assert.equal(pending[3]!.signal.aborted, true)
+  pending[3]!.answer.reject(new Error('aborted')); await c
+  assert.equal(useStore.getState().session, null)
 })

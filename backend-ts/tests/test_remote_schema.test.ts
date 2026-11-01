@@ -54,7 +54,7 @@ test('v30 upgrades to v31: connect intent seeded only from states a Connect leav
   const upgraded = connect(path)
   const fresh = connect(join(dir, 'fresh.db'))
   try {
-    expect(upgraded.get('PRAGMA user_version')!.user_version).toBe(37)
+    expect(upgraded.get('PRAGMA user_version')!.user_version).toBe(38)
     expect(structure(upgraded)).toEqual(structure(fresh))
     const intents = Object.fromEntries(upgraded.all('SELECT id,connect_intent FROM ssh_targets').map(r => [String(r.id), String(r.connect_intent)]))
     expect(intents).toEqual({ t_disconnected: 'none', t_connecting: 'connect', t_ready: 'connect', t_auth_required: 'connect', t_host_verification_required: 'connect', t_unsupported: 'connect', t_error: 'connect' })
@@ -77,7 +77,7 @@ test('v30 upgrades to v31: connect intent seeded only from states a Connect leav
   } finally { upgraded.close(); fresh.close() }
   const again = connect(path)
   try {
-    expect(again.get('PRAGMA user_version')!.user_version).toBe(37)
+    expect(again.get('PRAGMA user_version')!.user_version).toBe(38)
     expect(again.get("SELECT connect_intent FROM ssh_targets WHERE id='t_disconnected'")!.connect_intent).toBe('none')
   } finally { again.close() }
 })

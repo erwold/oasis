@@ -11,3 +11,12 @@ CREATE INDEX IF NOT EXISTS runs_read ON runs (
   length(json_extract(CASE WHEN json_valid(receipt_json) THEN receipt_json ELSE '{}' END, '$.final_text'))
 );
 `
+
+/** v38: display metadata lives beside, not beyond, the large history blob. No source text is rewritten. */
+export const RUN_DISPLAY_INDEX_SQL = `
+CREATE INDEX IF NOT EXISTS runs_display ON runs (
+  session_id, created_at, id, project_id, workspace_id, parent_run_id, resumes_run_id, spawned_by, label, model,
+  model_config_json, user_text, status, usage_json, budget_json, receipt_json, error, finished_at, saved_seq,
+  work_order_json, attachments_json, client_request_id, relay_id, relay_step, interaction_id, interaction_node
+);
+`

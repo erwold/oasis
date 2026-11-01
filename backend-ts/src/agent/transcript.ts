@@ -6,6 +6,7 @@ import { PROMPT_TEXT } from '../prompt_texts.ts'
 import { isSteerHeader } from './steering.ts'
 import type { Conn } from '../db/database.ts'
 import * as repo from '../db/repo.ts'
+import { projectedCount, projectedOwnHistory } from '../db/history_projection.ts'
 import { DbReadCache, jsonWeight } from '../db/read_cache.ts'
 import { isImagePiece } from '../llm/images.ts'
 import { answerText, isModelMessages, type BuiltinToolReturnPart, type ResponsePart } from '../llm/messages.ts'
@@ -24,6 +25,8 @@ function parsedHistory(raw: string | null): unknown {
 
 function continuationCount(conn: Conn, id: string, observed?: (messages: unknown) => void): number | null {
   return continuationCounts.read(conn, id, () => {
+    const projected = projectedCount(conn, id)
+    if (projected) return projected.count
     const raw = repo.getRunHistory(conn, id)
     const messages = parsedHistory(raw)
     observed?.(messages)
@@ -40,6 +43,8 @@ export function rebuildStoredTranscript(conn: Conn, run: Pick<Run, 'id' | 'resum
   surfaces: UiSurfaceRecord[] = [], inputs: UiInputRecord[] = [], steers: SteerRecord[] = [], compactions: repo.StoredEvent[] = []): TranscriptEntry[] {
   const own = ownHistories.read(conn, `${run.id}:${run.resumes_run_id ?? ''}`, () => {
     const from = inheritedMessageCount(conn, run)
+    const projected = projectedOwnHistory(conn, run.id, from)
+    if (projected) return projected
     let messages: unknown
     let read = false
     continuationCount(conn, run.id, (value) => { messages = value; read = true })

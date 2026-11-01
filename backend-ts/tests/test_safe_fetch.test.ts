@@ -473,6 +473,8 @@ const SCRIPT_USES: { file: string; line: string; why: string }[] = [
   { file: 'argon_probe.ts', line: 'globalThis.fetch = Object.assign(replacement', why: 'withGlobalFetch installs the budget (or the dry run\'s refusal) in the global\'s place' },
   { file: 'argon_probe.ts', line: 'finally { globalThis.fetch = original }', why: 'withGlobalFetch puts the global back' },
   { file: 'argon_probe.ts', line: 'safeFetchVia(globalThis.fetch.bind(globalThis))', why: 'the live and idle-client transports: Bun\'s fetch captured for safeFetchVia' },
+  { file: 'perf/session_open_server.ts', line: 'globalThis.fetch = Object.assign(async () =>', why: 'the isolated benchmark installs a refusal, including preconnect: no outbound network' },
+  { file: 'perf/session_open_concurrency.ts', line: 'const res = await fetch(base + path, { headers })', why: 'test-only performance probe: validates 127.0.0.1 and rejects production ports before calling its private loopback backend' },
   { file: 'perf_storage/guard_preload.ts', line: 'globalThis.fetch = (() =>', why: 'the benchmark guard replaces the global with a refusal: no network at all' },
   { file: 'persistent_ui_e2e_server.ts', line: 'await fetch(`http://127.0.0.1:${port}', why: 'test-only e2e server: proxies the browser to its own backend on the loopback' },
   { file: 'e2e_server.ts', line: 'Bun.serve({ hostname: \'127.0.0.1\', port, fetch,', why: 'a server handler named fetch, given to Bun.serve (a listener, not a client)' },

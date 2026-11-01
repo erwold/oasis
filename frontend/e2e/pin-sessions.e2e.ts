@@ -116,7 +116,7 @@ test('pinned runs never reorder folders; pins sync between live clients and surv
     const meta = await api('/api/meta/build')
     const built = JSON.parse(readFileSync(join(DIST, 'build.json'), 'utf8'))
     assert.equal(meta.ui_build, built.ui_build)
-    assert.equal(meta.schema_version, 37)
+    assert.equal(meta.schema_version, 38)
     log(`verified build=${meta.ui_build} schema=${meta.schema_version}`)
     const folder = await api('/api/projects', { source_path: info.folder, mode: 'direct' })
     const noFolder = await api('/api/projects', { no_folder: true })

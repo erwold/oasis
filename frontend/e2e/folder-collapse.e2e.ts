@@ -146,7 +146,7 @@ test('folder disclosure persists across a real Chrome/profile and owned backend 
     const info = await start()
     const meta = await api('/api/meta/build')
     assert.equal(meta.ui_build, JSON.parse(readFileSync(join(DIST, 'build.json'), 'utf8')).ui_build)
-    assert.equal(meta.schema_version, 37)
+    assert.equal(meta.schema_version, 38)
     log(`verified build=${meta.ui_build} schema=${meta.schema_version}`)
     const folder = await api('/api/projects', { source_path: info.folder, mode: 'direct', name: 'A long project name for checking the compact disclosure and new task button' })
     const noFolder = await api('/api/projects', { no_folder: true })

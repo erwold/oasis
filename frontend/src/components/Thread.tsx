@@ -34,6 +34,7 @@ import { Prose } from './Prose'
 import { HarnessAsks, PendingInputs } from './UiInput'
 import { followThread, onThreadFollow, onThreadHold } from '../state/threadFollow'
 import { useFollowBottom } from './useFollowBottom'
+import { inexpensiveTranscript } from '../state/transcriptCost'
 import { DeferredTranscript } from './DeferredTranscript'
 import { ActionLine, AttachmentCard, MemberWords, RequestTurn, DirectorCalls, DirectorEvent, DirectorGlyph, NoteTurn, NoteQuestion, RunTurn, SaidToDirector } from './ThreadTranscript'
 export { LiveLine, NodeAdoptions, NodeHandover, NodeStepFoot, Row, RunLiveLine, SteerRow, WorkGroup } from './ThreadTranscript'
@@ -154,7 +155,7 @@ export function Thread() {
       <ThreadHeader />
       {records ? <RunRecords run={records} onBack={() => openRecords(null)} /> : (
         <DeferredTranscript key={session.id} sessionId={session.id} scrollerRef={scroller} onScroll={onScroll} onInitialFollow={initialFollow}
-                            immediate={replaying || liveRunId !== null || directorLive !== null || runs.some((r) => LIVE.has(r.status))}>{transcript}</DeferredTranscript>
+                            immediate={inexpensiveTranscript(runs, threads, actions.length === 0 && notes.length === 0 && !director?.turns.length && interactions.length === 0 && !agents?.runs.length) || replaying || liveRunId !== null || directorLive !== null || runs.some((r) => LIVE.has(r.status))}>{transcript}</DeferredTranscript>
       )}
       <div className="composer-dock" ref={dockRef}>
         {!records && !pinned && <button type="button" className="jump-bottom" aria-label="Scroll to bottom" title="Scroll to bottom" data-testid="jump-bottom" onClick={followThread}><ArrowDownIcon size={15} /></button>}

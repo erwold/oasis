@@ -21,7 +21,8 @@ import { attachmentPiece, AttachmentHydration, attachmentReader, checkAttachment
 import { LegacyAttachmentPlacer } from '../workspace/legacy_attachment_placer.ts'
 import { deniedRoots, refAccess } from '../llm/ref_files.ts'
 import { handoffNote, portableHistory, type HandoffReport } from '../llm/handoff.ts'
-import { APP_ORIGIN, isRequest, isResponse, isRetryPrompt, isToolCall, isToolReturn, loadValue, modelRequest, toolReturn, userPrompt, type ModelMessage, type PromptOrigin, type ToolCallPart, type UserContent, modelResponse, textPart, thinkingPart, isText, isUserPrompt, answerText } from '../llm/messages.ts'
+import { danglingToolCalls } from '../llm/history_shape.ts'
+import { APP_ORIGIN, isRequest, isResponse, isRetryPrompt, isToolCall, isToolReturn, loadValue, modelRequest, toolReturn, userPrompt, type ModelMessage, type PromptOrigin, type UserContent, modelResponse, textPart, thinkingPart, isText, isUserPrompt, answerText } from '../llm/messages.ts'
 import { CancellationToken, ModelAPIError, providerErrorText, providerQuotaExhausted, RunCancelled, TransportError, UnexpectedModelBehavior, UsageLimitExceeded, type Model, type ModelSettings, type UsageLimits } from '../llm/model.ts'
 import { buildModel, CredentialUnavailable, providerSystem } from '../llm/providers.ts'
 import { routeThinking } from '../llm/providers/common.ts'
@@ -223,14 +224,7 @@ export function joinedAnswer(messages: ModelMessage[], output: string): string {
  *  conversation can continue; complete histories pass untouched. */
 export function closeDanglingToolCalls(messages: ModelMessage[], note: string | Record<string, unknown> = DANGLING_NOTE): ModelMessage[] {
   const view = workingView(messages)
-  const answered = new Set<string>()
-  for (const message of view) {
-    if (isRequest(message)) for (const part of message.parts) if ((isToolReturn(part) || isRetryPrompt(part)) && part.tool_call_id) answered.add(part.tool_call_id)
-  }
-  const dangling: ToolCallPart[] = []
-  for (const message of view) {
-    if (isResponse(message)) for (const part of message.parts) if (isToolCall(part) && !answered.has(part.tool_call_id)) dangling.push(part)
-  }
+  const dangling = danglingToolCalls(view)
   if (!dangling.length) return messages
   return [...messages, modelRequest(dangling.map((p) => toolReturn(p.tool_name, note, p.tool_call_id)))]
 }

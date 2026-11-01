@@ -83,7 +83,7 @@ test('a v25 database migrates to v26: its events take their rowid, in written or
   for (let seq = 0; seq < 3; seq += 1) raw.run("INSERT INTO run_events (run_id, seq, version, event, data_json, created_at) VALUES ('r', ?, 1, 'text_block', '{}', 't')", [seq])
   raw.close()
   const migrated = connect(path)
-  expect(migrated.get('PRAGMA user_version')!.user_version).toBe(37)  // v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
+  expect(migrated.get('PRAGMA user_version')!.user_version).toBe(38)  // v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
   const rows = migrated.all('SELECT seq, cursor, session_id, rowid AS r FROM run_events ORDER BY seq')
   expect(rows.map((r) => r.cursor)).toEqual(rows.map((r) => r.r))
   expect(rows.map((r) => r.session_id)).toEqual(['s1', 's1', 's1'])

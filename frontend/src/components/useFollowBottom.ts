@@ -30,7 +30,9 @@ export function useFollowBottom() {
   }, [])
   const ref = useCallback((next: HTMLDivElement | null) => {
     node.current = next
-    lastTop.current = next?.scrollTop ?? 0
+    // This callback attaches a new scroller (session/Records are keyed). Its initial offset is zero; reading
+    // scrollTop here forces the entire new shell to lay out during React commit before the body exists.
+    lastTop.current = 0
     next?.style.setProperty('overflow-anchor', pinnedNow.current ? 'none' : 'auto')
     setEl(next)
   }, [])

@@ -1,3 +1,4 @@
+import { yieldOpening } from './openingSchedule'
 import { resourceTarget, sessionTarget, taskTarget, type TargetRef } from '../api/ssh'
 import { allows, requireRemote, sameTarget } from './ssh'
 import { handshake } from './handshake'
@@ -54,6 +55,7 @@ import { backgroundChanged, keepBackground } from './backgroundCommands'
 export interface ChangeView { run_id: string | null; path: string | null }
 
 let projectsTicket = 0
+let openingRequest: AbortController | null = null
 let openTicket = 0
 let directorTicket = 0
 let composerTargetRevision = 0
@@ -391,7 +393,7 @@ interface State {
   /** the ticker behind syncSession (and the rail's projects, less often); returns what stops it */
   startSync: () => () => void
   watchRun: (run: Run, after?: number | null) => void
-  refreshEvidence: () => Promise<void>
+  refreshEvidence: (initial?: boolean) => Promise<void>
   /** the file whose change the Workspace card shows (a run's, or the session's with run_id null) */
   showChange: (view: ChangeView) => void
   openRecords: (id: string | null) => void
@@ -672,31 +674,42 @@ export const useStore = create<State>((set, get) => ({
 
   openSession: async (id, opts) => {
     const opening = ++openTicket
+    openingRequest?.abort()
+    const request = new AbortController()
+    openingRequest = request
     // the session left is read from its summary from now on: asked now (its answer sees only what is in view then)
     if (get().session && get().session?.id !== id) void get().loadSessionActivity().catch(() => undefined)
     ++directorTicket
     ++accessEpoch
     set({ busy: null, access: null, accessSaving: false })
     for (const dispose of Object.values(get().disposers)) dispose()
-    const session = await api.session(id)
+    let envelope: Awaited<ReturnType<typeof api.session>>
+    try { envelope = await api.session(id, { signal: request.signal }) }
+    catch (error) { if (opening !== openTicket) return; throw error }
+    finally { if (openingRequest === request) openingRequest = null }
+    if (opening !== openTicket) return
+    // Do not retain two copies of the transcript in Zustand/session detail. The fallback serves older backends.
+    const { transcripts: bundled, transcript_errors: readErrors, ...session } = envelope
     // a live run's rows come from its stream (watched below), never from a transcript it would then repeat
     const targets = session.runs.filter((run) => !(LIVE_STATUSES.has(run.status) || (session.active_run && run.id === session.active_run.id)))
-    // every other run's transcript: one read per run of the list (a run listed twice is read twice), at most
-    // OPENING_TRANSCRIPT_READS of this opening's on their way at once; one that fails (or whose answer cannot be read)
-    // is an empty thread, and the rest go on. Nothing is shown until all are back; the threads keep the list's order
+    // The complete envelope avoids a second HTTP waterfall. Older backends still use bounded individual reads.
+    // Both paths publish the whole transcript together, preserving native Find and cross-turn selection.
     const read: ThreadEntry[][] = new Array(targets.length)
     let next = 0
+    let convertedAt = performance.now()
+    const admit = admitWith(session.runs, session)
     const reader = async () => {
-      while (next < targets.length) {
+      while (opening === openTicket && next < targets.length) {
         const i = next++
         const run = targets[i]!
         try {
-          const t = await api.transcript(run.id)
-          read[i] = fromTranscript(run.id, t.entries, admitWith(session.runs, session), t.steers ?? [])
-        } catch { read[i] = [] }
+          const t = bundled?.[run.id] ?? await api.transcript(run.id)
+          read[i] = fromTranscript(run.id, t.entries, admit, t.steers ?? [])
+        } catch { read[i] = bundled !== undefined || readErrors?.[run.id] ? [{ kind: 'error', runId: run.id, text: "This run’s transcript could not be loaded. Reopen the session to retry." }] : [] }
+        if (bundled && performance.now() - convertedAt >= 8) { await yieldOpening(); convertedAt = performance.now() }
       }
     }
-    if (targets.length) await Promise.all(Array.from({ length: Math.min(OPENING_TRANSCRIPT_READS, targets.length) }, reader))
+    if (targets.length) await Promise.all(Array.from({ length: Math.min(bundled ? 1 : OPENING_TRANSCRIPT_READS, targets.length) }, reader))
     const threads: Record<string, ThreadEntry[]> = {}
     targets.forEach((run, i) => { threads[run.id] = read[i]! })
     if (opening !== openTicket) return
@@ -716,6 +729,10 @@ export const useStore = create<State>((set, get) => ({
           ...switchedComposer(get(), composerKeyOf(get()), id) })
     // an unconfirmed steer the session's records hold already: taken
     for (const rows of Object.values(threads)) for (const e of rows) if (e.steer) get().confirmSteer(e.steer)
+    // Streams begin immediately; optional opening reads need not share conversion + the first React commit's task.
+    for (const run of session.runs) if (LIVE_STATUSES.has(run.status)) get().watchRun(run, -1)
+    if (bundled && targets.length > 4) await yieldOpening()
+    if (opening !== openTicket) return
     void get().loadTree()
     void get().loadCollab()
     void get().refreshGate()
@@ -724,12 +741,12 @@ export const useStore = create<State>((set, get) => ({
     void get().loadInputs()
     void get().loadTaskRuns()
     void get().loadDirector()
-    // every live run of the thread is watched: an interaction's nodes run side by side
-    for (const run of session.runs) if (LIVE_STATUSES.has(run.status)) get().watchRun(run, -1)
-    await get().refreshEvidence()
+    await get().refreshEvidence(true)
   },
 
   closeSession: () => {
+    openingRequest?.abort()
+    openingRequest = null
     ++openTicket
     ++directorTicket
     ++accessEpoch
@@ -1502,20 +1519,20 @@ export const useStore = create<State>((set, get) => ({
     return stopped
   },
 
-  refreshEvidence: async () => {
+  refreshEvidence: async (initial = false) => {
     // a snapshot of the worktree costs real time on a big tree: refreshes that arrive while one runs (every tool
     // result, a checkpoint, the run's end) fold into a single trailing one instead of stacking up on the backend
     if (refreshing) { refreshAgain = true; return refreshing }
-    const once = async () => {
+    const once = async (initial = false) => {
       const session = get().session
       if (!session?.workspace) return
       const ticket = ++refreshTicket
       const opening = openTicket
       const edits = editsNow()
       try {
-        const [workspace, diff, answered] = await Promise.all([api.workspace(session.workspace.id), api.diff(session.workspace.id), api.session(session.id)])
+        const [workspace, diff, answered] = await Promise.all([api.workspace(session.workspace.id), api.diff(session.workspace.id), initial ? Promise.resolve(null) : api.session(session.id)])
         if (ticket !== refreshTicket || opening !== openTicket || get().session?.id !== session.id) return
-        set({ workspace, diff, session: adoptSession(answered, edits, get().session) })
+        set({ workspace, diff, ...(answered ? { session: adoptSession(answered, edits, get().session) } : {}) })
       } catch (e) {
         // a failure of a session left (or of an earlier opening of this one) says nothing to the one shown
         if (ticket === refreshTicket && opening === openTicket && get().session?.id === session.id) set({ toast: e instanceof Error ? e.message : String(e) })
@@ -1523,7 +1540,7 @@ export const useStore = create<State>((set, get) => ({
     }
     refreshing = (async () => {
       try {
-        await once()
+        await once(initial)
         while (refreshAgain) { refreshAgain = false; await once() }
       } finally { refreshing = null }
     })()

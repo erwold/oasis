@@ -90,7 +90,8 @@ beforeEach(() => {
 function startRoutes(made: (body: Record<string, unknown>) => SessionDetail) {
   return (call: Call): Reply | undefined => {
     if (call.method === 'POST' && call.path === '/api/projects/p/sessions') return { status: 200, body: made(call.body as Record<string, unknown>) }
-    if (call.method === 'GET' && /^\/api\/sessions\/[^/]+$/.test(call.path)) return { status: 200, body: session(call.path.split('/').pop()!, 'full') }
+    const detail = /^\/api\/sessions\/([^/?]+)(?:\?transcripts=1)?$/.exec(call.path)
+    if (call.method === 'GET' && detail) return { status: 200, body: session(detail[1]!, 'full') }
     if (call.method === 'POST' && call.path.endsWith('/chat')) return { status: 200, body: { id: 'run_1', status: 'running' } }
     return undefined
   }
@@ -99,7 +100,7 @@ function startRoutes(made: (body: Record<string, unknown>) => SessionDetail) {
 async function open(s: SessionDetail, access: (call: Call) => Reply | undefined = () => accessAnswer(s)) {
   const before = routes
   routes = (call) => {
-    if (call.method === 'GET' && call.path === `/api/sessions/${s.id}`) return { status: 200, body: s }
+    if (call.method === 'GET' && (call.path === `/api/sessions/${s.id}` || call.path === `/api/sessions/${s.id}?transcripts=1`)) return { status: 200, body: s }
     if (call.path === `/api/sessions/${s.id}/access`) return access(call)
     return before(call)
   }

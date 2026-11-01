@@ -48,6 +48,9 @@ const query = (q: Record<string, string | undefined>): string => {
   const s = p.toString()
   return s ? `?${s}` : ''
 }
+export interface StoredTranscript { run_id: string; status: string; model: string; entries: TranscriptEntry[]; steers?: SteerRecord[] }
+export type SessionOpening = SessionDetail & { transcripts?: Record<string, StoredTranscript>; transcript_errors?: Record<string, string> }
+
 export interface SessionMode { mode: EffectiveMode; session: SessionDetail; control: RunControl }
 /** GET / PUT /api/sessions/:id/access (contract SessionAccess, with the page's SessionDetail) */
 /** GET / PUT /api/sessions/:id/roots (schema v29; typed here until the contract names it) */
@@ -133,7 +136,7 @@ export const api = {
   // commands run) as the start screen chose it (omitted: the harness's default, full)
   createSession: (projectId: string, body: { title?: string; model?: string; access_mode?: AccessMode; client_request_id?: string }) =>
     request<SessionDetail>(`/api/projects/${projectId}/sessions`, { method: 'POST', body: JSON.stringify({ ...body, mode: 'auto' }) }),
-  session: (id: string) => request<SessionDetail>(`/api/sessions/${id}`),
+  session: (id: string, opening?: { signal: AbortSignal }) => request<SessionOpening>(`/api/sessions/${id}${opening ? '?transcripts=1' : ''}`, opening ? { signal: opening.signal, cache: 'no-store' } : {}),
   renameSession: (id: string, title: string) => request<SessionDetail>(`/api/sessions/${id}`, { method: 'PUT', body: JSON.stringify({ title }) }),
   pinSession: (id: string, pinned: boolean) => request<Session>(`/api/sessions/${id}/pin`, { method: 'PUT', body: JSON.stringify({ pinned }) }),
   deleteSession: (id: string) => request<{ deleted: boolean; session_id: string }>(`/api/sessions/${id}`, { method: 'DELETE' }),
@@ -312,7 +315,7 @@ export const api = {
   dirs: (path?: string) => request<DirListing>(`/api/fs/dirs${path ? `?path=${encodeURIComponent(path)}` : ''}`),
   surface: () => request<{ tools: SurfaceTool[] }>('/api/agent/surface'),
   // `steers`: the run's steer records (contract SteerRecord; each checked by state/steer.ts before it is shown)
-  transcript: (id: string) => request<{ run_id: string; status: string; model: string; entries: TranscriptEntry[]; steers?: SteerRecord[] }>(`/api/runs/${id}/transcript`),
+  transcript: (id: string) => request<StoredTranscript>(`/api/runs/${id}/transcript`),
   /** words for the run while it works: into its next model request (the harness answers with the steer's record; the
    *  same key and words again answer with the same record) */
   steer: (runId: string, body: SteerBody) =>

@@ -309,3 +309,56 @@ test('one large ended turn is at the bottom on its first content frame, without 
   await page.keyboard.press('Escape')
   assert.deepEqual(errors, [])
 })
+
+test('bundled opening: native Find and all-turn selection work at the very first committed body, before ancillary responses', async () => {
+  const sid = 's_cold_a'
+  await page.goto(BASE)
+  let unblock!: () => void
+  const held = new Promise<void>(resolve => { unblock = resolve })
+  const ancillary: string[] = []
+  const routePattern = '**/api/sessions/s_cold_a**'
+  await page.route(routePattern, async route => {
+    const url = new URL(route.request().url())
+    if (url.pathname === `/api/sessions/${sid}` && url.searchParams.get('transcripts') === '1') {
+      const rs = runs(sid).map(r => ({ ...r, attachments: [] }))
+      const detail = SessionDetailSchema.parse({ ...sessions[0], runs: rs, workspace: null, event_cursor: 0, run_count: rs.length, director_notes: [], active_run: null, active_children: [], pending_approvals: [] })
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...detail, transcripts: Object.fromEntries(rs.map((r, i) => [r.id, { run_id: r.id, status: 'done', model: 'scripted:a', entries: [{ kind: 'agent', text: `Complete answer ${i}\n\nearly_find_${i}_unique` }], steers: [] }])) }) })
+    }
+    if (url.pathname !== `/api/sessions/${sid}` && !url.pathname.endsWith('/events')) {
+      ancillary.push(url.pathname)
+      await held
+    }
+    return route.fallback()
+  })
+  await page.evaluate(() => {
+    const result = { count: 0, found: false, selected: '', all: '', gap: -1 }
+    Object.assign(window, { __earlyOpening: result })
+    const observer = new MutationObserver(() => {
+      const t = document.querySelector<HTMLElement>('.thread-scroll[data-session-id="s_cold_a"]')
+      if (!t || t.hasAttribute('data-transcript-pending') || !t.querySelector('.turn-agent')) return
+      observer.disconnect()
+      result.count = t.querySelectorAll(':scope > .turn-group').length
+      // No wait for background/metadata/old-page requests. Native find operates in this first-body callback.
+      result.gap = t.scrollHeight - t.scrollTop - t.clientHeight
+      getSelection()?.removeAllRanges()
+      result.found = (window as unknown as { find: (text: string, cs: boolean, back: boolean, wrap: boolean) => boolean }).find('early_find_40_unique', false, false, true)
+      result.selected = getSelection()?.toString() ?? ''
+      const range = document.createRange(); range.selectNodeContents(t)
+      const selection = getSelection()!; selection.removeAllRanges(); selection.addRange(range)
+      result.all = selection.toString(); selection.removeAllRanges()
+    })
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-transcript-pending'] })
+  })
+  try {
+    await page.getByTestId(`session-${sid}`).click()
+    await page.waitForFunction(() => (window as unknown as { __earlyOpening: { count: number } }).__earlyOpening.count > 0)
+    const first = await page.evaluate(() => (window as unknown as { __earlyOpening: { count: number; found: boolean; selected: string; all: string; gap: number } }).__earlyOpening)
+    assert.equal(first.count, COUNT)
+    assert.ok(first.gap < 2, `first body is the actual tail, not a question-only shell: ${first.gap}`)
+    assert.equal(first.found, true)
+    assert.equal(first.selected, 'early_find_40_unique')
+    for (let i = 0; i < COUNT; i++) assert.ok(first.all.includes(`early_find_${i}_unique`), `early selection includes ${i}`)
+    assert.ok(ancillary.length > 0, 'metadata responses really remained pending during early Find')
+  } finally { unblock(); await page.unroute(routePattern) }
+  assert.deepEqual(errors, [])
+})

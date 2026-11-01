@@ -63,7 +63,7 @@ test('reads discard prior pin activity, all-pinned and empty folders use creatio
     expect(repo.getProject(conn, a.id)!.last_activity_at).toBe(at(1))
     expect(repo.getProject(conn, empty.id)!.last_activity_at).toBe(at(1))
     conn.close(); conn = connect(path)
-    expect(conn.get('PRAGMA user_version')!.user_version).toBe(37)
+    expect(conn.get('PRAGMA user_version')!.user_version).toBe(38)
     expect(repo.getProject(conn, a.id)!.last_activity_at).toBe(at(1))
     expect(repo.listProjects(conn)[0]!.id).toBe(b.id)
     conn.run("UPDATE sessions SET status='archived' WHERE id=?", [pinned.id])
