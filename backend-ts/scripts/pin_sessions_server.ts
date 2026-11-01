@@ -4,8 +4,8 @@ import { existsSync, mkdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { Settings } from '../src/config.ts'
 import { createApp } from '../src/main.ts'
-import { textPart } from '../src/llm/messages.ts'
-import { buggyRepo, scriptedModel, steps, testConfig } from '../tests/harness.ts'
+import { modelResponse, textPart } from '../src/llm/messages.ts'
+import { buggyRepo, scriptedModel, testConfig } from '../tests/harness.ts'
 
 const port = Number(process.argv[2])
 const root = resolve(process.argv[3] ?? '')
@@ -16,12 +16,28 @@ if (!existsSync(folder)) buggyRepo(root)
 const token = 'pin-e2e-token'
 process.env.OASIS_TEST_KEY_A = 'fake-pin-test-only'
 const config = testConfig()
+let gate: Promise<void> | null = null
+let release: (() => void) | null = null
 const app = await createApp(new Settings({ data_dir: join(root, 'data'), host: '127.0.0.1', port, session_token: token }), config, {
-  probe: false, model_overrides: { 'scripted:a': scriptedModel(steps([textPart('Pin fixture complete.')])) },
+  probe: false, model_overrides: { 'scripted:a': scriptedModel(async () => {
+    await gate
+    return modelResponse([textPart('Pin fixture complete.')])
+  }) },
 })
 const server = Bun.serve({ hostname: '127.0.0.1', port, idleTimeout: 255, fetch(req, server) {
   // No archive UI exists. Exercise the real DB status trigger and the clients' projection via a fixture-only route.
   const url = new URL(req.url)
+  // Hold a real runner/model request through multiple normal client polls, without provider/network calls.
+  if (url.pathname === '/e2e/pins/gate') {
+    if (req.method !== 'POST' || req.headers.get('authorization') !== `Bearer ${token}`) return new Response('no', { status: 403 })
+    if (url.searchParams.get('mode') === 'hold') {
+      if (gate) return new Response('already held', { status: 409 })
+      gate = new Promise<void>((resolve) => { release = resolve })
+    } else if (url.searchParams.get('mode') === 'release') {
+      release?.(); gate = null; release = null
+    } else return new Response('bad mode', { status: 400 })
+    return Response.json({ held: gate !== null })
+  }
   if (url.pathname === '/e2e/pins/status') {
     if (req.method !== 'POST' || req.headers.get('authorization') !== `Bearer ${token}`) return new Response('no', { status: 403 })
     const id = url.searchParams.get('id'), status = url.searchParams.get('status')

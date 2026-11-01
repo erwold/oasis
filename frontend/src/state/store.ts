@@ -15,6 +15,7 @@ import { composerOf as composerOfPlace, forgottenComposer, START_COMPOSER, switc
 import { pendingSendKeys, signatureOf } from './sendKey'
 import { projectForFolder, sessionTitle, targetLabel, type TaskTarget } from './rail'
 import { readSeen, seenAfterLook, seenAfterSummary, writeSeen, type SeenState } from './sessionDots'
+import { readCollapsedProjects, writeCollapsedProjects } from './railPreferences'
 import { participantThinking, type ThinkingLevel } from './accounts'
 import { create } from 'zustand'
 import { CHATGPT_WEB_ID, isQueuedFollowup, MAX_CITATIONS, MAX_RECEIVED_RUNS, type QueuedFollowup } from '@oasis-code/contract'
@@ -231,6 +232,7 @@ interface State {
   /** the rail beside the surfaces: shown, and how wide (remembered per browser) */
   sidebarOpen: boolean
   sidebarWidth: number
+  collapsedProjects: ReadonlySet<string>
   /** the composer's words, kept here so a turn's "ask again" can put them back */
   draft: string
   /** the images waiting in the composer with the words (uploaded to the session when they are sent) */
@@ -405,6 +407,7 @@ interface State {
   showToast: (text: string | null) => void
   setNotice: (text: string | null) => void
   toggleSidebar: () => void
+  toggleProjectCollapsed: (projectId: string) => void
   setSidebarWidth: (width: number) => void
   setDraft: (draft: string) => void
   /** files dropped, pasted or chosen: the acceptable ones join the composer, the others are named in a toast */
@@ -597,6 +600,7 @@ export const useStore = create<State>((set, get) => ({
   build: null, buildMismatch: null, staleUi: null, models: [], defaultModel: null, projects: [], sessionActivity: null, railSeen: readSeen(steerStorage()), session: null, runs: [], notes: [], threads: {},
   liveRunId: null, relays: [], relayRounds: 1, interactions: [], orchestration: 'director', interactionMaxRuns: null, interactionConcurrency: 2, noteTo: 'director', noteInteractionId: null, replaying: false, workspace: null, diff: null, changeView: { run_id: null, path: null }, recordsRunId: null, toast: null,
   modelChoice: null, directorModel: null, disposers: {}, tree: [], treeOf: null, childThreads: {}, childDisposers: {},
+  collapsedProjects: readCollapsedProjects(steerStorage()),
   sidebarOpen: true, sidebarWidth: readSidebarWidth(), draft: '', images: [], composers: {}, notice: null, busy: null, thinking: null, mentionThinking: {}, target: null, importRefusal: null, settingsOpen: false, settingsTab: 'accounts',
   control: null, proposals: [],
   access: null, accessSaving: false,
@@ -1610,6 +1614,13 @@ export const useStore = create<State>((set, get) => ({
   showToast: (text) => set({ toast: text }),
   setNotice: (text) => set({ notice: text }),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  toggleProjectCollapsed: (projectId) => {
+    const collapsedProjects = new Set(get().collapsedProjects)
+    if (collapsedProjects.has(projectId)) collapsedProjects.delete(projectId)
+    else collapsedProjects.add(projectId)
+    writeCollapsedProjects(steerStorage(), collapsedProjects)
+    set({ collapsedProjects })
+  },
   setSidebarWidth: (width) => {
     const clamped = Math.round(Math.min(RAIL_MAX, Math.max(RAIL_MIN, width)))
     try { localStorage.setItem(STORAGE.sidebarWidth, String(clamped)) } catch { /* no storage */ }

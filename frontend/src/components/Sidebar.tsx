@@ -8,7 +8,7 @@ import { RAIL_BOTS_SHOWN, RailBots, RailSessionButton } from './RailBots'
 import { activityRunning, sessionDot } from '../state/sessionDots'
 import { AccountsPanel } from './AccountsPanel'
 import { Brand } from './Brand'
-import { CopyIcon, FolderOpenIcon, MoreIcon, PanelLeftIcon, PencilIcon, PinIcon, PlusIcon, TrashIcon } from './icons'
+import { ChevronDownIcon, ChevronRightIcon, CopyIcon, MoreIcon, PanelLeftIcon, PencilIcon, PinIcon, PlusIcon, TrashIcon } from './icons'
 import { folderName, railView } from '../state/rail'
 import { sessionBots } from '../state/outline'
 import { useStore } from '../state/store'
@@ -20,6 +20,8 @@ import { useStore } from '../state/store'
 export function Sidebar() {
   const sshHosts = useSshTargets()
   const projects = useStore((s) => s.projects)
+  const collapsedProjects = useStore((s) => s.collapsedProjects)
+  const toggleProjectCollapsed = useStore((s) => s.toggleProjectCollapsed)
   const session = useStore((s) => s.session)
   const sidebarOpen = useStore((s) => s.sidebarOpen)
   const sidebarWidth = useStore((s) => s.sidebarWidth)
@@ -73,14 +75,21 @@ export function Sidebar() {
           {groups.length === 0 && <div className="sidebar-empty">Nothing yet. Say what should happen — pick a folder when it works on your files.</div>}
           {groups.map((group) => { const { project, tasks } = group; return (
             <div className="rail-project" key={project.id} style={{ ['--rail-bots' as string]: stackOf(tasks.flatMap((t) => [...(t.session ? [t.session.id] : []), ...t.members.map((m) => m.session.id)])) }}>
-              <button className="nav-item rail-project-head" title={project.source_path ?? (project.config.no_folder === true ? 'tasks that need no folder: each session writes in a working folder of its own' : 'an empty project')}
-                      onClick={() => { setTarget({ kind: 'project', target: resourceTarget(project), projectId: project.id, name: project.name, path: project.source_path }); closeSession() }}
-                      data-testid={`project-${project.id}`}>
-                <FolderOpenIcon size={13} />
-                <span className="nav-label">{project.name}{resourceTarget(project).kind !== 'local' && <small className="ssh-rail-target"> · {targetLabel(resourceTarget(project), sshHosts)}</small>}</span>
-                <span className="nav-meta">{tasks.reduce((n, t) => n + (t.session ? 1 : 0) + t.members.length, 0) || ''}</span>
-              </button>
-              {tasks.map(({ id, session: s, members }) => (
+              <div className="rail-project-row">
+                <button className="nav-item rail-project-head" title={project.source_path ?? (project.config.no_folder === true ? 'tasks that need no folder: each session writes in a working folder of its own' : 'an empty project')}
+                        onClick={() => toggleProjectCollapsed(project.id)} aria-expanded={!collapsedProjects.has(project.id)}
+                        data-testid={`project-${project.id}`}>
+                  {collapsedProjects.has(project.id) ? <ChevronRightIcon size={12} /> : <ChevronDownIcon size={12} />}
+                  <span className="nav-label">{project.name}{resourceTarget(project).kind !== 'local' && <small className="ssh-rail-target"> · {targetLabel(resourceTarget(project), sshHosts)}</small>}</span>
+                  <span className="nav-meta">{tasks.reduce((n, t) => n + (t.session ? 1 : 0) + t.members.length, 0) || ''}</span>
+                </button>
+                <button className="icon-btn rail-project-new" title={`New task in ${project.name}`} aria-label={`New task in ${project.name}`}
+                        data-testid={`project-new-${project.id}`}
+                        onClick={() => { closeSession(); setTarget({ kind: 'project', target: resourceTarget(project), projectId: project.id, name: project.name, path: project.source_path }) }}>
+                  <PlusIcon size={13} />
+                </button>
+              </div>
+              {!collapsedProjects.has(project.id) && tasks.map(({ id, session: s, members }) => (
                 <div key={id} className="rail-task" data-testid={members.length ? `rail-task-${id}` : undefined}>
                   {s && <SessionRow id={s.id} title={s.title} on={session?.id === s.id} onOpen={() => open(s.id)} activity={activity?.[s.id]} visible={visible} />}
                   {/* the task's other sessions, whichever folder they work in: under it, each with its folder */}

@@ -17,7 +17,7 @@ const BASE = `http://127.0.0.1:${PORT}`
 const DIST = fileURLToPath(new URL('../dist', import.meta.url))
 const ARTIFACTS = process.env.OASIS_CODE_PIN_ARTIFACTS ?? mkdtempSync(join(tmpdir(), 'pin-artifacts-'))
 mkdirSync(ARTIFACTS, { recursive: true })
-const ROOT = mkdtempSync(join(ARTIFACTS, 'backend-'))
+const ROOT = mkdtempSync(join(tmpdir(), 'pin-backend-'))
 const TOKEN = 'pin-e2e-token'
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const log = (line: string) => { console.log(`[pins] ${line}`); appendFileSync(join(ARTIFACTS, 'lifecycle.log'), `${new Date().toISOString()} ${line}\n`) }
@@ -108,7 +108,7 @@ async function state(id: string, status: string) {
 // Wait before starting the timed scenario: an occupied shared port is not a reason to terminate its owner.
 while (!(await portFree())) { log(`port ${PORT} occupied; waiting, owner untouched`); await pause(2000) }
 
-test('UI pins stay above new No folder activity, sync between live clients and survive only our backend restart', { timeout: 240_000 }, async () => {
+test('pinned runs never reorder folders; pins sync between live clients and survive only our backend restart', { timeout: 240_000 }, async () => {
   const errors: string[] = []
   try {
     assert.ok(existsSync(join(DIST, 'index.html')), 'build this worktree first')
@@ -128,7 +128,7 @@ test('UI pins stay above new No folder activity, sync between live clients and s
     const right = await browser.newContext({ viewport: { width: 1200, height: 800 } })
     const page = await left.newPage(), peer = await right.newPage()
     for (const p of [page, peer]) {
-      p.on('pageerror', (e) => errors.push(e.message))
+      p.on('pageerror', (e) => { errors.push(e.message); log(`PAGE ERROR ${e.message}`) })
       await p.goto(`${BASE}/?token=${TOKEN}`)
       await p.getByTestId(`session-${a.id}`).waitFor()
     }
@@ -142,7 +142,69 @@ test('UI pins stay above new No folder activity, sync between live clients and s
     await expectPins(page, [a.id, b.id]); await expectPins(peer, [a.id, b.id])
     log('two already-open independent contexts synchronized Pin via normal project polling')
 
-    await page.getByTestId(`project-${noFolder.id}`).click()
+
+    // A = No folder (pinned b), B = the folder. B has newer ordinary work and must stay first while b runs.
+    await api(`/api/projects/${folder.id}/sessions`, { title: 'B newer ordinary work', model: 'scripted:a' })
+    const projectIds = [folder.id, noFolder.id]
+    const expectProjects = async (p: Page, ids = projectIds) => {
+      await p.waitForFunction((ids) => JSON.stringify([...document.querySelectorAll('.rail-project-head')].map((r) => r.getAttribute('data-testid')!.slice('project-'.length))) === JSON.stringify(ids), ids, { timeout: 45_000 })
+      assert.deepEqual(await p.locator('.rail-project-head').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-testid')!.slice('project-'.length))), ids)
+    }
+    const gate = async (mode: 'hold' | 'release') => {
+      const res = await fetch(`${BASE}/e2e/pins/gate?mode=${mode}`, { method: 'POST', headers: { authorization: `Bearer ${TOKEN}` } })
+      assert.equal(res.status, 200)
+    }
+    const pollProjects = async (p: Page) => {
+      const response = await p.waitForResponse((r) => new URL(r.url()).pathname === '/api/projects' && r.request().method() === 'GET', { timeout: 45_000 })
+      const rows = await response.json()
+      assert.deepEqual(rows.map((r: { id: string }) => r.id), projectIds)
+      await expectProjects(p)
+    }
+    await expectProjects(page); await expectProjects(peer)
+    await page.getByTestId(`session-${b.id}`).click()
+    await page.locator(`[data-testid="session-${b.id}"][aria-current="page"]`).waitFor()
+    await bypassDirector(page)
+    await page.getByTestId('rail').screenshot({ path: join(ARTIFACTS, 'before.png') })
+    const before = await api(`/api/sessions/${b.id}`)
+    await gate('hold')
+    const started = page.waitForResponse((r) => new URL(r.url()).pathname === `/api/sessions/${b.id}/chat` && r.request().method() === 'POST')
+    await page.getByTestId('composer').fill('Run the pinned No folder session without moving its folder')
+    await page.getByTestId('composer').press('Enter')
+    const response = await started
+    assert.equal(response.status(), 200)
+    const run = await response.json()
+    await page.getByTestId(`session-${b.id}`).locator('[data-dot="running"]').waitFor()
+    await peer.getByTestId(`session-${b.id}`).locator('[data-dot="running"]').waitFor()
+    // Real post-send project refreshes on both clients, no reload and no intercepted API responses.
+    await pollProjects(page); await pollProjects(peer)
+    await expectPins(page, [a.id, b.id]); await expectPins(peer, [a.id, b.id])
+    assert.equal((await api(`/api/runs/${run.id}`)).status, 'running')
+    const running = await api(`/api/sessions/${b.id}`)
+    assert.ok(running.last_activity_at > before.last_activity_at)
+    assert.equal(running.pin_order, before.pin_order)
+    await page.getByTestId('rail').screenshot({ path: join(ARTIFACTS, 'running.png') })
+    log(`running pinned session=${b.id} run=${run.id}: B remains before No folder across both clients' polling`)
+    await gate('release')
+    const deadline = Date.now() + 30_000
+    while ((await api(`/api/runs/${run.id}`)).status === 'running' && Date.now() < deadline) await pause(100)
+    assert.equal((await api(`/api/runs/${run.id}`)).status, 'done')
+    await page.getByTestId(`session-${b.id}`).locator('[data-dot="running"]').waitFor({ state: 'detached' })
+    await pollProjects(page); await pollProjects(peer)
+    await page.getByTestId('rail').screenshot({ path: join(ARTIFACTS, 'after.png') })
+    for (const p of [page, peer]) {
+      await p.reload()
+      await expectProjects(p); await expectPins(p, [a.id, b.id])
+    }
+    await page.getByTestId('rail').screenshot({ path: join(ARTIFACTS, 'after-refresh.png') })
+    // Unpin restores all of b's recorded activity immediately; pin removes it again (without a reload).
+    await pinMenu(page, b.id, true, 'Unpin')
+    await expectProjects(page, [noFolder.id, folder.id]); await expectProjects(peer, [noFolder.id, folder.id])
+    await pinMenu(page, b.id, false, 'Pin')
+    await expectProjects(page); await expectProjects(peer)
+    await expectPins(page, [a.id, b.id]); await expectPins(peer, [a.id, b.id])
+    log('pinned completion, refresh and immediate unpin/re-pin folder ordering verified')
+
+    await page.getByTestId(`project-new-${noFolder.id}`).click()
     await bypassDirector(page)
     await page.getByTestId('composer').fill('Newest No folder task')
     await page.getByTestId('composer').press('Enter')
@@ -186,10 +248,17 @@ test('UI pins stay above new No folder activity, sync between live clients and s
     assert.equal(await peer.getByTestId(`session-${b.id}`).count(), 0)
     assert.deepEqual(errors, [])
     log('Unpin returns to original task; re-pin appends; archive/restore never revives pin; UI delete syncs; no page errors')
+  } catch (error) {
+    log(`FAILED ${String(error)}; pageErrors=${JSON.stringify(errors)}`)
+    for (const [i, context] of (browser?.contexts() ?? []).entries()) {
+      const page = context.pages()[0]
+      if (page) await page.screenshot({ path: join(ARTIFACTS, `failure-${i}.png`) }).catch(() => undefined)
+    }
+    throw error
   } finally {
     try { await browser?.close() } finally {
       await stop()
-      log(`port ${PORT} free=${await portFree()}; artifacts and temporary DB retained at ${ARTIFACTS}`)
+      log(`port ${PORT} free=${await portFree()}; artifacts=${ARTIFACTS}; temporary backend root=${ROOT}`)
     }
   }
 })

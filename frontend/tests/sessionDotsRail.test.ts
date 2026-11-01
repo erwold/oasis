@@ -4,6 +4,7 @@ import { registerHooks } from 'node:module'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
+import { readCollapsedProjects } from '../src/state/railPreferences.ts'
 import { JSDOM } from 'jsdom'
 registerHooks({
   resolve(specifier, context, next) {
@@ -356,7 +357,14 @@ test('the rail context and hover menus pin/unpin through the store, render each 
 
 
 for (const pinned of [true, false]) test(`an older project poll cannot undo ${pinned ? 'Pin' : 'Unpin'} after its refresh landed`, async () => {
-  const old = projectList().map((p) => ({ ...p, sessions: p.sessions.map((s) => ({ ...s, pin_order: s.id === 's_bg' && !pinned ? 1 : null })) }))
+  // Keep the first folder's aggregate stale across the pin response. Its complete session list wins.
+  const old = projectList().map((p) => ({ ...p, last_activity_at: T1, updated_at: T1,
+    sessions: p.sessions.map((s) => ({ ...s, last_activity_at: s.id === 's_bg' ? T1 : T0, pin_order: s.id === 's_bg' && !pinned ? 1 : null })) }))
+  const between = '2026-10-18T09:30:00.000Z'
+  old.push({ ...old[0]!, id: 'q', name: 'Other folder', last_activity_at: between,
+    sessions: [{ ...old[0]!.sessions[0]!, id: 's_other', project_id: 'q', last_activity_at: between, pin_order: null }] })
+  const projectOrder = () => [...container.querySelectorAll('.rail-project-head')].map((e) => e.getAttribute('data-testid'))
+  const expected = pinned ? ['project-q', 'project-p'] : ['project-p', 'project-q']
   const fresh = structuredClone(old)
   fresh[0]!.sessions.find((s) => s.id === 's_bg')!.pin_order = pinned ? 1 : null
   let release!: (r: Response) => void
@@ -373,9 +381,13 @@ for (const pinned of [true, false]) test(`an older project poll cannot undo ${pi
   await act(async () => { await useStore.getState().pinSession('s_bg', pinned) })
   const accepted = useStore.getState().projects
   assert.equal(!!container.querySelector('[data-testid="rail-pinned"] [data-testid="session-s_bg"]'), pinned)
+  assert.deepEqual(projectOrder(), expected)
   await act(async () => { release(json(old)); await stale })
   assert.equal(useStore.getState().projects, accepted)
   assert.equal(!!container.querySelector('[data-testid="rail-pinned"] [data-testid="session-s_bg"]'), pinned)
+  assert.deepEqual(projectOrder(), expected)
+  await poll()
+  assert.deepEqual(projectOrder(), expected)
 })
 
 test('a failed newer project request still invalidates an older in-flight poll', async () => {
@@ -391,4 +403,78 @@ test('a failed newer project request still invalidates an older in-flight poll',
   await act(async () => { release(json([])); await stale })
   assert.equal(useStore.getState().projects, kept)
   assert.equal(container.querySelectorAll('.rail-session').length, SESSIONS.length)
+})
+
+
+test('folder header collapses only its displayed rows, keeps the current session and target, then expands', async () => {
+  await poll()
+  await openSession('s_bg')
+  const session = useStore.getState().session, target = useStore.getState().target
+  await act(async () => { container.querySelector<HTMLElement>('[data-testid="project-p"]')!.click() })
+  assert.equal(useStore.getState().session, session)
+  assert.equal(useStore.getState().target, target)
+  assert.equal(container.querySelector('[data-testid="project-p"]')!.getAttribute('aria-expanded'), 'false')
+  assert.equal(container.querySelectorAll('.rail-project .rail-session').length, 0)
+  await poll() // activity/ordinary project refresh never reopens the folder
+  assert.equal(container.querySelectorAll('.rail-project .rail-session').length, 0)
+  await act(async () => { container.querySelector<HTMLElement>('[data-testid="project-p"]')!.click() })
+  assert.equal(container.querySelector('[data-testid="project-p"]')!.getAttribute('aria-expanded'), 'true')
+  assert.equal(container.querySelectorAll('.rail-project .rail-session').length, SESSIONS.length)
+  assert.equal(useStore.getState().session, session)
+})
+
+
+test('No folder and cross-folder task disclosure follows displayed groups, leaves pins visible and survives empty polls/activity', async () => {
+  const projects = [
+    { ...projectList()[0]!, sessions: [{ ...row('s_old', 'Pinned'), pin_order: 1 }, row('s_bg', 'Root')] },
+    { ...projectList()[0]!, id: 'q', name: 'No folder', source_path: null, config: { no_folder: true }, sessions: [
+      { ...row('member', 'Cross-folder member'), project_id: 'q', task_root_id: 's_bg' },
+      { ...row('own', 'Own task'), project_id: 'q' },
+    ] },
+  ]
+  const baseFetch = globalThis.fetch
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => String(url) === '/api/projects' ? json(projects) : baseFetch(url as string, init)) as typeof fetch
+  const toggle = async (id: string) => { await act(async () => { container.querySelector<HTMLElement>(`[data-testid="project-${id}"]`)!.click() }) }
+  await poll()
+  await toggle('q')
+  assert.equal(container.querySelector('[data-testid="session-own"]'), null)
+  assert.ok(container.querySelector('[data-testid="session-member"]')) // belongs to root's displayed group, not q
+  await toggle('p')
+  const held = useStore.getState().collapsedProjects
+  assert.equal(container.querySelector('[data-testid="session-member"]'), null)
+  assert.ok(container.querySelector('[data-testid="rail-pinned"] [data-testid="session-s_old"]'))
+  world = { s_bg: w({ live: [running()] }) }
+  await poll()
+  assert.equal(useStore.getState().collapsedProjects, held)
+  assert.equal(container.querySelectorAll('.rail-project .rail-session').length, 0)
+  world = { s_bg: w({ ended: 1, lastDone: { at: T1 } }) }
+  await poll()
+  assert.equal(useStore.getState().collapsedProjects, held)
+  await act(async () => { useStore.setState({ projects: [] }) })
+  assert.deepEqual(readCollapsedProjects(localStorage), held)
+  await act(async () => { useStore.setState({ collapsedProjects: readCollapsedProjects(localStorage) }) })
+  await poll()
+  assert.equal(container.querySelectorAll('.rail-project .rail-session').length, 0)
+  assert.ok(container.querySelector('[data-testid="rail-pinned"] [data-testid="session-s_old"]'))
+  await toggle('p')
+  assert.ok(container.querySelector('[data-testid="session-member"]'))
+  assert.equal(dotOf('s_bg'), 'unread') // the collapsed group did not read/acknowledge the new end
+  assert.equal(container.querySelector('[data-testid="session-own"]'), null)
+})
+
+test('new-task sibling button chooses B including its remote target after closing A, without changing disclosure', async () => {
+  const a = projectList()[0]!
+  const b = { ...a, id: 'remote-b', name: 'Remote B', source_path: '/work/b', target: { kind: 'ssh', target_id: 'ssh_b' }, sessions: [] }
+  await act(async () => { useStore.setState({ projects: [a, b] as never }); useStore.getState().toggleProjectCollapsed(b.id) })
+  await openSession('s_bg')
+  const collapsed = useStore.getState().collapsedProjects
+  const plus = container.querySelector<HTMLElement>('[data-testid="project-new-remote-b"]')!
+  assert.equal(plus.closest('button'), plus)
+  assert.equal(plus.parentElement!.tagName, 'DIV') // a sibling, never a nested button
+  assert.equal(plus.getAttribute('aria-label'), 'New task in Remote B')
+  await act(async () => { plus.click() })
+  assert.equal(useStore.getState().session, null)
+  assert.deepEqual(useStore.getState().target, { kind: 'project', target: { kind: 'ssh', target_id: 'ssh_b' }, projectId: 'remote-b', name: 'Remote B', path: '/work/b' })
+  assert.equal(useStore.getState().collapsedProjects, collapsed)
+  assert.equal(container.querySelector('[data-testid="project-remote-b"]')!.getAttribute('aria-expanded'), 'false')
 })

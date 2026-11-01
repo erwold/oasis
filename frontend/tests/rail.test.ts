@@ -83,7 +83,7 @@ test('an attached folder is labelled so, and the refusal line says what was meas
 })
 
 
-test('pins project the fully sorted rail: stable append order, No folder, unpin, activity and legacy answers', () => {
+test('pins keep stable append order, No folder, unpin, activity and legacy answers', () => {
   const projects = [
     project('folder', '2026-01-01', '/code', [{ id: 'a', updated_at: '2026-01-02' }, { id: 'b', updated_at: '2026-01-03' }]),
     { ...project('no-folder', '2026-01-01', null, [{ id: 'c', updated_at: '2026-01-04' }]), config: { no_folder: true } },
@@ -118,15 +118,13 @@ test('root and intermediate pins preserve cross-project multi-level members, the
   ]
   const root = projects[0]!.sessions![0]!, middle = projects[1]!.sessions![0]!, leaf = projects[2]!.sessions![0]!
   middle.task_root_id = root.id; leaf.task_root_id = middle.id
-  const baseline = railGroups(projects)
   for (const pins of [[root], [middle], [leaf], [root, middle], [root, leaf], [root, middle, leaf]]) {
     for (const s of [root, middle, leaf]) s.pin_order = null
     pins.forEach((s, i) => { s.pin_order = i + 1 })
     const view = railView(projects)
-    assert.deepEqual(view.groups.map((g) => g.project.id), baseline.map((g) => g.project.id))
     const pinnedIds = new Set(pins.map((s) => s.id))
-    for (const [i, group] of view.groups.entries()) {
-      const old = baseline[i]!
+    for (const group of view.groups) {
+      const old = railGroups(projects).find((g) => g.project.id === group.project.id)!
       const expected = old.sessions.map((s) => ({ id: s.id, session: pinnedIds.has(s.id) ? null : s,
         members: (old.members[s.id] ?? []).filter((m) => !pinnedIds.has(m.session.id)) }))
         .filter((t) => t.session || t.members.length)
@@ -138,4 +136,65 @@ test('root and intermediate pins preserve cross-project multi-level members, the
     const rootGroup = view.groups.find((g) => g.project.id === 'root-project')!
     if (!pinnedIds.has('leaf')) assert.ok(rootGroup.tasks.find((t) => t.id === 'root')!.members.some((m) => m.session.id === 'leaf'))
   }
+})
+
+
+test('pin/unpin immediately recalculates folders despite stale aggregate/updated_at; all-pinned and empty use creation', () => {
+  const a = project('A', '2026-01-01', null, [{ id: 'pin', updated_at: '2026-01-09' }, { id: 'quiet', updated_at: '2026-01-02' }])
+  const b = project('B', '2026-01-01', '/b', [{ id: 'other', updated_at: '2026-01-03' }])
+  const empty = project('empty', '2025-12-01', '/empty', [])
+  const pin = a.sessions![0]!, quiet = a.sessions![1]!
+  const ids = () => railView([a, b, empty]).groups.map((g) => g.project.id)
+  a.last_activity_at = a.updated_at = '2026-01-09'
+  assert.deepEqual(ids(), ['A', 'B', 'empty'])
+  pin.pin_order = 1
+  assert.deepEqual(ids(), ['B', 'A', 'empty']) // old project aggregate still includes the newly pinned session
+  empty.last_activity_at = empty.updated_at = '2026-01-09'
+  pin.last_activity_at = '2026-01-10'
+  assert.deepEqual(ids(), ['B', 'A', 'empty'])
+  assert.equal(railView([a, b]).pinned[0]!.session.last_activity_at, '2026-01-10')
+  delete a.last_activity_at // loose pre-v27 response must not fall back to the polluted updated_at
+  assert.deepEqual(ids(), ['B', 'A', 'empty'])
+  quiet.pin_order = 2
+  assert.deepEqual(ids(), ['B', 'A', 'empty'])
+  assert.deepEqual(railView([a, b]).groups.find((g) => g.project.id === 'A')!.tasks, [])
+  pin.pin_order = null
+  assert.deepEqual(ids(), ['A', 'B', 'empty'])
+  // A newly fetched snapshot and reversed polling order have the same projection.
+  assert.deepEqual(railView(structuredClone([empty, b, a])).groups.map((g) => g.project.id), ids())
+})
+
+test('pinned cross-folder task members affect neither their physical folder nor root display group; unpinned members affect both', () => {
+  const rootFolder = project('root-folder', '2026-01-01', '/root', [{ id: 'root', updated_at: '2026-01-02' }, { id: 'other-task', updated_at: '2026-01-04' }])
+  const memberFolder = project('member-folder', '2026-01-01', null, [{ id: 'middle', updated_at: '2026-01-03' }, { id: 'leaf', updated_at: '2026-01-09' }])
+  const b = project('B', '2026-01-01', '/b', [{ id: 'b', updated_at: '2026-01-05' }])
+  const root = rootFolder.sessions![0]!, middle = memberFolder.sessions![0]!, leaf = memberFolder.sessions![1]!
+  middle.task_root_id = root.id; leaf.task_root_id = middle.id
+  rootFolder.last_activity_at = '2026-01-04'
+  memberFolder.last_activity_at = '2026-01-09'
+  const projects = [rootFolder, memberFolder, b]
+  const ids = () => railView(projects).groups.map((g) => g.project.id)
+  const tasks = () => railView(projects).groups.find((g) => g.project.id === rootFolder.id)!.tasks.map((t) => t.id)
+  assert.deepEqual(ids(), ['root-folder', 'member-folder', 'B'])
+  assert.deepEqual(tasks(), ['root', 'other-task'])
+  leaf.pin_order = 1
+  rootFolder.last_activity_at = memberFolder.last_activity_at = '2026-01-09'
+  assert.deepEqual(ids(), ['B', 'root-folder', 'member-folder'])
+  assert.deepEqual(tasks(), ['other-task', 'root'])
+  leaf.last_activity_at = '2026-01-10'
+  assert.deepEqual(ids(), ['B', 'root-folder', 'member-folder'])
+  root.pin_order = 2; root.last_activity_at = '2026-01-11'
+  assert.deepEqual(ids(), ['B', 'root-folder', 'member-folder'])
+  assert.deepEqual(tasks(), ['other-task', 'root'])
+  middle.last_activity_at = '2026-01-08' // unpinned member still advances both folders with a pinned root
+  assert.deepEqual(ids(), ['root-folder', 'member-folder', 'B'])
+  assert.deepEqual(tasks(), ['root', 'other-task'])
+  middle.pin_order = 3
+  assert.deepEqual(ids(), ['B', 'root-folder', 'member-folder'])
+  assert.deepEqual(tasks(), ['other-task'])
+  leaf.pin_order = null
+  assert.deepEqual(ids(), ['root-folder', 'member-folder', 'B'])
+  const anchor = railView(projects).groups[0]!.tasks[0]!
+  assert.equal(anchor.session, null)
+  assert.deepEqual(anchor.members.map((m) => m.session.id), ['leaf'])
 })

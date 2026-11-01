@@ -52,8 +52,10 @@ function project(row: Row): Project {
   }
 }
 
-/** A project row with its sessions' latest activity (schema v27; a deleted session's is not its project's). */
-const PROJECT_ROW = "SELECT p.*, (SELECT MAX(s.last_activity_at) FROM sessions s WHERE s.project_id=p.id AND s.status<>'deleted') AS session_activity FROM projects p"
+/** Folder activity is derived on every read: a pinned session keeps its own activity but contributes none here.
+ *  Pin/unpin immediately changes the aggregate, including activity from before pinning; no backfill is needed.
+ *  Archived sessions participate as before (only open sessions can be pinned); deleted sessions never do. */
+const PROJECT_ROW = "SELECT p.*, (SELECT MAX(s.last_activity_at) FROM sessions s WHERE s.project_id=p.id AND s.status<>'deleted' AND NOT (s.status='open' AND s.pin_order IS NOT NULL AND s.pin_order>0)) AS session_activity FROM projects p"
 
 export function createProject(conn: Conn, name: string, opts: {
   source_path: string | null; base_repo_path: string; base_commit: string | null; base_branch: string | null;

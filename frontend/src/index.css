@@ -226,6 +226,12 @@ html[data-desktop="darwin"] :is(.chatgpt-sheet, .chatgpt-page, .desk-win) { -web
 .sidebar-empty { flex: none; padding: 4px 8px; color: var(--ink-3); font-size: 12px; line-height: 1.5; }
 .rail-project { display: flex; flex-direction: column; gap: 1px; }
 .rail-project-head .nav-label { font-weight: 500; }
+.rail-project-head .nav-meta { min-width: 20px; text-align: right; }
+.rail-project-row { position: relative; }
+.rail-project-row .rail-project-new { position: absolute; right: 2px; top: 2px; width: 28px; height: 28px; opacity: 0; }
+.rail-project-new:active:not(:disabled) { transform: none; }
+.rail-project-row:hover .rail-project-new, .rail-project-row:focus-within .rail-project-new { opacity: 1; }
+.rail-project-row:hover .nav-meta, .rail-project-row:focus-within .nav-meta { opacity: 0; }
 .rail-session { padding-left: 14px; color: var(--ink-2); }
 .rail-session.active { color: var(--ink); }
 /* the agents that took part, stacked: the first in front, the next ones peeking out behind it */

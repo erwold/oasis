@@ -86,11 +86,10 @@ export function taskRootOf(session: Session, byId: ReadonlyMap<string, Session>)
   }
 }
 
-/** Projects with their sessions, the latest activity first on both levels (a project: its own word, else its newest
- *  session's, never earlier than its record); equal times by the later made, then by id, so the order never shuffles.
- *  A project with no session still shows (its folder is where a new task can start). A session that joined another
- *  session's task (schema v29 `task_root_id`, whichever folder either works in) stands under that session, in
- *  `members`, not under its own project; a task is as recent as its latest session. */
+/** Projects and tasks sort by unpinned activity; equal times by the later made, then id. An empty/all-pinned
+ *  folder stands at its creation. A task member stays under its root, even if that root is pinned or in another
+ *  folder. Unpinned members contribute to both their physical folder and the root's display group, as before;
+ *  pinned members contribute to neither. Group the complete set so pinning cannot break task ancestry. */
 export function railGroups(projects: Project[]): RailGroup[] {
   const stamp = (t: string) => Date.parse(t) || 0
   const order = (a: { at: number; made: string; id: string }, b: { at: number; made: string; id: string }) =>
@@ -104,11 +103,16 @@ export function railGroups(projects: Project[]): RailGroup[] {
   }
   const ownKey = (s: Session) => ({ at: stamp(sessionActivity(s)), made: s.created_at, id: s.id })
   for (const list of Object.values(members)) list.sort((a, b) => order(ownKey(a.session), ownKey(b.session)))
-  // a task's place: its latest session's activity
-  const keyOf = (s: Session) => ({ ...ownKey(s), at: Math.max(stamp(sessionActivity(s)), ...(members[s.id] ?? []).map((m) => stamp(sessionActivity(m.session)))) })
+  const contribution = (s: Session) => sessionPinned(s) ? 0 : stamp(sessionActivity(s))
+  const keyOf = (s: Session) => ({ ...ownKey(s), at: Math.max(contribution(s), ...(members[s.id] ?? []).map((m) => contribution(m.session))) })
+  // A complete session list is authoritative, including immediately after pin/unpin: a cached/older project
+  // aggregate can still include a pin. updated_at also carries pin activity via touchSession, so never use it.
+  const projectActivity = (p: Project) => Math.max(stamp(p.created_at), ...(p.sessions
+    ? p.sessions.map(contribution)
+    : [stamp(p.last_activity_at ?? p.created_at)]))
   return [...projects]
     .map((project) => ({ project, sessions: (project.sessions ?? []).filter((s) => taskRootOf(s, byId) === s.id).sort((a, b) => order(keyOf(a), keyOf(b))) }))
-    .map((g) => ({ ...g, key: { at: Math.max(stamp(g.project.last_activity_at ?? g.project.updated_at), g.sessions[0] ? keyOf(g.sessions[0]).at : 0), made: g.project.created_at, id: g.project.id } }))
+    .map((g) => ({ ...g, key: { at: Math.max(projectActivity(g.project), g.sessions[0] ? keyOf(g.sessions[0]).at : 0), made: g.project.created_at, id: g.project.id } }))
     .sort((a, b) => order(a.key, b.key))
     .map(({ project, sessions }) => ({ project, sessions, members: Object.fromEntries(sessions.filter((s) => members[s.id]).map((s) => [s.id, members[s.id]!])) }))
 }
@@ -120,8 +124,8 @@ export function sessionPinned(session: Session): boolean {
   return session.status === 'open' && session.pin_order != null && session.pin_order > 0
 }
 
-/** Project only after grouping the complete set: a pinned member still contributes activity to its task, and a
- *  pinned root leaves its unpinned members anchored in the original project. No task is regrouped or re-sorted.
+/** Project only after grouping the complete set: pins contribute no activity to Projects, while a pinned root
+ *  leaves its unpinned members anchored in the original project.
  *  Pin order is independent of activity; the id breaks ties deterministically even for a loose/older response. */
 export function railView(projects: Project[]): { pinned: RailMember[]; groups: RailProject[] } {
   const groups = railGroups(projects)

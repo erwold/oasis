@@ -44,7 +44,11 @@ test('12: a session joined to another session\'s task stands under that task, no
   assert.deepEqual(members?.s_root?.map((m) => [m.session.id, m.project.id]), [['s_docs', 'docs']])
   // the task's latest activity (its member's) orders the task and the folder that holds it
   assert.deepEqual(app.sessions.map((s) => s.id), ['s_root', 's_alone'])
-  assert.deepEqual(groups.map((g) => g.project.id), ['app', 'docs'])
+  // The member also contributes to its physical folder (the real API reports docs.last_activity_at = at(5)).
+  // Both folders now have activity at(5); equal creation times break by descending id, even without that API field.
+  assert.deepEqual(groups.map((g) => g.project.id), ['docs', 'app'])
+  const withApiActivity = groups.map((g) => ({ ...g.project, last_activity_at: at(g.project.id === 'docs' ? 5 : 3) }))
+  assert.deepEqual(rail.railGroups(withApiActivity).map((g) => g.project.id), ['docs', 'app'])
 })
 
 test('12: a null, self or unknown task root keeps the session where it was (nothing regrouped without the harness\'s word)', () => {

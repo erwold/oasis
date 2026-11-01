@@ -102,7 +102,7 @@ test("an agent connects real sshd on the person's Connect and opens a session in
 test("a new task in that remote project, picked in the rail: the start screen shows the host's connection and no environment picker; the task is a session of that project on the host", async () => {
   assert.ok(targetId && remoteProjectId, 'the first test opened the remote project')
   await page.getByTestId('new-task').click()
-  await page.getByTestId(`project-${remoteProjectId}`).click()
+  await page.getByTestId(`project-new-${remoteProjectId}`).click()
   await page.locator('[data-testid="ssh-connection"][data-state="ready"]').waitFor({ timeout: 20_000 })
   assert.equal(await page.locator('[data-testid="execution-target"]').count(), 0)
   await bypassDirector(page)
