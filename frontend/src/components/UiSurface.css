@@ -1,4 +1,4 @@
-/* Intelligent UI surfaces (native catalog): a card in the answer on the theme's tokens — hairline ring, the ink ramp,
+/* Intelligent UI surfaces (native and HTML): content in the answer, without an enclosing card — the ink ramp,
    colour only for state and for a series' identity. The html preview's own frame is styled by its component.
    A skin sets the --uis-* variables on any ancestor; each falls back to the app's own token:
      --uis-bg, --uis-head-bg, --uis-shadow, --uis-rule, --uis-grid, --uis-ink, --uis-ink-2, --uis-muted,
@@ -6,8 +6,8 @@
      --uis-label-track, --uis-metric-size, --uis-metric-weight, --uis-stroke, --uis-field, --uis-btn-shadow, --uis-series-0 … --uis-series-7,
      --uis-latest (the latest point's ring and rule), --uis-cursor, --uis-fresh (a value that just changed). */
 
-.uis { flex: none; display: flex; flex-direction: column; width: 100%; min-width: 0; margin: 4px 0; border-radius: var(--radius-md); background: var(--uis-bg, var(--surface)); box-shadow: var(--uis-shadow, var(--shadow-card)); overflow: hidden; color: var(--uis-ink, var(--ink)); }
-.uis-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 32px; padding: 5px 10px 5px 12px; border-bottom: 1px solid var(--uis-rule, var(--line)); background: var(--uis-head-bg, var(--inset)); color: var(--uis-ink-2, var(--ink-2)); font-size: 12px; }
+.uis { flex: none; display: flex; flex-direction: column; width: 100%; min-width: 0; margin: 4px 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; color: var(--uis-ink, var(--ink)); }
+.uis-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-height: 28px; padding: 3px 0; border: 0; background: transparent; color: var(--uis-ink-2, var(--ink-2)); font-size: 12px; }
 .uis-head > svg { flex: none; color: var(--ink-3); }
 .uis-name { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--uis-ink, var(--ink)); font-family: var(--uis-font-title, inherit); font-weight: var(--uis-title-weight, 600); letter-spacing: var(--uis-title-track, normal); font-size: 12.5px; }
 .uis-tag { flex: none; padding: 0 7px; border-radius: var(--radius-pill); background: var(--field); font-size: 10.5px; line-height: 18px; color: var(--ink-3); }
@@ -19,7 +19,7 @@
 .uis-toggle:hover:not(:disabled) { background: var(--hover); }
 .uis-toggle[aria-pressed="true"] { background: var(--ink); color: var(--surface); box-shadow: none; }
 
-.uis-body { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px 12px; min-width: 0; }
+.uis-body { display: flex; flex-direction: column; gap: 10px; padding: 6px 0 10px; min-width: 0; }
 .uis-stack { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .uis-row-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .uis-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; min-width: 0; }
@@ -127,7 +127,7 @@
 .uis-tag.live { display: inline-flex; align-items: center; gap: 4px; background: transparent; padding: 0 2px; color: var(--green); font-weight: 500; }
 .uis-tag.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .uis-updated { flex: none; color: var(--ink-3); font-size: 10.5px; font-variant-numeric: tabular-nums; }
-.uis-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.uis-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 .uis-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .uis-label { font-size: 11.5px; font-weight: 500; color: var(--ink-2); }
@@ -165,26 +165,27 @@
 .uis-image { display: block; max-width: 100%; max-height: 360px; border-radius: var(--radius-sm); object-fit: contain; }
 .uis-image-missing { padding: 12px; border-radius: var(--radius-sm); background: var(--inset); color: var(--ink-3); font-size: 12px; }
 
-.uis-fallback { display: flex; flex-direction: column; gap: 6px; padding: 12px; }
+.uis-fallback { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
 .uis-fallback-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); line-height: 1.55; }
 .uis-problem { margin: 0; font-size: 11.5px; color: var(--warning-foreground); }
 
-.uis-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 12px 10px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--accent-tint); color: var(--ink); font-size: 12px; }
+.uis-suggest { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 10px; padding: 8px 10px; border-radius: var(--radius-sm); background: var(--accent-tint); color: var(--ink); font-size: 12px; }
 .uis-suggest > span { flex: 1 1 220px; }
-.uis-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--line); }
+.uis-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 6px 0; }
 .uis-status { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--ink-3); }
 .uis-status.ok { color: var(--success-foreground); }
 .uis-status.bad { color: var(--red); }
 .uis-link { padding: 0 2px; height: auto; font-size: 11px; color: var(--accent-ink); text-decoration: underline; }
 
 @media (max-width: 560px) {
-  .uis-body { padding: 10px; }
+  .uis-body { padding: 6px 0 10px; }
   .uis-row > * { flex-basis: 100%; }
   .uis-metric-value { font-size: 18px; }
 }
 
 /* an html surface: the preview is the body itself (no inner card); its controls sit in the header's slot */
 .uis-body.html { padding: 0; gap: 0; }
+.uis .uisbx.embedded .uisbx-idle { padding: 6px 0; }
 .uis-controls { display: inline-flex; align-items: center; min-width: 0; }
 .uis-controls:empty { display: none; }
 @media (max-width: 560px) {
@@ -192,7 +193,7 @@
 }
 
 /* a `run` action's task, in its surface's card: its status, the answer as it streams, the tools, the result data */
-.uis-tasks { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; }
+.uis-tasks { display: flex; flex-direction: column; gap: 8px; padding: 0 0 10px; }
 .uis-task { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--inset); }
 .uis-task-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
 .uis-task-action { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
@@ -219,9 +220,20 @@
 
 /* request_input: a form the run waits on (the native catalog's own fields); its section is .uis-form — .uis-input is a
    text field's class (a fixed height), never the section's */
-.uis-form.pending { box-shadow: var(--shadow-card), 0 0 0 1px color-mix(in oklch, var(--accent) 40%, transparent); }
+.uis-form.pending { box-shadow: none; }
 .uis-tag.waiting { background: var(--accent-tint); color: var(--accent-ink); }
-.uis-input-message { margin: 0; padding: 10px 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); line-height: 1.55; font-size: 13px; }
+.uis-input-message { margin: 0; padding: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink); line-height: 1.55; font-size: 13px; }
 .uis-input-fields { display: flex; flex-direction: column; gap: 10px; min-width: 0; margin: 0; padding: 0; border: none; }
 .uis-input-errors { margin: 0 12px 4px; padding: 6px 10px 6px 24px; border-radius: var(--radius-sm); background: var(--red-tint); color: var(--red); font-size: 12px; }
 .pending-inputs { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow: auto; margin-bottom: 6px; }
+
+/* File-backed task progress, with or without a curve. */
+.uis-progress { min-width: 0; display: grid; gap: 6px; font-size: 12px; }
+.uis-progress-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; font-variant-numeric: tabular-nums; }
+.uis-progress-state { color: var(--ink-2); }
+.uis-progress-state.succeeded { color: var(--green); }
+.uis-progress-state.failed { color: var(--red); }
+.uis-progress-state.cancelled, .uis-progress-state.unknown { color: var(--orange); }
+.uis-progress progress { width: 100%; height: 6px; accent-color: var(--accent); }
+.uis-progress-note { color: var(--ink-3); font-size: 11px; }
+.uis-progress-logs { margin: 0; max-height: 100px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.5 var(--font-mono); color: var(--ink-2); }

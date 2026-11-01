@@ -52,6 +52,7 @@ import { backgroundChanged, keepBackground } from './backgroundCommands'
  *  (null); no file picked yet: the first. */
 export interface ChangeView { run_id: string | null; path: string | null }
 
+let projectsTicket = 0
 let openTicket = 0
 let directorTicket = 0
 let composerTargetRevision = 0
@@ -339,6 +340,7 @@ interface State {
   /** back to the start screen; the next task starts in the same project unless the person picks another */
   closeSession: () => void
   renameSession: (id: string, title: string) => Promise<void>
+  pinSession: (id: string, pinned: boolean) => Promise<void>
   /** the session leaves the rail (the open one closes to the start screen); the harness refuses one with a run under way */
   deleteSession: (id: string) => Promise<void>
   /** the start screen's send: the project (made from the folder unless one exists), a session titled by the
@@ -621,7 +623,12 @@ export const useStore = create<State>((set, get) => ({
     set({ models: models.models, defaultModel: models.default })
   },
 
-  loadProjects: async () => { set({ projects: await api.projects() }) },
+  loadProjects: async () => {
+    // A slow poll from before a pin/unpin must never overwrite the newer project refresh, even if that refresh fails.
+    const ticket = ++projectsTicket
+    const projects = await api.projects()
+    if (ticket === projectsTicket) set({ projects })
+  },
 
   loadSessionActivity: async () => {
     // one read at a time, never two overlapping: one asked meanwhile goes once this one is back
@@ -744,6 +751,12 @@ export const useStore = create<State>((set, get) => ({
     sessionEdits += 1
     const detail = await api.renameSession(id, title)
     if (get().session?.id === id) set({ session: { ...get().session!, title: detail.title } })
+    await get().loadProjects()
+  },
+
+  pinSession: async (id, pinned) => {
+    const updated = await api.pinSession(id, pinned)
+    if (get().session?.id === id) set({ session: { ...get().session!, pin_order: updated.pin_order } })
     await get().loadProjects()
   },
 

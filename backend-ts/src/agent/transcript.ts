@@ -6,10 +6,50 @@ import { PROMPT_TEXT } from '../prompt_texts.ts'
 import { isSteerHeader } from './steering.ts'
 import type { Conn } from '../db/database.ts'
 import * as repo from '../db/repo.ts'
+import { DbReadCache, jsonWeight } from '../db/read_cache.ts'
 import { isImagePiece } from '../llm/images.ts'
 import { answerText, isModelMessages, type BuiltinToolReturnPart, type ResponsePart } from '../llm/messages.ts'
 import { builtinResult } from './events.ts'
 import { closeDanglingToolCalls } from './runner.ts'
+
+// Retain counts and only a run's OWN messages, never all its repeated inherited prefix. A DB change evicts
+// both projections. Auxiliary records (forms, surfaces, steers, compactions) and status are read on every request.
+const continuationCounts = new DbReadCache<number | null>(4096, 512 * 1024, () => 16)
+const ownHistories = new DbReadCache<{ messages: unknown; offset: number }>(256, 8 * 1024 * 1024, jsonWeight)
+
+function parsedHistory(raw: string | null): unknown {
+  if (!raw) return []
+  try { return JSON.parse(raw) } catch { return null }
+}
+
+function continuationCount(conn: Conn, id: string, observed?: (messages: unknown) => void): number | null {
+  return continuationCounts.read(conn, id, () => {
+    const raw = repo.getRunHistory(conn, id)
+    const messages = parsedHistory(raw)
+    observed?.(messages)
+    // Only these exact empty records fall back to the preceding run, as the runner does. An invalid nonempty
+    // record stops the search at zero; dangling calls add the same closing message the runner would append.
+    if (!raw || raw === '[]') return null
+    return isModelMessages(messages) ? closeDanglingToolCalls(messages).length : 0
+  })
+}
+
+/** Rebuild a DB record without rereading/reparsing its parent for every continued run. The raw rebuildTranscript
+ *  below remains the oracle for the slice and all rendering rules. No rendered UI/state is cached here. */
+export function rebuildStoredTranscript(conn: Conn, run: Pick<Run, 'id' | 'resumes_run_id'>, ended: string | null = null,
+  surfaces: UiSurfaceRecord[] = [], inputs: UiInputRecord[] = [], steers: SteerRecord[] = [], compactions: repo.StoredEvent[] = []): TranscriptEntry[] {
+  const own = ownHistories.read(conn, `${run.id}:${run.resumes_run_id ?? ''}`, () => {
+    const from = inheritedMessageCount(conn, run)
+    let messages: unknown
+    let read = false
+    continuationCount(conn, run.id, (value) => { messages = value; read = true })
+    if (!read) messages = parsedHistory(repo.getRunHistory(conn, run.id))
+    const offset = Array.isArray(messages) && from > 0 && from <= messages.length ? from : 0
+    return { messages: Array.isArray(messages) ? messages.slice(offset) : messages, offset }
+  })
+  // Entries can contain objects from message parts. Callers must not mutate a subsequent request's projection.
+  return rebuildTranscriptMessages(structuredClone(own.messages), 0, ended, surfaces, inputs, steers, compactions, own.offset)
+}
 
 /** How many messages at the head of a run's history came from the run it continued: the runner loads that run's
  *  history (its dangling tool calls closed — one message more when there were any), carries it across providers
@@ -21,14 +61,8 @@ export function inheritedMessageCount(conn: Conn, run: Pick<Run, 'resumes_run_id
   const walked = new Set<string>()
   while (from !== null && !walked.has(from)) {
     walked.add(from)
-    const raw = repo.getRunHistory(conn, from)
-    if (raw && raw !== '[]') {
-      // the record checked as loadValue checks it (only the verdict is needed): one it would refuse counts 0
-      try {
-        const messages: unknown = JSON.parse(raw)
-        return isModelMessages(messages) ? closeDanglingToolCalls(messages).length : 0
-      } catch { return 0 }
-    }
+    const count = continuationCount(conn, from)
+    if (count !== null) return count
     from = repo.getRun(conn, from)?.resumes_run_id ?? null
   }
   return 0
@@ -51,6 +85,10 @@ const SUMMARY_KEYS = new Set(['status', 'reason', 'path', 'op', 'exit_code', 'ex
  *  no return answered (a crash, a record from before the harness answered every call of a stopped run) is closed
  *  as the run ended — cancelled, or interrupted — never left running; null while the run runs. */
 export function rebuildTranscript(historyJson: string | null, from = 0, ended: string | null = null, surfaces: UiSurfaceRecord[] = [], inputs: UiInputRecord[] = [], steers: SteerRecord[] = [], compactions: repo.StoredEvent[] = []): TranscriptEntry[] {
+  return rebuildTranscriptMessages(parsedHistory(historyJson), from, ended, surfaces, inputs, steers, compactions)
+}
+
+function rebuildTranscriptMessages(messages: unknown, from: number, ended: string | null, surfaces: UiSurfaceRecord[], inputs: UiInputRecord[], steers: SteerRecord[], compactions: repo.StoredEvent[], offset = 0): TranscriptEntry[] {
   const maintenance = compactionEntries(compactions, ended)
   // a steer delivered in the run: where its steer_delivered event stands among the run's events
   const steerSeq = new Map(steers.map((st) => [st.id, st.delivered_seq]))
@@ -60,11 +98,8 @@ export function rebuildTranscript(historyJson: string | null, from = 0, ended: s
   const forms = new Map(inputs.map((i) => [i.tool_call_id, i]))
   const rest = (entries: TranscriptEntry[]): TranscriptEntry[] => [...entries, ...maintenance.values(), ...[...pending.values()].map((surface) => ({ kind: 'ui' as const, surface })),
     ...[...forms.values()].sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0)).map((input) => ({ kind: 'input' as const, toolCallId: input.tool_call_id, input }))]
-  if (!historyJson) return rest([])
   // a record that no longer reads is said to be unavailable: an empty transcript would pass for a run that said nothing
   const unreadable: TranscriptEntry[] = [{ kind: 'note', text: UNREADABLE_HISTORY }]
-  let messages: unknown
-  try { messages = JSON.parse(historyJson) } catch { return rest(unreadable) }
   if (!Array.isArray(messages)) return rest(unreadable)
   const entries: TranscriptEntry[] = []
   const calls = new Map<string, TranscriptEntry>()
@@ -73,7 +108,7 @@ export function rebuildTranscript(historyJson: string | null, from = 0, ended: s
   for (const [index, message] of own.entries()) {
     // covers is an absolute message index in the append-only record, including the inherited prefix.
     let reported = false
-    for (const [id, entry] of maintenance) if (entry.compaction?.covers === firstOwn + index) {
+    for (const [id, entry] of maintenance) if (entry.compaction?.covers === offset + firstOwn + index) {
       entries.push(entry)
       maintenance.delete(id)
       reported ||= entry.compaction.status === 'compacted'

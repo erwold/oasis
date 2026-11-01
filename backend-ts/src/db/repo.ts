@@ -105,6 +105,7 @@ function session(row: Row, roots: SessionRoot[] = []): Session {
     grants: parseGrants(d(row.grants_json, {})), access_mode: accessOf(row.access_mode), task_root_id: sn(row.task_root_id ?? null), roots,
     status: s(row.status), created_at: s(row.created_at), updated_at: s(row.updated_at),
     last_activity_at: activityOf(row.last_activity_at, row.created_at),
+    pin_order: row.pin_order == null ? null : Number(row.pin_order),
   }
 }
 
@@ -208,6 +209,17 @@ export function renameSession(conn: Conn, sessionId: string, title: string): voi
  *  a director's given before, stays). */
 export function titleSessionByDirector(conn: Conn, sessionId: string, title: string): boolean {
   return conn.run("UPDATE sessions SET title=?, title_source='director', updated_at=? WHERE id=? AND title_source='auto'", [title, nowIso(), sessionId]).changes > 0
+}
+
+/** A single SQLite write allocates the next free append position under the write lock. Repeating a Pin keeps its
+ *  position; Unpin followed by Pin appends. Neither timestamp changes, including for older clients' sorting. */
+export function setSessionPinned(conn: Conn, sessionId: string, pinned: boolean): void {
+  if (pinned) {
+    conn.run(`UPDATE sessions SET pin_order=(SELECT COALESCE(MAX(pin_order), 0)+1 FROM sessions)
+      WHERE id=? AND status='open' AND pin_order IS NULL`, [sessionId])
+  } else {
+    conn.run('UPDATE sessions SET pin_order=NULL WHERE id=? AND pin_order IS NOT NULL', [sessionId])
+  }
 }
 
 export function deleteSession(conn: Conn, sessionId: string): void {
@@ -421,17 +433,24 @@ export function getRun(conn: Conn, runId: string): Run | null {
   return row ? run(row) : null
 }
 
+/** The transcript route needs no receipt, manifest, budget or usage. These columns precede history_json in the
+ * stored row, so reading them does not walk a long conversation's overflow chain to reach later columns. */
+export function getTranscriptRun(conn: Conn, runId: string): Pick<Run, 'id' | 'session_id' | 'resumes_run_id' | 'model' | 'status'> | null {
+  const row = conn.get('SELECT id, session_id, resumes_run_id, model, status FROM runs WHERE id=?', [runId])
+  return row ? { id: s(row.id), session_id: s(row.session_id), resumes_run_id: sn(row.resumes_run_id), model: s(row.model), status: s(row.status) as Run['status'] } : null
+}
+
 export function countRuns(conn: Conn, sessionId: string): number {
   return Number((conn.get('SELECT COUNT(*) AS n FROM runs WHERE session_id=?', [sessionId]) as { n: number }).n)
 }
 
 export function listRuns(conn: Conn, sessionId: string): Run[] {
-  return conn.all(`SELECT ${RUN_COLUMNS} FROM runs WHERE session_id=? ORDER BY created_at`, [sessionId]).map(run)
+  return conn.all(`SELECT ${RUN_COLUMNS} FROM runs WHERE session_id=? ORDER BY created_at, rowid`, [sessionId]).map(run)
 }
 
 export function listRunsWithStatus(conn: Conn, statuses: string[]): Run[] {
   const marks = statuses.map(() => '?').join(',')
-  return conn.all(`SELECT ${RUN_COLUMNS} FROM runs WHERE status IN (${marks}) ORDER BY created_at`, statuses).map(run)
+  return conn.all(`SELECT ${RUN_COLUMNS} FROM runs INDEXED BY runs_by_status WHERE status IN (${marks}) ORDER BY created_at`, statuses).map(run)
 }
 
 /** The session's own conversation is made of its thread runs: started by a thread spawner (the person, a watch, the
@@ -448,12 +467,12 @@ export function latestRunOfSession(conn: Conn, sessionId: string, options: { sou
   const continuation = options.sourceContinuations ? ` OR (r.interaction_id IS NULL AND EXISTS (
     SELECT 1 FROM workspaces w WHERE w.id=r.workspace_id AND w.session_id=s.id AND w.project_id=s.project_id AND w.source_mount_json IS NOT NULL))` : ''
   const row = conn.get(`SELECT ${RUN_COLUMNS_R} FROM runs r JOIN sessions s ON s.id = r.session_id WHERE r.session_id=? AND r.parent_run_id IS NULL AND r.work_order_json IS NULL AND r.${THREAD_SPAWNED}`
-    + ` AND (r.workspace_id IS NULL OR s.workspace_id IS NULL OR r.workspace_id = s.workspace_id${continuation}) ORDER BY r.created_at DESC LIMIT 1`, [sessionId])
+    + ` AND (r.workspace_id IS NULL OR s.workspace_id IS NULL OR r.workspace_id = s.workspace_id${continuation}) ORDER BY r.created_at DESC, r.rowid DESC LIMIT 1`, [sessionId])
   return row ? run(row) : null
 }
 
 export function listThreadRuns(conn: Conn, sessionId: string): Run[] {
-  return conn.all(`SELECT ${RUN_COLUMNS} FROM runs WHERE session_id=? AND ${THREAD_RUN_WHERE} ORDER BY created_at`, [sessionId]).map(run)
+  return conn.all(`SELECT ${RUN_COLUMNS} FROM runs WHERE session_id=? AND ${THREAD_RUN_WHERE} ORDER BY created_at, rowid`, [sessionId]).map(run)
 }
 
 export function getRunReceipt(conn: Conn, runId: string): Record<string, unknown> | null {

@@ -102,6 +102,8 @@ export const SessionSchema = z.object({
   /** schema v29: folders besides its working folder the session reaches by absolute path, each read-only or writable
    *  (SessionRootSchema); sorted by path. The harness always answers it; absent from an older answer (read as none) */
   roots: z.array(SessionRootSchema).optional(),
+  /** schema v36: stable append order in the pinned rail; absent on older backends means unpinned. */
+  pin_order: z.number().int().positive().nullable().optional(),
   status: z.string().default('open'),
   created_at: z.string(),
   /** when the row last changed (a rename, a setting, a run's record): not the session's activity */

@@ -103,8 +103,10 @@ test('a chain of four compactions whose model carries the earlier summary and ad
   })
   let messages: ModelMessage[] = [modelRequest([userPrompt('Task: tidy the parser.')], INSTRUCTIONS), ...step(0)]
   for (let i = 1; i <= 4; i += 1) {
-    messages = [...messages, ...step(i)]
-    const [out, report] = await keeper.maybeCompact(messages, seam(model, { input_tokens: keeper.window, messages: messages.length - 2 }))
+    // threshold 11_500, hard input budget 19_500: the 17_500-token counted prefix plus ~2_600 pending
+    // result tokens crosses even the raised trigger, while omitting that result leaves room for the summary.
+    messages = [...messages, ...step(i, 'x '.repeat(2_000))]
+    const [out, report] = await keeper.maybeCompact(messages, seam(model, { input_tokens: 17_500, messages: messages.length - 2 }))
     expect(report!.status).toBe('compacted')
     expect(facts(out[out.length - 1]!)).toEqual(ALL)
     messages = out
@@ -233,8 +235,9 @@ test('a refusal right after a threshold compaction: the recovery drops the neste
  *  the threshold was 14 000; the three reads are predicted near 30 000, past what the provider takes (22 000). The
  *  generate_image tool (2026-10-17) adds its schema to every request: the grown-instructions run's first request was
  *  then predicted at 13 415, over 14 000 less the 1 000 headroom. At 40 000 the threshold is 16 000 and the provider
- *  takes 24 000, which the three reads still pass. */
-const READS_WINDOW = 40_000
+ *  takes 24 000, which the three reads still pass. The progress element's paragraph in present_ui (2026-11-01) put the
+ *  grown-instructions first request past 15 000; at 42 000 the threshold is 18 000 and the provider takes 26 000. */
+const READS_WINDOW = 42_000
 const READS_OUTPUT_CAP = 16_000
 /** what the first request's prediction leaves below the threshold at least: fixed overhead grown past it fails this
  *  precondition by name, not as a second compaction */

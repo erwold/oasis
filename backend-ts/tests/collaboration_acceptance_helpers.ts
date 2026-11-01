@@ -237,7 +237,7 @@ export const V24_FIXTURE = join(import.meta.dir, 'fixtures', 'collaboration_v24.
 export function v24Database(path: string): Database {
   const db = new Database(path, { create: true })
   db.exec(readFileSync(V24_FIXTURE, 'utf8'))
-  db.exec('PRAGMA user_version = 24')
+  db.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 24')
   return db
 }
 

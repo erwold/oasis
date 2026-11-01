@@ -172,7 +172,7 @@ test('schema v27 fills an older database from its rows: never from the finish a 
   // the database as v26 left it: no last_activity_at, its index gone, the version said
   made.exec('DROP INDEX sessions_by_activity')
   made.exec('ALTER TABLE sessions DROP COLUMN last_activity_at')
-  made.exec('PRAGMA user_version = 26')
+  made.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 26')
   const at = (m: number) => `2026-10-0${m}T00:00:00.000Z`
   made.run("INSERT INTO projects (id, name, base_repo_path, created_at, updated_at) VALUES ('p_1','p','/x',?,?)", [at(1), at(9)])
   for (const [id, title, created, updated, status] of [['s_a', 'A', at(1), at(9), 'open'], ['s_b', 'B', at(1), at(5), 'open'], ['s_c', 'C', at(1), at(8), 'deleted'], ['s_d', 'D', at(2), at(2), 'open']]) {
@@ -236,7 +236,7 @@ test('the v27 fill leaves out a finish the harness\'s shutdown wrote (receipt.in
   const made = connect(path)
   made.exec('DROP INDEX sessions_by_activity')
   made.exec('ALTER TABLE sessions DROP COLUMN last_activity_at')
-  made.exec('PRAGMA user_version = 26')
+  made.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 26')
   const at = (d: number) => `2026-10-0${d}T00:00:00.000Z`
   made.run("INSERT INTO projects (id, name, base_repo_path, created_at, updated_at) VALUES ('p_1','p','/x',?,?)", [at(1), at(1)])
   for (const id of ['s_a', 's_b']) made.run("INSERT INTO sessions (id, project_id, title, model, created_at, updated_at) VALUES (?,'p_1',?,'m',?,?)", [id, id, at(1), at(9)])

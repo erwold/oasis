@@ -384,7 +384,7 @@ export function RunFailure({ run, entries }: { run: Run; entries: ThreadEntry[] 
   return (
     <div className="run-failure" role="alert" data-testid="failure-card" data-kind={String(detail.kind ?? 'other')}>
       <b>{found.title}</b>
-      <span className="run-failure-advice">{found.advice}</span>
+      {found.advice && <span className="run-failure-advice">{found.advice}</span>}
       <div className="run-failure-row">
         {!shared && found.accounts && <button className="thread-btn" onClick={() => setSettingsOpen(true, 'accounts')} data-testid="failure-accounts">Open Accounts</button>}
         {!shared && found.chatgpt && chatGptAvailable(window as { oasisCodeDesktop?: unknown }) && <button className="thread-btn" onClick={() => setChatGptSheet(true)} data-testid="failure-chatgpt">Open ChatGPT</button>}

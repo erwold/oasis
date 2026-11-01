@@ -35,9 +35,13 @@ test('SSH: a chart source is read through the workspace\'s own channel, a page a
     const p = await json(await c.post('/api/projects', { mode: 'direct', source_path: f.workspace, target: { kind: 'ssh', target_id: host.id } }))
     const session = await json(await c.post(`/api/projects/${p.id}/sessions`, { title: 'Remote', model: 'scripted:a' }))
     mkdirSync(join(f.workspace, 'logs'))
+    const fixtureWs = repo.getWorkspace(app.state.conn, String((session.workspace as { id: string }).id))!
+    const execution = repo.insertExecution(app.state.conn, { run_id: null, workspace_id: fixtureWs.id, tool_call_id: null, kind: 'bash', command: 'fixture status', cwd: fixtureWs.path, isolation: {}, network: false })
+    repo.startExecution(app.state.conn, execution.id)
     setModel(app.state, 'scripted:a', scriptedModel(steps(
       [toolCallPart('present_ui', chart('logs/train.jsonl', 'train'), 'p1')],
       [toolCallPart('present_ui', chart('logs/big.jsonl', 'big'), 'p0')],
+      [toolCallPart('present_ui', { version: 1, surface_id: 'progress', title: 'SSH progress', fallback: 'Remote batch', kind: 'native', root: 'c', elements: { c: { type: 'progress', props: { source: { path: 'logs/train.jsonl', format: 'jsonl', progress: { completed: 'step', execution_id: execution.id } } } } } }, 'pp')],
       [toolCallPart('present_ui', chart('.oasis-remote/root.json', 'private'), 'p2')],
       [toolCallPart('present_ui', chart('logs', 'dir'), 'p3')],
       [textPart('Shown.')],
@@ -46,7 +50,7 @@ test('SSH: a chart source is read through the workspace\'s own channel, a page a
     const run = await waitDone(app.state, String(chat.id))
     expect(run.status, run.error ?? '').toBe('done')
     const surfaces = repo.listUiSurfaces(app.state.conn, String(session.id))
-    expect(surfaces.map((s) => s.surface_id).sort()).toEqual(['big', 'train'])
+    expect(surfaces.map((s) => s.surface_id).sort()).toEqual(['big', 'progress', 'train'])
     const src = `/api/sessions/${session.id}/ui/${run.id}/train/sources/c`
     const get = async (params: Record<string, string | number>) => UiChartSourcePageSchema.parse(await json(await c.get(src, { revision: 1, ...params })))
 
@@ -92,6 +96,13 @@ test('SSH: a chart source is read through the workspace\'s own channel, a page a
     // disconnected: unavailable (the client asks again); after Connect it reads again
     await c.post(`${hostPath}/disconnect`)
     expect((await c.get(src, { revision: 1, offset: 0 })).status).toBe(503)
+    // A known command result is not lost when the final SSH file read fails. Disconnect alone is not failure.
+    const progressUrl = `/api/sessions/${session.id}/ui/${run.id}/progress/sources/c`
+    const unavailable = await json(await c.get(progressUrl, { revision: 1, offset: 0 }))
+    expect(unavailable.status).toBe('unavailable')
+    expect((unavailable.execution as { status: string }).status).not.toBe('failed')
+    repo.finishExecution(app.state.conn, execution.id, { status: 'failed', exit_code: 7, timed_out: false, cancelled: false, truncated: false, stdout_asset_id: null, stderr_asset_id: null, stdout_bytes: 0, stderr_bytes: 0, duration_ms: 1 })
+    expect(await json(await c.get(progressUrl, { revision: 1, offset: 0 }))).toMatchObject({ status: 'unavailable', execution: { status: 'failed', exit_code: 7 } })
     expect((await json(await c.post(`${hostPath}/connect`))).state).toBe('ready')
     expect(ok(await get({ offset: 0 })).size).toBe(Buffer.byteLength(line(0)))
     // a link out of the project is refused by the host's own resolution

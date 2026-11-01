@@ -1,6 +1,6 @@
 import type { CollaborationGraph } from '@oasis-code/contract'
 import { RemoteIdentity } from './SshTarget'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { activeRelay, relayHeaderLine, relayTurnOf } from '../state/relay'
 import { activeInteractions, interactionAskOf, boardLine, interactionWay, usageLine, continueInteractionLabel, interactionHeaderLine, interactionItems, groupStatusLine, interactionReason, interactionTurnOf, continuedParticipant, nodeInstructions, noteState, participantName, type InteractionDetail, type InteractionItem } from '../state/interaction'
 import type { DirectorLiveTurn, DirectorTransport, DirectorTurn, Run } from '../api/types'
@@ -32,8 +32,9 @@ import { isolationLine, protectsSource } from '../state/workspacePolicy'
 import { RunRecords } from './RunRecords'
 import { Prose } from './Prose'
 import { HarnessAsks, PendingInputs } from './UiInput'
-import { onThreadFollow, onThreadHold } from '../state/threadFollow'
+import { followThread, onThreadFollow, onThreadHold } from '../state/threadFollow'
 import { useFollowBottom } from './useFollowBottom'
+import { DeferredTranscript } from './DeferredTranscript'
 import { ActionLine, AttachmentCard, MemberWords, RequestTurn, DirectorCalls, DirectorEvent, DirectorGlyph, NoteTurn, NoteQuestion, RunTurn, SaidToDirector } from './ThreadTranscript'
 export { LiveLine, NodeAdoptions, NodeHandover, NodeStepFoot, Row, RunLiveLine, SteerRow, WorkGroup } from './ThreadTranscript'
 
@@ -48,6 +49,7 @@ const BOARD_AT = '\uffff'
  *  decisions. The composer floats over its tail. */
 export function Thread() {
   const session = useStore((s) => s.session)
+  const sessionId = session?.id ?? null
   const runs = useStore((s) => s.runs)
   const notes = useStore((s) => s.notes)
   const threads = useStore((s) => s.threads)
@@ -97,8 +99,41 @@ export function Thread() {
   const fromDirector = useMemo(() => new Set((director?.turns ?? []).flatMap((t) => t.dispatched_run_ids)), [director])
   const saidToDirector = useMemo(() => wordsSaidToDirector(director?.turns ?? []), [director])
   const directorName = director?.director?.label || director?.director?.model || 'director'
+  // One immutable set of element props for a complete transcript. A background render may yield between turns,
+  // but its commit never mixes two sessions or publishes only a prefix of the conversation.
+  const transcript = useMemo(() => <>
+    {items.map((item, i) => item.kind === 'run' ? (
+      <RunTurn key={item.run.id} run={item.run} entries={threads[item.run.id] ?? NO_ENTRIES} live={item.run.id === liveRunId || LIVE.has(item.run.status)} latest={i === items.length - 1}
+               from={fromDirector.has(item.run.id) ? directorName : null} saidAbove={saidToDirector.get(item.run.id) === item.run.user_text}
+               relayTurn={relayTurnOf(relays, item.run)} interactionTurn={interactionTurnOf(interactions, item.run)} continues={continuedParticipant(interactions, runs, item.run)} />
+    ) : item.kind === 'interaction_request' ? (
+      <InteractionRequest key={`request-${item.interaction.id}`} interaction={item.interaction} runs={runs} />
+    ) : item.kind === 'interaction_words' ? (
+      <MemberWords key={`words-${item.note.id}`} to={item.note.to === 'everyone' ? 'everyone' : participantName(item.interaction, item.note.to)} text={item.note.text} status={item.note.status} state={noteState(item.note, item.interaction)} />
+    ) : item.kind === 'interaction_note' ? (
+      <NoteTurn key={item.note.id} note={item.note} latest={i === items.length - 1} askedAbove label={item.asked === 'plan' ? 'the plan' : 'what comes next'} />
+    ) : item.kind === 'interaction_board' ? (
+      <InteractionBoard key={`board-${item.interaction.id}`} interaction={item.interaction} />
+    ) : item.kind === 'action' ? (
+      <ActionLine key={`action-${item.action.id}`} action={item.action} />
+    ) : item.kind === 'agents_board' ? (
+      <AgentsBoard key="agents-board" graph={item.graph} source={view?.source ?? 'legacy'} />
+    ) : item.kind === 'note' ? (
+      <NoteTurn key={item.note.id} note={item.note} latest={i === items.length - 1} askedAbove={item.split || repeated.has(item.note.id)} />
+    ) : item.kind === 'asked' ? (
+      repeated.has(item.note.id) ? null : <section key={`asked-${item.note.id}`} className="turn-group director-note" data-testid={`asked-${item.note.id}`}><NoteQuestion note={item.note} /></section>
+    ) : (
+      <DirectorTurnItem key={item.turn.id} turn={item.turn} live={directorLive?.turn_id === item.turn.id ? directorLive : null} transport={director?.director?.transport ?? 'native'} label={director?.director?.label || director?.director?.model || 'director'}
+                        asked={item.asked} />
+    ))}
+    {items.length === 0 && <div className="thread-empty">{session?.workspace?.kind === 'direct'
+      ? "Say what should happen in the folder. The agent works in it directly; what it did shows here, what its file tools changed on the Workspace card, each run's changes undoable."
+      : 'Say what should happen in the code. The agent reads, changes, runs and verifies inside its own worktree; what it did shows here, what it changed on the Workspace card.'}</div>}
+  </>, [items, threads, liveRunId, fromDirector, directorName, saidToDirector, relays, interactions, runs, view?.source, repeated, directorLive, director, session?.workspace?.kind])
   const dockRef = useRef<HTMLDivElement>(null)
-  const { ref: scroller, pinned, setPinned, onScroll } = useFollowBottom()
+  const { ref: scroller, pinned, setPinned, onScroll, initialFollow } = useFollowBottom()
+  // Reset a new opening before it can receive navigation; later queued focus may then hold it.
+  useLayoutEffect(() => setPinned(true), [sessionId, setPinned])
   // a surface's run action pressed: the thread stays where the person works (state/threadFollow.ts)
   useEffect(() => onThreadHold(() => setPinned(false)), [setPinned])
   useEffect(() => onThreadFollow(() => setPinned(true)), [setPinned])
@@ -118,38 +153,11 @@ export function Thread() {
     <main className="thread desk-main">
       <ThreadHeader />
       {records ? <RunRecords run={records} onBack={() => openRecords(null)} /> : (
-        <div className="thread-scroll" ref={scroller} onScroll={onScroll} data-testid="thread">
-          {items.map((item, i) => item.kind === 'run' ? (
-            <RunTurn key={item.run.id} run={item.run} entries={threads[item.run.id] ?? NO_ENTRIES} live={item.run.id === liveRunId || LIVE.has(item.run.status)} latest={i === items.length - 1}
-                     from={fromDirector.has(item.run.id) ? directorName : null} saidAbove={saidToDirector.get(item.run.id) === item.run.user_text}
-                     relayTurn={relayTurnOf(relays, item.run)} interactionTurn={interactionTurnOf(interactions, item.run)} continues={continuedParticipant(interactions, runs, item.run)} />
-          ) : item.kind === 'interaction_request' ? (
-            <InteractionRequest key={`request-${item.interaction.id}`} interaction={item.interaction} runs={runs} />
-          ) : item.kind === 'interaction_words' ? (
-            <MemberWords key={`words-${item.note.id}`} to={item.note.to === 'everyone' ? 'everyone' : participantName(item.interaction, item.note.to)} text={item.note.text} status={item.note.status} state={noteState(item.note, item.interaction)} />
-          ) : item.kind === 'interaction_note' ? (
-            <NoteTurn key={item.note.id} note={item.note} latest={i === items.length - 1} askedAbove label={item.asked === 'plan' ? 'the plan' : 'what comes next'} />
-          ) : item.kind === 'interaction_board' ? (
-            <InteractionBoard key={`board-${item.interaction.id}`} interaction={item.interaction} />
-          ) : item.kind === 'action' ? (
-            <ActionLine key={`action-${item.action.id}`} action={item.action} />
-          ) : item.kind === 'agents_board' ? (
-            <AgentsBoard key="agents-board" graph={item.graph} source={view?.source ?? 'legacy'} />
-          ) : item.kind === 'note' ? (
-            <NoteTurn key={item.note.id} note={item.note} latest={i === items.length - 1} askedAbove={item.split || repeated.has(item.note.id)} />
-          ) : item.kind === 'asked' ? (
-            repeated.has(item.note.id) ? null : <section key={`asked-${item.note.id}`} className="turn-group director-note" data-testid={`asked-${item.note.id}`}><NoteQuestion note={item.note} /></section>
-          ) : (
-            <DirectorTurnItem key={item.turn.id} turn={item.turn} live={directorLive?.turn_id === item.turn.id ? directorLive : null} transport={director?.director?.transport ?? 'native'} label={director?.director?.label || director?.director?.model || 'director'}
-                              asked={item.asked} />
-          ))}
-          {items.length === 0 && <div className="thread-empty">{session.workspace?.kind === 'direct'
-            ? "Say what should happen in the folder. The agent works in it directly; what it did shows here, what its file tools changed on the Workspace card, each run's changes undoable."
-            : 'Say what should happen in the code. The agent reads, changes, runs and verifies inside its own worktree; what it did shows here, what it changed on the Workspace card.'}</div>}
-        </div>
+        <DeferredTranscript key={session.id} sessionId={session.id} scrollerRef={scroller} onScroll={onScroll} onInitialFollow={initialFollow}
+                            immediate={replaying || liveRunId !== null || directorLive !== null || runs.some((r) => LIVE.has(r.status))}>{transcript}</DeferredTranscript>
       )}
       <div className="composer-dock" ref={dockRef}>
-        {!records && !pinned && <button type="button" className="jump-bottom" aria-label="Scroll to bottom" title="Scroll to bottom" data-testid="jump-bottom" onClick={() => setPinned(true)}><ArrowDownIcon size={15} /></button>}
+        {!records && !pinned && <button type="button" className="jump-bottom" aria-label="Scroll to bottom" title="Scroll to bottom" data-testid="jump-bottom" onClick={followThread}><ArrowDownIcon size={15} /></button>}
         {!replaying && <HarnessAsks />}
         {!replaying && <SshAsks />}
         {!replaying && <PendingInputs />}

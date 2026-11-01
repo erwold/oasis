@@ -271,7 +271,7 @@ test('nothing is wider than the window at 1440, 1280 and 390', async () => {
       const root = document.querySelector('.live-demo')!
       const out: string[] = []
       if (root.scrollWidth > window.innerWidth + 1) out.push(`page ${root.scrollWidth}`)
-      for (const el of document.querySelectorAll('.live-head, .live-metrics, .live-cards, .live-side, .live-board')) {
+      for (const el of document.querySelectorAll('.live-head, .live-metrics, .live-cards, .live-side, .live-side > *, .live-board')) {
         const r = el.getBoundingClientRect()
         if (r.right > window.innerWidth + 1) out.push(`${el.className} ${Math.round(r.right)}`)
       }

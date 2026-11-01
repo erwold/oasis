@@ -44,6 +44,7 @@ import { copyRelativePath } from './path_alias.ts'
 import { isGeneratedParticipantId, shareParticipantNames } from './names.ts'
 import { stableOpenText } from './live/stream_text.ts'
 import { projectTeam, type TeamOutput } from './team.ts'
+import type { ProgressSamples } from './progress.ts'
 
 /** The session has work under way: only a quiescent session is exported. */
 export class ShareActive extends Error {
@@ -54,6 +55,7 @@ export class ShareActive extends Error {
  *  worker with its own read-only connection (share/live/projector_worker.ts) — no runner, no credential store. */
 export interface ShareSource {
   conn: Conn
+  progressSamples?: ProgressSamples
   /** the model routes (for their labels only) */
   config: HarnessConfig
   store: { read(path: string): Uint8Array; readRange(path: string, offset: number, length: number): { bytes: Uint8Array; total: number } }
@@ -254,9 +256,9 @@ function accountOf(): { home: string | null; name: string | null } {
 }
 
 /** The snapshot and the dialog's run choice. Throws ShareActive while work is under way. */
-export function buildShareSnapshot(state: AppState, sessionId: string, req: ShareSnapshotRequest, now: () => Date = () => new Date()): ShareSnapshotResponse {
+export function buildShareSnapshot(state: AppState, sessionId: string, req: ShareSnapshotRequest, now: () => Date = () => new Date(), progressSamples?: ProgressSamples): ShareSnapshotResponse {
   // the session row is read inside the same cut as everything else (its title, its folders)
-  const src = appShareSource(state)
+  const src = { ...appShareSource(state), progressSamples }
   return state.conn.transaction(() => {
     const session = requireSession(state, sessionId)
     const reasons = activeWork(state, session.id)
@@ -435,11 +437,13 @@ function project(state: ShareSource, rows: Rows, req: ShareSnapshotRequest, now:
     }
     return sharedNames.get(id) ?? 'a participant'
   })
+  const progressActionExec = new Set<string>()
   const actions = new Map<string, ActionInfo>()
   for (const run of rows.runs) {
     const info = actionOf(run)
     if (info === null) continue
     actions.set(run.id, info)
+    if (info.exec !== null && !info.sensitive) progressActionExec.add(info.exec.id)
     if (info.sensitive) for (const x of info.exec_ids) sensitiveExec.add(x)
   }
 
@@ -874,7 +878,31 @@ function project(state: ShareSource, rows: Rows, req: ShareSnapshotRequest, now:
       if (req.include_tool_details) details = detailsOf(event ?? {}, record ?? {})
       else omitted.tool_details++
     }
-    if (!emit({ kind: 'tool', run: key, at: d.at, name: san.label(d.name, 60), status, target: withheld ? null : targetOf(d.name, meta), details, withheld: withheld ? 'sensitive_source' : null } as NewItem)) return
+    let target = withheld ? null : targetOf(d.name, meta)
+    if (!withheld && d.name === 'present_ui' && status === 'ok') {
+      const surfaceId = str(rec(d.args).surface_id) || str(record?.surface_id) || str(event?.surface_id)
+      const samples = (state.progressSamples?.get(run.id) ?? []).filter((p) => {
+        if (p.surface_id !== surfaceId || excluded.has(p.writer_id) || excluded.has(p.run_id) || p.revision !== (record?.revision ?? event?.revision)) return false
+        if (p.execution_id && ((!knownExec.has(p.execution_id) && !progressActionExec.has(p.execution_id)) || sensitiveExec.has(p.execution_id))) return false
+        const current = repo.getUiSurface(state.conn, p.session_id, p.run_id, p.surface_id)
+        return current?.revision === p.revision && (current.updated_by_run_id ?? current.run_id) === p.writer_id
+      })
+      if (samples.length) {
+        const notSampled = samples.filter((s) => s.availability === 'not_sampled').length
+        target = san.text((notSampled ? `${notSampled} sources not sampled; ` : '') + samples.map((s) => {
+          const p = s.progress
+          const execution = s.execution?.status
+          const status = execution && ['failed', 'succeeded', 'cancelled'].includes(execution) ? execution : p.status ?? execution ?? 'unknown'
+          const count = p.completed === undefined ? '' : ` · ${p.completed}${p.total === undefined ? '' : ` / ${p.total}`}`
+          return `${s.title}: ${status}${count}${p.rate === undefined ? '' : ` · ${p.rate}/s`}${p.eta === undefined || ['succeeded', 'failed', 'cancelled'].includes(status) ? '' : ` · ETA ${p.eta}s`} — progress snapshot ${s.at} (${s.availability})`
+        }).join('\n'), 1000)
+        if (req.include_tool_details) {
+          const logs = samples.flatMap((s) => s.progress.logs).join('\n')
+          details = { summary: target, fields: [], preview: san.text(logs, 4000), preview_truncated: logs.length > 4000 || samples.some((s) => s.progress.logsTruncated === true) }
+        }
+      }
+    }
+    if (!emit({ kind: 'tool', run: key, at: d.at, name: san.label(d.name, 60), status, target, details, withheld: withheld ? 'sensitive_source' : null } as NewItem)) return
     // the images the call showed: a look's screenshot (its display copy when kept), a generated image
     if (!withheld) for (const img of toolImages(d.name, event ?? {}, record ?? {})) emitImage(key, d.at, img.origin, img.asset_id)
   }

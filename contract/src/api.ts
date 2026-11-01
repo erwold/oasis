@@ -50,6 +50,7 @@ export const ROUTES: readonly Route[] = [
   { method: 'GET', path: '/api/session-activity', note: "every session's agents now and how many ended (the rail's dots)" },
   { method: 'GET', path: '/api/sessions/:session_id' },
   { method: 'PUT', path: '/api/sessions/:session_id', note: 'rename it' },
+  { method: 'PUT', path: '/api/sessions/:session_id/pin', note: 'pin or unpin it without changing its activity or timestamps' },
   { method: 'DELETE', path: '/api/sessions/:session_id', note: 'delete it: gone from the lists and the API; its records and worktree stay on disk' },
   { method: 'GET', path: '/api/sessions/:session_id/runs/tree' },
   { method: 'GET', path: '/api/sessions/:session_id/context' },
@@ -253,6 +254,9 @@ export const SessionUpdateBodySchema = z.object({
   title: z.string().trim().min(1).max(200),
 })
 export type SessionUpdateBody = z.infer<typeof SessionUpdateBodySchema>
+
+export const SessionPinBodySchema = z.object({ pinned: z.boolean() }).strict()
+export type SessionPinBody = z.infer<typeof SessionPinBodySchema>
 
 /** How hard the model thinks on a run: the unified level ("off" disables it; omitted = the provider's default). */
 export const THINKING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const

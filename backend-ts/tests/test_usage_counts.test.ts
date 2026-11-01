@@ -127,7 +127,7 @@ test('the keeper anchors on no count that is not one: zero, negative, not a numb
 
 test('a run whose provider never reports a count: rows of unknown cost, the receipt says no tokens were reported; a huge count on every response does not summarize in a loop', async () => {
   // Leave room around the compaction trigger for random workspace/path tokenization while still compacting repeatedly.
-  process.env.OASIS_CODE_CONTEXT_WINDOW_TOKENS = '38000'
+  process.env.OASIS_CODE_CONTEXT_WINDOW_TOKENS = '40000'
   state = await appState({ sandbox: true, config: { ...testConfig([PRICED]), default_model: PRICED.id } })
   const { session, ws } = await openSession(state, buggyRepo())
   for (let i = 1; i <= 8; i += 1) writeFileSync(join(ws.path, `m${i}.py`), `def f_${i}(): pass  # a line of module ${i}\n`.repeat(100))
@@ -145,7 +145,7 @@ test('a run whose provider never reports a count: rows of unknown cost, the rece
   setModel(state, PRICED.id, silent.model)
   // Both runs receive the same budget hint: it is part of the estimated prompt, so only usage reporting differs.
   const run = await waitDone(state, (await state.runs.start(session, 'read the modules', { budget: { requests: 30 } })).id, 60_000)
-  expect(run.status).toBe('done')
+  expect(run.status, run.error ?? '').toBe('done')
   const rows = repo.listModelRequests(state.conn, run.id)
   expect(rows.every((r) => r.cost_status === 'unknown' && r.input_tokens === 0)).toBe(true)
   expect(run.usage).toMatchObject({ input_tokens: null, output_tokens: null, total_tokens: null, cost_status: 'unknown', cost_usd: null })
@@ -157,7 +157,7 @@ test('a run whose provider never reports a count: rows of unknown cost, the rece
   const other = await openSession(state, buggyRepo())
   for (let i = 1; i <= 8; i += 1) writeFileSync(join(other.ws.path, `m${i}.py`), `def f_${i}(): pass  # a line of module ${i}\n`.repeat(100))
   const next = await waitDone(state, (await state.runs.start(other.session, 'read the modules', { budget: { requests: 30 } })).id, 60_000)
-  expect(next.status).toBe('done')
+  expect(next.status, next.error ?? '').toBe('done')
   expect(silent.summaries()).toBeGreaterThan(1)
   expect(huge.summaries()).toBe(silent.summaries())
   expect(repo.listModelRequests(state.conn, next.id).length).toBe(rows.length)

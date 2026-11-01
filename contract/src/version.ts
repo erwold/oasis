@@ -52,8 +52,10 @@ export const API_VERSION = 'code-v1'
  *  v34: `share_links` (live read-only session sharing, contract/src/live_share.ts): one row per link — its session, its
  *  fixed options, its expiry and revocation, and only a hash of its capability. Additive: no older row is touched.
  *  v35: `share_links.protocol` (1 for every older link; 2: the live state v2) and `share_links.task_root_id` (the task a
- *  v2 link shows, fixed when it is made; NULL for a link of one session). Columns added only. */
-export const SCHEMA_VERSION = 35
+ *  v2 link shows, fixed when it is made; NULL for a link of one session). Columns added only.
+ *  v36: `sessions.pin_order`, a stable append order independent of activity; leaving open clears it.
+ *  v37: `runs_read`, a history-free covering index for session run reads; no stored content changes. */
+export const SCHEMA_VERSION = 37
 /** The run events' record version (`run_events.version`). */
 export const EVENT_VERSION = 1
 /** The receipt's shape (`Receipt.version`). */

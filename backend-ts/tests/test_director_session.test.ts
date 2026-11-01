@@ -22,7 +22,8 @@ import { ChatGptBridge, SEND_TIMEOUT_MS } from '../src/llm/chatgpt_web.ts'
 import * as store from '../src/director/store.ts'
 import { NATIVE_EXCLUDED_TOOLS } from '../src/director/tools.ts'
 import { NATIVE_INSTRUCTIONS } from '../src/director/manual.ts'
-import { isCompaction } from '../src/agent/history.ts'
+import { ContextKeeper, isCompaction } from '../src/agent/history.ts'
+import { countTokens } from '../src/agent/context.ts'
 import { PROMPT_TEXT } from '../src/prompt_texts.ts'
 import { isRequest, isUserPrompt, lastToolReturn, loadJson, modelRequest, modelResponse, textPart, toolCallPart, userPrompt, userText, userTexts, type ModelMessage } from '../src/llm/messages.ts'
 import { OpenAIResponsesModel } from '../src/llm/providers/openai_responses.ts'
@@ -604,10 +605,19 @@ test("the director's conversation is kept whole between turns and compacted only
     app = await makeApp()
     const c = new Client(app)
     const st = app.state
+    st.config.models = st.config.models.map((cfg) => cfg.id === 'scripted:b' ? new ModelConfig({ ...cfg.dump(), id: cfg.id, provider: cfg.provider, model: cfg.model, max_tokens: 16_000 }) : cfg)
+    const sizing = new ContextKeeper({ window: 60_000, output_reserve: 16_000 })
+    const estimates: number[] = []
     const seen: ModelMessage[][] = []
-    const LONG = 'the quick brown fox jumps over the lazy dog '.repeat(1100)          // about 10k tokens an answer
-    setModel(st, 'scripted:b', scriptedModel((messages) => {
+    const LONG = 'the quick brown fox jumps over the lazy dog '.repeat(900)           // q3 below 36k; q4 + summary prompt below 44k
+    expect(countTokens(`noted. ${LONG}`)).toBeLessThanOrEqual(16_000)
+    setModel(st, 'scripted:b', scriptedModel((messages, info) => {
       seen.push(messages)
+      const instructions = messages.findLast(isRequest)?.instructions ?? ''
+      const estimate = sizing.predict(messages, { instructions, params: info.model_request_parameters }).tokens
+      estimates.push(estimate)
+      expect(info.model_settings.max_tokens).toBe(16_000)
+      expect(estimate).toBeLessThanOrEqual(sizing.inputLimit)
       const last = messages[messages.length - 1]!
       const asked = isRequest(last) && last.parts.some((p) => isUserPrompt(p) && userText(p) === PROMPT_TEXT['compaction.request'])
       if (asked) return modelResponse([textPart('<summary>The person asked q1, q2 and q3; each got a long note.</summary>')])
@@ -632,6 +642,9 @@ test("the director's conversation is kept whole between turns and compacted only
     // the requests the model saw: up to the summary request every one extends the one before; then the view begins anew
     const summaryAt = seen.findIndex((m) => { const last = m[m.length - 1]!; return isRequest(last) && last.parts.some((p) => isUserPrompt(p) && userText(p) === PROMPT_TEXT['compaction.request']) })
     expect(summaryAt).toBeGreaterThan(0)
+    expect(summaryAt).toBe(3)
+    expect(estimates.slice(0, summaryAt).every((n) => n < sizing.threshold)).toBe(true)
+    expect(estimates[summaryAt]!).toBeGreaterThan(sizing.threshold)
     for (let i = 1; i <= summaryAt; i += 1) {
       const previous = seen[i - 1]!
       const current = seen[i]!
@@ -657,31 +670,50 @@ test("the director's moved compaction line outlives its turn: the next turn on t
     app = await makeApp()
     const c = new Client(app)
     const st = app.state
+    st.config.models = st.config.models.map((cfg) => cfg.id === 'scripted:b' ? new ModelConfig({ ...cfg.dump(), id: cfg.id, provider: cfg.provider, model: cfg.model, max_tokens: 16_000 }) : cfg)
+    const sizing = new ContextKeeper({ window: 60_000, output_reserve: 16_000 })
+    const estimates: number[] = []
     let calls = 0
     let summaries = 0
     const WORDS = 'the quick brown fox jumps over the lazy dog '
-    // the first answer puts the next turn over the threshold; the answer after the compaction leaves the view over it
-    // again, counted at 37 000 — too little freed, so the line moves to the window less the output
-    const counts = (n: number) => ({ usage: { input_tokens: n, output_tokens: 10 } as never })
-    setModel(st, 'scripted:b', scriptedModel((messages) => {
+    // Native turns seed only the moved line, not an input anchor. A large q2 (kept verbatim after compaction)
+    // puts q2 over 36k but below 44k and leaves q3 between those lines, without replies exceeding the 16k output cap.
+    const q2 = `q2\n${'context '.repeat(21_500)}`
+    const kinds: string[] = []
+    setModel(st, 'scripted:b', scriptedModel((messages, info) => {
+      const instructions = messages.findLast(isRequest)?.instructions ?? ''
+      const estimate = sizing.predict(messages, { instructions, params: info.model_request_parameters }).tokens
+      estimates.push(estimate)
+      expect(info.model_settings.max_tokens).toBe(16_000)
+      expect(estimate).toBeLessThanOrEqual(sizing.inputLimit)
       const last = messages[messages.length - 1]!
+      const countedText = (text: string) => {
+        const output = countTokens(text)
+        expect(output).toBeLessThanOrEqual(16_000)
+        return modelResponse([textPart(text)], { usage: { input_tokens: estimate, output_tokens: output } as never })
+      }
       if (isRequest(last) && last.parts.some((p) => isUserPrompt(p) && userText(p) === PROMPT_TEXT['compaction.request'])) {
         summaries += 1
-        return modelResponse([textPart('<summary>The person asked q1 and q2.</summary>')], counts(36_000))
+        kinds.push('summary')
+        return countedText('<summary>The person asked q1 and q2.</summary>')
       }
       calls += 1
-      if (calls === 1) return modelResponse([textPart(`noted. ${WORDS.repeat(4_000)}`)], counts(35_000))
-      if (calls === 2) return modelResponse([textPart(`noted. ${WORDS.repeat(2_900)}`)], counts(37_000))
-      return modelResponse([textPart('noted.')], counts(38_000))
+      kinds.push(`q${calls}`)
+      if (calls === 1) return countedText(`noted. ${WORDS.repeat(150)}`)
+      if (calls === 2) return countedText(`noted. ${WORDS.repeat(200)}`)
+      return countedText('noted.')
     }, 'scripted-b'))
     const { session } = await openOverApi(c)
     const sid = session.id as string
     await json(await c.post(`/api/sessions/${sid}/director`, { transport: 'native', model: 'scripted:b' }))
     const turns: DirectorTurn[] = []
     for (const q of ['q1', 'q2', 'q3']) {
-      const turn = await json<DirectorTurn>(await c.post(`/api/sessions/${sid}/director/messages`, { text: q }))
+      const turn = await json<DirectorTurn>(await c.post(`/api/sessions/${sid}/director/messages`, { text: q === 'q2' ? q2 : q }))
       turns.push(await waitFor(() => turnOf(c, turn.id), (t) => t.status === 'done', `turn ${q}`))
     }
+    expect(kinds).toEqual(['q1', 'summary', 'q2', 'q3'])
+    expect(estimates[0]!).toBeLessThan(sizing.threshold)
+    expect(estimates.slice(1).every((n) => n > sizing.threshold && n < sizing.inputLimit)).toBe(true)
     expect(turns[0]!.usage.context_trigger).toBeUndefined()
     expect(turns[1]!.usage.context_trigger).toBe(44_000)
     // the third turn's prediction is over the threshold but under the moved line: no second summary

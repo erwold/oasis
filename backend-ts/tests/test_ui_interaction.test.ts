@@ -788,7 +788,7 @@ CREATE INDEX ui_surfaces_by_session ON ui_surfaces(session_id, created_at);
 `
 
 test('a v21 database comes to the current schema: the tasks and the forms added, its surfaces kept (scope run), the same structure as a fresh one', () => {
-  expect(SCHEMA_VERSION).toBe(35)  // v26: the session cursor; v27: the sessions' latest activity; v28: the sessions' access; v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs; v33: read-path indexes
+  expect(SCHEMA_VERSION).toBe(37)  // v26: the session cursor; v27: the sessions' latest activity; v28: the sessions' access; v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs; v33: read-path indexes
   const base = tempDir()
   const fresh = connect(join(base, 'fresh', 'index.db'))
   const path = join(base, 'old', 'index.db')
@@ -798,7 +798,7 @@ test('a v21 database comes to the current schema: the tasks and the forms added,
   made.exec('DROP TABLE ui_publications')
   made.exec('DROP TABLE ui_surfaces')
   made.exec(UI_SURFACES_V22)
-  made.exec('PRAGMA user_version = 21')
+  made.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 21')
   made.run("INSERT INTO projects (id, name, base_repo_path, created_at, updated_at) VALUES ('p_1','legacy','/x','t','t')")
   made.run("INSERT INTO sessions (id, project_id, title, model, created_at, updated_at) VALUES ('s_1','p_1','t','m','t','t')")
   made.run("INSERT INTO runs (id, session_id, project_id, model, user_text, status, created_at) VALUES ('run_1','s_1','p_1','m','hi','done','t')")
@@ -807,7 +807,7 @@ test('a v21 database comes to the current schema: the tasks and the forms added,
   made.close()
   const migrated = connect(path)
   try {
-    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(35)
+    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(37)
     expect(structure(migrated)).toEqual(structure(fresh))
     const s = structure(migrated) as Record<string, { indexes: unknown[][] }>
     expect(s.ui_tasks!.indexes).toContainEqual(['ui_tasks_by_request', 1])

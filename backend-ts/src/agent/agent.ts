@@ -48,6 +48,9 @@ async function processHistory(deps: AgentDeps, messagesIn: ModelMessage[], seam:
       throw error
     }
   }
+  // Closing turns skip summaries, not the hard window check. Refuse before stashing: an unsent oversized input
+  // stays in run.user_text/attachments, not in the model history that the next run inherits.
+  deps.context?.assertFits(messages, seam)
   deps.on_history(messages)
   return messages
 }

@@ -8,6 +8,7 @@
   "exports": {
     ".": { "types": "./src/index.ts", "default": "./src/index.ts" },
     "./modes": { "types": "./src/modes.ts", "default": "./src/modes.ts" },
+    "./ui-chart-source": { "types": "./src/ui_chart_source.ts", "default": "./src/ui_chart_source.ts" },
     "./ui": { "types": "./src/ui.ts", "default": "./src/ui.ts" },
     "./bots-golden": { "types": "./src/bots_golden.ts", "default": "./src/bots_golden.ts" }
   },

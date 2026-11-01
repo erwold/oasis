@@ -109,7 +109,7 @@ export function interactionTurnOf(interactions: InteractionDetail[], run: Pick<R
 export function continuedParticipant(interactions: InteractionDetail[], runs: Pick<Run, 'id' | 'resumes_run_id' | 'interaction_id' | 'interaction_node'>[], run: Pick<Run, 'resumes_run_id' | 'interaction_id'> & Partial<Pick<Run, 'interaction_node'>>): Pick<InteractionTurn, 'interaction' | 'participant'> | null {
   // a node's own run is its node's (interactionTurnOf); a run with the interaction's id but no node (a follow-up a
   // newer harness kept with its group without a node) still continues its participant along the resume chain
-  if (run.interaction_id && run.interaction_node) return null
+  if (!interactions.length || !run.resumes_run_id || (run.interaction_id && run.interaction_node)) return null
   const byId = new Map(runs.map((r) => [r.id, r]))
   const seen = new Set<string>()
   let cur = run.resumes_run_id ? byId.get(run.resumes_run_id) : undefined

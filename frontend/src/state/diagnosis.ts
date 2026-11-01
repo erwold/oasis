@@ -9,6 +9,7 @@ const EXPLAIN: Record<string, Explanation> = {
   auth: { title: 'The model route refused the credentials', advice: 'The sign-in has expired or the key is wrong. Sign in again or check the key on the Accounts page, then send again.', accounts: true },
   quota: { title: "The account's quota or API credit balance is used up", advice: 'Check the account on the Accounts page. For API credits, check the provider’s balance and billing; for a subscription limit, wait for its reset. This refusal is not automatically retried. Send again after resolving it, or choose another account yourself.', accounts: true },
   rate_limit: { title: 'The provider is rate-limiting this route', advice: 'The harness already retried. Send again in a minute, or pick another model.', accounts: false },
+  input_too_large: { title: 'Message is too large.', advice: '', accounts: false },
   context_overflow: { title: "The conversation no longer fits the model's window", advice: 'Start a fresh thread in this session (the workspace stays as it is) or pick a model with a larger window.', accounts: false },
   model_unavailable: { title: 'This route does not have the model', advice: 'The provider says the model is not there for this account. Pick another model.', accounts: false },
   bad_request: { title: 'The provider refused the request', advice: 'Its reason is below. Sending the same again will not change it; if it names a tool or a parameter, the harness sent something wrong.', accounts: false },

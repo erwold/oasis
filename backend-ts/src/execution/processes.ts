@@ -511,7 +511,11 @@ export class ProcessManager {
       (!!workspaceId && repo.getWorkspace(this.conn, workspaceId)?.session_id === sessionId) || (!!runId && repo.getRun(this.conn, runId)?.session_id === sessionId)
     const out = [...this.live.values()].filter((live) => !live.exited && ofSession(live.spec.workspace_id, live.spec.run_id)).map((live) => live.xid)
     for (const [token, s] of this.starting) if (ofSession(s.workspace_id, s.run_id)) out.push(token)
-    for (const row of this.conn.all('SELECT e.id,e.workspace_id,e.run_id FROM executions e JOIN remote_jobs r ON r.execution_id=e.id')) if (ofSession(row.workspace_id as string | null, row.run_id as string | null) && this.isRunning(String(row.id))) out.push(String(row.id))
+    // Drive the lookup from the remote subset, not every execution (whose output can occupy overflow pages).
+    // SQLite may otherwise choose an executions scan, even when there are no remote jobs. Preserve execution
+    // insertion order, and keep the same ownership and live/unknown checks below — this is not a status filter.
+    const remote = this.conn.all('SELECT e.id,e.workspace_id,e.run_id FROM remote_jobs r CROSS JOIN executions e ON e.id=r.execution_id ORDER BY e.rowid')
+    for (const row of remote) if (ofSession(row.workspace_id as string | null, row.run_id as string | null) && this.isRunning(String(row.id))) out.push(String(row.id))
     return out
   }
 

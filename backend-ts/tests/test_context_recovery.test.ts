@@ -1,7 +1,7 @@
 /** Only a whole summary replaces the earlier messages: one cut at the output limit, filtered or ended by an error is
  *  not taken (the record and its tail stay); a plain-text summary still is. A provider's refusal of the context for
  *  its size is answered once: a compaction whose summary request and tail carry no text longer than the bound (each
- *  cut one says so; the person's words ride whole), taken only when the view is smaller, before the request goes
+ *  cut one says so; the pending person's words are held out and reattached whole), taken only when the view is smaller, before the request goes
  *  again — no tool runs again; when that cannot be had, the run ends as a context overflow without sending the same
  *  request again. Scripted models, no command, no real model. */
 
@@ -85,9 +85,9 @@ test('after a refusal for size: the summary request carries no text over the bou
   const [out, report] = await keeper.maybeCompact(messages, seam(model))
   expect(report!.status).toBe('compacted')
   expect(report!.trigger).toBe('overflow')
-  // the summary request: the person's latest words whole, every other text within the bound (plus its note)
+  // The pending person's words are held out of the summary; the other texts stay within the bound plus note.
   const texts0 = asked[0]!.flatMap((m) => (isRequest(m) ? m.parts.map((p) => (isToolReturn(p) ? JSON.stringify(p.content) : isUserPrompt(p) ? userText(p) : '')) : m.parts.filter(isText).map((p) => p.content)))
-  expect(texts0).toContain(words)
+  expect(texts0).not.toContain(words) // held out of the summary after the provider's refusal
   const longest = Math.max(...texts0.filter((t) => t !== words).map((t) => t.length))
   expect(longest).toBeLessThan(RECOVERY_PART_CHARS + 300)
   // the compaction request: the tail's result cut with its note; the person's words whole
@@ -316,16 +316,15 @@ test('several calls of one response before the refusal: each ran once, every ret
   for (const id of ['r0', 'r1', 'r2']) expect(has(after, `Result of tool call ${id} (read_file)`)).toBe(true)
 })
 
-test('the person\'s words alone do not fit the window: after the one recovery the provider refuses again and the run ends as a context overflow, never dropping them', async () => {
+test('the person\'s words alone do not fit the window: locally refused before any model call', async () => {
   const huge = 'An enormous request. '.repeat(40_000) + END
   const { run, seen, events } = await askedAfterTools({ calls: 1, ask: huge, limit: 400_000 })
   expect(run.status).toBe('error')
-  // (the words alone are over the keeper's threshold, so a summary may come first; the recovery is still one)
-  expect(events.filter((e) => e.event === 'run_continued').map((e) => e.data.reason)).toEqual(['context_overflow'])
-  expect(seen.length).toBeLessThanOrEqual(6)                                            // bounded: no retry loop
-  for (const s of seen) expect(has(s.messages, END)).toBe(true)                         // every request had them
-  expect(has(seen[2]!.messages, END)).toBe(true)                                        // the summary request had it whole
-  expect(events.find((e) => e.event === 'error')!.data.kind).toBe('context_overflow')
+  expect(run.error).toBe('Message is too large.')
+  expect(run.user_text).toBe(huge)
+  expect(seen).toHaveLength(0)
+  expect(events.filter((e) => e.event === 'run_continued')).toHaveLength(0)
+  expect(events.find((e) => e.event === 'error')!.data.kind).toBe('input_too_large')
 })
 
 test('the person\'s short words as the pending tail: carried once, whole, in the compaction request', async () => {

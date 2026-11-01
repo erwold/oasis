@@ -202,6 +202,7 @@ test('left out: a run excluded leaves the card\'s other rows their bots; quiesce
   expect(refused.status).toBe(409)
   const refusal = await refused.json() as Rec
   expect(refusal.code).toBe('session_active')
+  expect(JSON.stringify(refusal.reasons)).toContain('Busy member: a run is queued or running')
   expect(JSON.stringify(refusal)).not.toContain(m.id)
   // this session alone still shares
   expect((await c.post(`/api/sessions/${root.id}/share-snapshot/v3`, {})).status).toBe(200)
@@ -214,7 +215,9 @@ test('left out: a run excluded leaves the card\'s other rows their bots; quiesce
   expect(repo.sessionsOfTask(app.state.conn, root.id).length).toBe(SHARE_LIMITS_V3.max_sessions + 1)
   const tooMany = await c.post(`/api/sessions/${root.id}/share-snapshot/v3`, { include_task_sessions: true })
   expect(tooMany.status).toBe(413)
-  expect((await tooMany.json() as Rec).code).toBe('share_too_large')
+  const tooManyBody = await tooMany.json() as Rec
+  expect(tooManyBody.code).toBe('share_too_large')
+  expect(tooManyBody.detail).toBe(`the task has ${SHARE_LIMITS_V3.max_sessions + 1} sessions; a share holds at most ${SHARE_LIMITS_V3.max_sessions} — share fewer (this session alone)`)
   // exactly max_sessions: shared whole, every session in its directory
   repo.deleteSession(app.state.conn, m.id)
   const started = performance.now()

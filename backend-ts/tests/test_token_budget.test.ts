@@ -5,7 +5,8 @@
 import { afterEach, expect, test } from 'bun:test'
 import * as repo from '../src/db/repo.ts'
 import { ModelConfig } from '../src/config.ts'
-import { modelResponse, textPart, toolCallPart, userTexts, type ModelMessage } from '../src/llm/messages.ts'
+import { ContextKeeper } from '../src/agent/history.ts'
+import { isRequest, modelResponse, textPart, toolCallPart, userTexts, type ModelMessage } from '../src/llm/messages.ts'
 import { TransportError } from '../src/llm/model.ts'
 import { appState, buggyRepo, closeState, openSession, scriptedModel, testConfig, waitDone, type AppState } from './harness.ts'
 
@@ -46,19 +47,37 @@ test('a dropped connection does not start the token count again: the line is met
 }, 30_000)
 
 test('a summary spends the token budget: a request past the line it reached is not made, the closing one aside', async () => {
-  const config = testConfig([new ModelConfig({ id: 'scripted:a', label: 'A', provider: 'anthropic', model: 'a', api_key_env: 'OASIS_TEST_KEY_A', context_window: 12_000, window_source: 'test' })])
+  // The fixed frame alone estimates at ~12.1k, so 12k cannot fit even with a 1k output cap. At 28k the
+  // threshold is 19k and input limit 27k: the unchanged 390-line file triggers a summary after the 6k scripted
+  // input count, while all three actual requests fit. Size without an anchor so scripted usage cannot hide overflow.
+  const window = 28_000, output = 1_000, line = 9_000
+  const sizing = new ContextKeeper({ window, output_reserve: output })
+  const config = testConfig([new ModelConfig({ id: 'scripted:a', label: 'A', provider: 'anthropic', model: 'a', api_key_env: 'OASIS_TEST_KEY_A', context_window: window, max_tokens: output, window_source: 'test' })])
   const kinds: string[] = []
   let n = 0
-  state = await appState({ config, models: { 'scripted:a': scriptedModel((m) => {
+  state = await appState({ config, models: { 'scripted:a': scriptedModel((m, info) => {
     n += 1
+    const estimate = sizing.predict(m, { instructions: m.findLast(isRequest)?.instructions ?? '', params: info.model_request_parameters }).tokens
+    expect(info.model_settings.max_tokens).toBe(output)
+    expect(estimate).toBeLessThanOrEqual(sizing.inputLimit)
     if (isSummary(m)) { kinds.push('summary'); return modelResponse([textPart('<summary>read big.txt</summary>')], { usage: u(9000, 100) }) }
     if (isClosing(m)) { kinds.push('closing'); return modelResponse([textPart('closing report')], { usage: u(500, 10) }) }
+    expect(estimate).toBeLessThan(sizing.threshold)
     kinds.push('read')
-    return modelResponse([toolCallPart('read_file', { path: 'big.txt' }, `r${n}`)], { usage: u(3000 * n, 10) })
+    return modelResponse([toolCallPart('read_file', { path: 'big.txt' }, `r${n}`)], { usage: u(6000 * n, 10) })
   }) } })
   const { session, ws } = await openSession(state, buggyRepo())
   await Bun.write(`${ws.path}/big.txt`, Array.from({ length: 390 }, (_, i) => `line ${i} ${'lorem ipsum dolor sit amet '.repeat(4)}`).join('\n'))
-  const run = await waitDone(state, (await state.runs.start(session, 'read big', { budget: { total_tokens: 9_000 } })).id, 30_000)
+  const run = await waitDone(state, (await state.runs.start(session, 'read big', { budget: { total_tokens: line } })).id, 30_000)
+  expect(run.receipt.final_text).toBe('closing report')
+  expect(kinds).toEqual(['read', 'summary', 'closing'])
+  const compacted = repo.listEvents(state.conn, run.id).find((e) => e.event === 'context_compacted')!.data
+  expect(compacted).toMatchObject({ status: 'compacted', trigger: 'threshold', threshold_tokens: sizing.threshold })
+  expect(compacted.estimate_tokens as number).toBeGreaterThan(sizing.threshold)
+  const spend = repo.listModelRequests(state.conn, run.id).map((r) => r.input_tokens + r.output_tokens)
+  expect(spend).toEqual([6010, 9100, 510])
+  expect(spend[0]!).toBeLessThan(line)
+  expect(spend[0]! + spend[1]!).toBeGreaterThan(line)
   expect(kinds).toContain('summary')
   expect(kinds.at(-1)).toBe('closing')
   // the summary took the spend over the line: the next request is the closing one, and it is the last

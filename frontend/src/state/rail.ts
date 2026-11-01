@@ -113,6 +113,25 @@ export function railGroups(projects: Project[]): RailGroup[] {
     .map(({ project, sessions }) => ({ project, sessions, members: Object.fromEntries(sessions.filter((s) => members[s.id]).map((s) => [s.id, members[s.id]!])) }))
 }
 
+export interface RailTask { id: string; session: Session | null; members: RailMember[] }
+export interface RailProject { project: Project; tasks: RailTask[] }
+
+export function sessionPinned(session: Session): boolean {
+  return session.status === 'open' && session.pin_order != null && session.pin_order > 0
+}
+
+/** Project only after grouping the complete set: a pinned member still contributes activity to its task, and a
+ *  pinned root leaves its unpinned members anchored in the original project. No task is regrouped or re-sorted.
+ *  Pin order is independent of activity; the id breaks ties deterministically even for a loose/older response. */
+export function railView(projects: Project[]): { pinned: RailMember[]; groups: RailProject[] } {
+  const groups = railGroups(projects)
+  const pinned = projects.flatMap((project) => (project.sessions ?? []).filter(sessionPinned).map((session) => ({ session, project })))
+    .sort((a, b) => a.session.pin_order! - b.session.pin_order! || (a.session.id < b.session.id ? -1 : a.session.id > b.session.id ? 1 : 0))
+  return { pinned, groups: groups.map(({ project, sessions, members }) => ({ project, tasks: sessions.map((s) => ({
+    id: s.id, session: sessionPinned(s) ? null : s, members: (members[s.id] ?? []).filter((m) => !sessionPinned(m.session)),
+  })).filter((task) => task.session !== null || task.members.length > 0) })) }
+}
+
 /** The project already made from a folder, if any (the same folder is never imported twice). */
 /** The project a new task in the folder joins: one that opened it the same way — in place (the default since
  *  schema v19), or attached read-only — never a project that copied it (those stay as they were, with their sessions). */

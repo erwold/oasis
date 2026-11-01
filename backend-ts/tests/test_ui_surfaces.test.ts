@@ -541,7 +541,8 @@ test('the present_ui text states what the app gives an html surface and its limi
   for (const v of ['--surface', '--ink', '--ink-2', '--line', '--field', '--accent', '--accent-tint', '--radius', '--radius-sm', '--font-body', '--font-heading', '--font-mono']) expect(named).toContain(v)
   for (const v of named) expect(allowed.has(v), v).toBe(true)
   for (const c of ['green', 'orange', 'red']) expect(allowed.has(`--${c}-tint`)).toBe(true)
-  expect(d).toContain('card, its title and the Run and Stop controls')
+  expect(d).toContain('The app supplies the title and Run/Stop controls.')
+  expect(d).not.toContain('supplies the card')
   // capabilities and limits only: no suggestion of what a surface is for, and no example
   for (const text of [d, html, PROMPT_TEXT['parameter.present_ui.kind']]) {
     expect(text).not.toMatch(/\b(e\.g\.|for instance|such as|ideal for|useful for|good for|use it (?:for|to)|calculator|dashboard|simulat\w*|game|quiz|budget|planner|comparison)\b/i)

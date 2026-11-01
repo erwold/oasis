@@ -41,7 +41,7 @@ test('the manifest seals the schemas the model saw and every input', async () =>
   expect(rec(m.host).bun).toBeTruthy()
   expect(rec(m.build).api_version).toBe('code-v1')
   expect(m.api_version).toBe('code-v1')
-  expect(m.schema_version_db).toBe(35)                                            // v29: the sessions' task and roots; v28: the sessions' access and the access caps; v27: the sessions' latest activity; v26: the session cursor; v25: the collaboration model; v21: the UI surfaces and their action receipts; v22: the UI tasks and input requests; v23: session-scoped surfaces, the publication journal; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
+  expect(m.schema_version_db).toBe(37)                                            // v29: the sessions' task and roots; v28: the sessions' access and the access caps; v27: the sessions' latest activity; v26: the session cursor; v25: the collaboration model; v21: the UI surfaces and their action receipts; v22: the UI tasks and input requests; v23: session-scoped surfaces, the publication journal; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
   expect(JSON.stringify(m.model)).not.toContain('api_key')
   // the thread's next run sees more tools (the order named two): another fingerprint, again equal to its requests'
   setModel(state, 'scripted:a', scriptedModel(() => modelResponse([textPart('hi')])))

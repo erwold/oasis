@@ -8,7 +8,7 @@ import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as repo from '../src/db/repo.ts'
 import { countTokens, estimateMessages, ESTIMATE_FACTOR } from '../src/agent/context.ts'
-import { BACKOFF_SHARE, boundedSummary, ContextKeeper, isCompaction, SUMMARY_SHARE, type RequestSeam } from '../src/agent/history.ts'
+import { BACKOFF_SHARE, boundedSummary, ContextInputTooLarge, ContextKeeper, isCompaction, SUMMARY_SHARE, type RequestSeam } from '../src/agent/history.ts'
 import { isRequest, isUserPrompt, modelRequest, modelResponse, textPart, toolCallPart, toolReturn, userPrompt, userText, type ModelMessage } from '../src/llm/messages.ts'
 import type { ModelRequestParameters } from '../src/llm/model.ts'
 import { scriptedModel } from '../src/llm/scripted.ts'
@@ -129,9 +129,11 @@ test("the moved line never passes the window less the output's room", async () =
   const sent = view.length
   view = [...view, ...step(11)]
   expect((await keeper.maybeCompact(view, seam(model, { input_tokens: 19_000, messages: sent })))[1]).toBeNull()
-  const [, report] = await keeper.maybeCompact(view, seam(model, { input_tokens: 19_600, messages: sent }))
-  expect(report!.status).toBe('compacted')
-  expect(report!.trigger_tokens).toBe(19_500)
+  // The provider-counted prefix alone now exceeds the hard input budget. Even a summary cannot be sent as-is;
+  // the backoff line still stops at 19_500, but the local refusal replaces the old mock's oversized summary call.
+  await expect(keeper.maybeCompact(view, seam(model, { input_tokens: 19_600, messages: sent }))).rejects.toBeInstanceOf(ContextInputTooLarge)
+  expect(keeper.currentTrigger()).toBe(19_500)
+  expect(keeper.lastPrediction()!.tokens).toBeGreaterThan(19_500)
 })
 
 test('a run whose instructions fill most of a small window does not compact after every file it reads', async () => {

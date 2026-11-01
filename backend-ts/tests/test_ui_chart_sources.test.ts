@@ -237,3 +237,135 @@ test('a folder on the path swapped for a link between the resolution and the ope
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('progress-only source uses the same authorization and an owned execution reports crash even without a terminal record', async () => {
+  app = await createApp(testSettings(), testConfig(), { probe: false })
+  const c = new Client(app); const s = await session(c)
+  const ws = repo.getWorkspace(app.state.conn, s.workspace_id!)!
+  const execution = repo.insertExecution(app.state.conn, { run_id: null, workspace_id: ws.id, tool_call_id: null, kind: 'bash', command: 'fixture only', cwd: ws.path, isolation: {}, network: false })
+  repo.startExecution(app.state.conn, execution.id)
+  const spec = (path: string, execution_id = execution.id): Rec => ({
+    version: 1, surface_id: 'batch', title: 'Image batch', fallback: 'Image conversion progress', kind: 'native', root: 'p',
+    elements: { p: { type: 'progress', props: { source: { path, format: 'jsonl', progress: { completed: 'done', total: 'total', execution_id } } } } },
+  })
+  const { run, answers } = await presenting(s, [spec('batch.jsonl'), spec('../outside'), spec('batch.jsonl', 'not-owned')])
+  expect(answers.map((a) => a.status)).toEqual(['ok', 'invalid', 'invalid'])
+  writeFileSync(join(ws.path, 'batch.jsonl'), '{"done":2,"total":8}\n')
+  const get = () => c.get(sourcePath(s, run.id, 'batch', 'p'), { revision: 1, offset: 0 })
+  expect((await json<Rec>(await get())).execution).toEqual({ status: 'running', exit_code: null })
+  repo.finishExecution(app.state.conn, execution.id, { status: 'failed', exit_code: 7, timed_out: false, cancelled: false, truncated: false, stdout_asset_id: null, stderr_asset_id: null, stdout_bytes: 0, stderr_bytes: 0, duration_ms: 100 })
+  expect((await json<Rec>(await get())).execution).toEqual({ status: 'failed', exit_code: 7 })
+  rmSync(join(ws.path, 'batch.jsonl'))
+  expect(await json<Rec>(await get())).toMatchObject({ status: 'missing', execution: { status: 'failed', exit_code: 7 } })
+})
+
+test('share v2/v3 samples progress before projection: full partial-record history, timestamp, redaction and excluded writers', async () => {
+  app = await createApp(testSettings(), testConfig(), { probe: false })
+  const c = new Client(app); const s = await session(c)
+  const ws = repo.getWorkspace(app.state.conn, s.workspace_id!)!
+  const file = join(ws.path, 'batch.jsonl')
+  const log = 'batch checkpoint written'
+  // The total is not in the tail: only replay of the partial-update stream can recover it.
+  writeFileSync(file, '{"done":1,"total":80,"rate":2}\n' + '{"padding":"unused"}\n'.repeat(60_000) + JSON.stringify({ done: 23, log, status: 'running' }) + '\n{half')
+  const spec: Rec = { version: 1, surface_id: 'batch', title: 'Batch card', fallback: 'Image batch progress', kind: 'native', root: 'p',
+    elements: { p: { type: 'progress', props: { source: { path: 'batch.jsonl', format: 'jsonl', progress: { completed: 'done', total: 'total', rate: 'rate', status: 'status', log: 'log' } } } } } }
+  const { run } = await presenting(s, [{ ...spec, scope: 'session', expected_revision: 0 }])
+  for (const version of ['', '/v3']) {
+    const share = await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot${version}`, { include_tool_details: false }))
+    const text = JSON.stringify(share.snapshot)
+    expect(text).toContain('progress snapshot')
+    expect(text).toContain('23 / 80')
+    expect(text).not.toContain(log)
+    expect(text).not.toContain('batch.jsonl')
+    expect(text).not.toContain(ws.path)
+    expect(text).not.toContain(run.id)
+  }
+  const detailed = await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { include_tool_details: true }))
+  expect(JSON.stringify(detailed.snapshot)).toContain(log)
+  const skipped = await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { exclude_run_ids: [run.id] }))
+  expect(JSON.stringify(skipped.snapshot)).not.toContain('progress snapshot')
+  const { run: writer } = await presenting(s, [{ ...spec, scope: 'session', expected_revision: 1 }])
+  const updated = await json<any>(await c.post(`/api/sessions/${s.id}/share-snapshot`, {}))
+  const progressRows = updated.snapshot.items.filter((i: Rec) => typeof i.target === 'string' && i.target.includes('progress snapshot'))
+  expect(progressRows).toHaveLength(1)
+  expect(progressRows[0].run).toBe(updated.selection.runs.find((r: Rec) => r.run_id === writer.id).key)
+  const hiddenWriter = await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { exclude_run_ids: [writer.id] }))
+  expect(JSON.stringify(hiddenWriter.snapshot)).not.toContain('progress snapshot')
+})
+
+test('share progress never exports logs from unknown or sensitive executions even through an ordinary source path', async () => {
+  app = await createApp(testSettings(), testConfig(), { probe: false })
+  const c = new Client(app); const s = await session(c)
+  const ws = repo.getWorkspace(app.state.conn, s.workspace_id!)!
+  const e = repo.insertExecution(app.state.conn, { run_id: null, workspace_id: ws.id, tool_call_id: null, kind: 'bash', command: 'fixture only', cwd: ws.path, isolation: {}, network: false })
+  writeFileSync(join(ws.path, 'ordinary.jsonl'), '{"done":7,"log":"sensitive-command-canary"}\n')
+  const { run } = await presenting(s, [{ version: 1, surface_id: 'safe_name', title: 'Batch', fallback: 'Batch', kind: 'native', root: 'p', elements: {
+    p: { type: 'progress', props: { source: { path: 'ordinary.jsonl', format: 'jsonl', progress: { completed: 'done', log: 'log', execution_id: e.id } } } },
+  } }])
+  const share = async () => JSON.stringify((await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { include_tool_details: true }))).snapshot)
+  expect(await share()).not.toContain('sensitive-command-canary') // ownership is not provenance
+  const seq = repo.listEvents(app.state.conn, run.id).at(-1)!.seq
+  repo.insertEvent(app.state.conn, run.id, seq + 1, 'tool_call', { tool: 'bash', tool_call_id: 'sensitive_fixture', command: 'cat .env' })
+  repo.insertEvent(app.state.conn, run.id, seq + 2, 'tool_result', { tool: 'bash', tool_call_id: 'sensitive_fixture', execution_id: e.id, status: 'ok' })
+  const text = await share()
+  expect(text).not.toContain('sensitive-command-canary')
+  expect(text).not.toContain('progress snapshot')
+  expect(text).not.toContain(e.id)
+})
+
+test('share classifies the opened canonical file, not only the benign symlink name; normal absolute workspace sources remain shareable', async () => {
+  app = await createApp(testSettings(), testConfig(), { probe: false })
+  const c = new Client(app); const s = await session(c)
+  const ws = repo.getWorkspace(app.state.conn, s.workspace_id!)!
+  writeFileSync(join(ws.path, '.env'), '{"done":9876,"log":"SYMLINK_SECRET_CANARY"}\n')
+  symlinkSync(join(ws.path, '.env'), join(ws.path, 'ordinary.jsonl'))
+  const spec = (path: string): Rec => ({ version: 1, surface_id: 'canonical', title: 'Batch', fallback: 'Batch progress', kind: 'native', root: 'p', elements: {
+    p: { type: 'progress', props: { source: { path, format: 'jsonl', progress: { completed: 'done', log: 'log' } } } },
+  } })
+  await presenting(s, [spec('ordinary.jsonl')])
+  const shared = await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { include_tool_details: true }))
+  expect(JSON.stringify(shared.snapshot)).not.toContain('SYMLINK_SECRET_CANARY')
+  expect(JSON.stringify(shared.snapshot)).not.toContain('9876')
+  writeFileSync(join(ws.path, 'normal.jsonl'), '{"done":3,"log":"normal-log"}\n')
+  await presenting(s, [spec(join(ws.path, 'normal.jsonl'))])
+  const normal = await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { include_tool_details: true }))
+  expect(JSON.stringify(normal.snapshot)).toContain('normal-log')
+  expect(JSON.stringify(normal.snapshot)).not.toContain(ws.path)
+})
+
+test('share reports truncated recent logs and does not attach snapshots to superseded revisions', async () => {
+  app = await createApp(testSettings(), testConfig(), { probe: false })
+  const c = new Client(app); const s = await session(c)
+  const ws = repo.getWorkspace(app.state.conn, s.workspace_id!)!
+  writeFileSync(join(ws.path, 'trim.jsonl'), Array.from({ length: 7 }, (_, i) => JSON.stringify({ done: i, log: 'z'.repeat(2500) })).join('\n') + '\n')
+  const spec: Rec = { version: 1, surface_id: 'trim', title: 'Batch', fallback: 'Batch', kind: 'native', root: 'p', elements: {
+    p: { type: 'progress', props: { source: { path: 'trim.jsonl', format: 'jsonl', progress: { completed: 'done', log: 'log' } } } },
+  } }
+  await presenting(s, [spec, spec])
+  const share = await json<any>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { include_tool_details: true }))
+  const snapshots = share.snapshot.items.filter((i: Rec) => typeof i.target === 'string' && i.target.includes('progress snapshot'))
+  expect(snapshots).toHaveLength(1)
+  expect(snapshots[0].details.preview_truncated).toBe(true)
+})
+
+test('a proven human command may share its progress; sampling cap leaves explicit not_sampled entries', async () => {
+  const { recordHumanRun } = await import('../src/agent/human_runs.ts')
+  app = await createApp(testSettings(), testConfig(), { probe: false })
+  const c = new Client(app); const s = await session(c)
+  const ws = repo.getWorkspace(app.state.conn, s.workspace_id!)!
+  const e = repo.insertExecution(app.state.conn, { run_id: null, workspace_id: ws.id, tool_call_id: null, kind: 'command', command: 'printf fixture', cwd: ws.path, isolation: {}, network: false })
+  repo.finishExecution(app.state.conn, e.id, { status: 'succeeded', exit_code: 0, cancelled: false, timed_out: false, truncated: false, stdout_asset_id: null, stderr_asset_id: null, stdout_bytes: 0, stderr_bytes: 0, duration_ms: 1 })
+  recordHumanRun(app.state.conn, { session_id: s.id, project_id: s.project_id, workspace_id: ws.id, label: 'command (connector)', kind: 'command', text: '$ printf fixture\n→ exit 0', produced: { workspace_id: ws.id, executions: [e.id] } })
+  writeFileSync(join(ws.path, 'human.jsonl'), '{"done":4,"log":"human-command-progress"}\n')
+  const children = Array.from({ length: 21 }, (_, i) => `p${i}`)
+  await presenting(s, [{ version: 1, surface_id: 'human', title: 'Human batch', fallback: 'Batch', kind: 'native', root: 'r', elements: {
+    r: { type: 'stack', children }, ...Object.fromEntries(children.map((id) => [id, { type: 'progress', props: { source: { path: 'human.jsonl', format: 'jsonl', progress: { completed: 'done', log: 'log', execution_id: e.id } } } }])),
+  } }])
+  const { sampleShareProgress } = await import('../src/share/progress.ts')
+  const samples = [...(await sampleShareProgress(app.state, [s.id], [])).values()].flat()
+  expect(samples).toHaveLength(21)
+  expect(samples[20]!.availability).toBe('not_sampled')
+  const shared = await json<Rec>(await c.post(`/api/sessions/${s.id}/share-snapshot`, { include_tool_details: true }))
+  expect(JSON.stringify(shared.snapshot)).toContain('human-command-progress')
+  expect(JSON.stringify(shared.snapshot)).not.toContain(e.id)
+})

@@ -26,7 +26,7 @@ export function steps(work) {
     vite: { cwd: join(REPO, 'frontend'), cmd: process.execPath, env: { OASIS_CODE_INPUTS_OUT: feInputs },
       args: [join(REPO, 'frontend', 'node_modules', 'vite', 'bin', 'vite.js'), 'build', '--configLoader', 'native', '--config', '../scripts/oss/vite-inputs.config.mjs', '--outDir', join(work, 'frontend-dist'), '--emptyOutDir', 'false', '--logLevel', 'warn'] },
     bun: { cwd: join(REPO, 'backend-ts'), cmd: 'bun', env: {},
-      args: ['build', '--target=bun', 'src/index.ts', 'src/execution/fork_watch_worker.ts', 'src/share/live/projector_worker.ts', '--outdir', join(work, 'backend-bundle'), `--metafile=${beMeta}`] },
+      args: ['build', '--target=bun', 'src/index.ts', 'src/execution/fork_watch_worker.ts', 'src/share/live/projector_worker.ts', 'src/agent/context_report_worker.ts', '--outdir', join(work, 'backend-bundle'), `--metafile=${beMeta}`] },
   }
 }
 

@@ -310,3 +310,85 @@ test('the activity is read one at a time: reads asked meanwhile wait and become 
   assert.equal(activityMaxInFlight, 1)
   assert.equal(activityReads, 2)
 })
+
+test('the rail context and hover menus pin/unpin through the store, render each row once, and surface failures', async () => {
+  const projects = projectList()
+  let failPin = false
+  let writes = 0
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    const path = String(url)
+    if (path === '/api/projects') return json(projects)
+    if (path === '/api/sessions/s_bg/pin') {
+      writes += 1
+      if (failPin) return new Response(JSON.stringify({ detail: 'pin refused' }), { status: 409 })
+      const session = projects[0]!.sessions.find((s) => s.id === 's_bg')! as typeof SESSIONS[number] & { pin_order?: number | null }
+      session.pin_order = JSON.parse(init!.body as string).pinned ? 1 : null
+      return json(session)
+    }
+    return json({ sessions: {} })
+  }) as typeof fetch
+  await act(async () => { await useStore.getState().loadProjects() })
+  const original = [...container.querySelectorAll('.rail-session')].map((e) => e.getAttribute('data-testid'))
+  const click = async (selector: string) => {
+    await act(async () => { container.querySelector<HTMLElement>(selector)!.click() })
+    await flush()
+  }
+  await act(async () => {
+    container.querySelector('[data-testid="session-s_bg"]')!.dispatchEvent(new dom.window.MouseEvent('contextmenu', { bubbles: true, clientX: 20, clientY: 30 }))
+  })
+  assert.equal(container.querySelector('[data-testid="session-pin"]')!.textContent, 'Pin')
+  await click('[data-testid="session-pin"]')
+  assert.equal(writes, 1)
+  assert.ok(container.querySelector('[data-testid="rail-pinned"] [data-testid="session-s_bg"]'))
+  assert.equal(container.querySelectorAll('[data-testid="session-s_bg"]').length, 1)
+  assert.equal(container.querySelector('.rail-session')!.getAttribute('data-testid'), 'session-s_bg')
+  await click('[data-testid="session-more-s_bg"]')
+  assert.equal(container.querySelector('[data-testid="session-pin"]')!.textContent, 'Unpin')
+  await click('[data-testid="session-pin"]')
+  assert.equal(container.querySelector('[data-testid="rail-pinned"]'), null)
+  assert.deepEqual([...container.querySelectorAll('.rail-session')].map((e) => e.getAttribute('data-testid')), original)
+  failPin = true
+  await click('[data-testid="session-more-s_bg"]')
+  await click('[data-testid="session-pin"]')
+  assert.equal(container.querySelector('[data-testid="rail-pinned"]'), null)
+  assert.match(String(useStore.getState().toast), /pin refused/)
+})
+
+
+for (const pinned of [true, false]) test(`an older project poll cannot undo ${pinned ? 'Pin' : 'Unpin'} after its refresh landed`, async () => {
+  const old = projectList().map((p) => ({ ...p, sessions: p.sessions.map((s) => ({ ...s, pin_order: s.id === 's_bg' && !pinned ? 1 : null })) }))
+  const fresh = structuredClone(old)
+  fresh[0]!.sessions.find((s) => s.id === 's_bg')!.pin_order = pinned ? 1 : null
+  let release!: (r: Response) => void
+  const delayed = new Promise<Response>((r) => { release = r })
+  let reads = 0
+  globalThis.fetch = (async (url: unknown) => {
+    if (String(url) === '/api/projects') return ++reads === 1 ? delayed : json(fresh)
+    if (String(url) === '/api/sessions/s_bg/pin') return json(fresh[0]!.sessions.find((s) => s.id === 's_bg'))
+    return json({ sessions: {} })
+  }) as typeof fetch
+  await act(async () => { useStore.setState({ projects: old as never }) })
+  let stale!: Promise<void>
+  await act(async () => { stale = useStore.getState().loadProjects() })
+  await act(async () => { await useStore.getState().pinSession('s_bg', pinned) })
+  const accepted = useStore.getState().projects
+  assert.equal(!!container.querySelector('[data-testid="rail-pinned"] [data-testid="session-s_bg"]'), pinned)
+  await act(async () => { release(json(old)); await stale })
+  assert.equal(useStore.getState().projects, accepted)
+  assert.equal(!!container.querySelector('[data-testid="rail-pinned"] [data-testid="session-s_bg"]'), pinned)
+})
+
+test('a failed newer project request still invalidates an older in-flight poll', async () => {
+  const kept = projectList()
+  await act(async () => { useStore.setState({ projects: kept as never }) })
+  let release!: (r: Response) => void
+  const delayed = new Promise<Response>((r) => { release = r })
+  let reads = 0
+  globalThis.fetch = (async () => ++reads === 1 ? delayed : new Response('refresh failed', { status: 503 })) as typeof fetch
+  let stale!: Promise<void>
+  await act(async () => { stale = useStore.getState().loadProjects() })
+  await act(async () => { await assert.rejects(useStore.getState().loadProjects()) })
+  await act(async () => { release(json([])); await stale })
+  assert.equal(useStore.getState().projects, kept)
+  assert.equal(container.querySelectorAll('.rail-session').length, SESSIONS.length)
+})

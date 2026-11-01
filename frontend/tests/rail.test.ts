@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Project } from '../src/api/types'
-import { crumbsOf, folderName, humanBytes, projectForFolder, railGroups, refusalLine, sessionTitle, targetLabel } from '../src/state/rail.ts'
+import { crumbsOf, folderName, humanBytes, projectForFolder, railGroups, railView, refusalLine, sessionTitle, targetLabel } from '../src/state/rail.ts'
 
 const baseSession = (projectId: string) => ({ project_id: projectId, title: 's', title_source: 'auto' as const, workspace_id: null, model: 'm', grants: { workspace_write: true, run_commands: true, attached_write: false, network: false, network_until: null, network_reason: null }, access_mode: 'sandbox' as const, status: 'open' })
 const project = (id: string, updated: string, source: string | null, sessions: { id: string; updated_at: string }[]): Project => ({
@@ -80,4 +80,62 @@ test('an attached folder is labelled so, and the refusal line says what was meas
   assert.equal(line, 'Downloads is at least 2.5 GB in 1,200 files — too big to copy (the snapshot limit is 2.0 GB).')
   const byFiles = refusalLine({ source_path: '/x/stuff', measured: { bytes: 5000, files: 20001, stopped_early: true }, limits: { max_bytes: 2 * 1024 ** 3, max_files: 20000 } })
   assert.equal(byFiles, 'stuff is at least 5 kB in 20,001 files — too big to copy (the snapshot limit is 20,000 files).')
+})
+
+
+test('pins project the fully sorted rail: stable append order, No folder, unpin, activity and legacy answers', () => {
+  const projects = [
+    project('folder', '2026-01-01', '/code', [{ id: 'a', updated_at: '2026-01-02' }, { id: 'b', updated_at: '2026-01-03' }]),
+    { ...project('no-folder', '2026-01-01', null, [{ id: 'c', updated_at: '2026-01-04' }]), config: { no_folder: true } },
+    project('empty', '2026-01-01', '/empty', []),
+  ]
+  const ordinary = (ps: Project[]) => railView(ps).groups.map((g) => [g.project.id, g.tasks.map((t) => [t.session?.id ?? null, t.members.map((m) => m.session.id)])])
+  const original = ordinary(projects)
+  const a = projects[0]!.sessions![0]!, c = projects[1]!.sessions![0]!
+  a.pin_order = 1; c.pin_order = 2
+  assert.deepEqual(railView(projects).pinned.map((m) => m.session.id), ['a', 'c'])
+  assert.deepEqual(railView(projects).groups.map((g) => g.project.id), railGroups(projects).map((g) => g.project.id))
+  assert.deepEqual(railView(projects).groups.flatMap((g) => g.tasks.map((t) => t.session?.id)), ['b'])
+  // A new No folder session and activity of a pin cannot steal another pin's place.
+  projects[1]!.sessions!.push({ ...c, id: 'new', pin_order: null, updated_at: '2026-12-31' })
+  c.last_activity_at = '2027-01-01'
+  assert.deepEqual(railView(projects).pinned.map((m) => m.session.id), ['a', 'c'])
+  projects[1]!.sessions!.pop(); delete c.last_activity_at
+  a.pin_order = null; c.pin_order = null
+  assert.deepEqual(ordinary(projects), original)
+  // Defensive tie-break for loose wire records, irrespective of input order.
+  a.pin_order = 7; c.pin_order = 7
+  assert.deepEqual(railView([...projects].reverse()).pinned.map((m) => m.session.id), ['a', 'c'])
+  a.status = 'archived'
+  assert.deepEqual(railView(projects).pinned.map((m) => m.session.id), ['c'])
+})
+
+test('root and intermediate pins preserve cross-project multi-level members, their activity and unique rows', () => {
+  const projects = [
+    project('root-project', '2026-01-01', '/root', [{ id: 'root', updated_at: '2026-01-01' }, { id: 'other', updated_at: '2026-01-05' }]),
+    project('middle-project', '2026-01-01', '/middle', [{ id: 'middle', updated_at: '2026-01-02' }]),
+    project('leaf-project', '2026-01-01', null, [{ id: 'leaf', updated_at: '2026-01-10' }]),
+  ]
+  const root = projects[0]!.sessions![0]!, middle = projects[1]!.sessions![0]!, leaf = projects[2]!.sessions![0]!
+  middle.task_root_id = root.id; leaf.task_root_id = middle.id
+  const baseline = railGroups(projects)
+  for (const pins of [[root], [middle], [leaf], [root, middle], [root, leaf], [root, middle, leaf]]) {
+    for (const s of [root, middle, leaf]) s.pin_order = null
+    pins.forEach((s, i) => { s.pin_order = i + 1 })
+    const view = railView(projects)
+    assert.deepEqual(view.groups.map((g) => g.project.id), baseline.map((g) => g.project.id))
+    const pinnedIds = new Set(pins.map((s) => s.id))
+    for (const [i, group] of view.groups.entries()) {
+      const old = baseline[i]!
+      const expected = old.sessions.map((s) => ({ id: s.id, session: pinnedIds.has(s.id) ? null : s,
+        members: (old.members[s.id] ?? []).filter((m) => !pinnedIds.has(m.session.id)) }))
+        .filter((t) => t.session || t.members.length)
+      assert.deepEqual(group.tasks, expected)
+    }
+    const allIds = [...view.pinned.map((m) => m.session.id), ...view.groups.flatMap((g) => g.tasks.flatMap((t) => [...(t.session ? [t.session.id] : []), ...t.members.map((m) => m.session.id)]))]
+    assert.equal(new Set(allIds).size, allIds.length)
+    assert.deepEqual([...allIds].sort(), ['leaf', 'middle', 'other', 'root'])
+    const rootGroup = view.groups.find((g) => g.project.id === 'root-project')!
+    if (!pinnedIds.has('leaf')) assert.ok(rootGroup.tasks.find((t) => t.id === 'root')!.members.some((m) => m.session.id === 'leaf'))
+  }
 })

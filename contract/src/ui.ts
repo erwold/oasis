@@ -172,7 +172,7 @@ export function uiValueText(v: UiResolved): string {
 // ---- elements --------------------------------------------------------------------------------------------------------
 
 export const UI_ELEMENT_TYPES = [
-  'stack', 'row', 'card', 'text', 'metric', 'table', 'chart', 'input', 'select', 'slider', 'checkbox', 'button', 'image', 'divider',
+  'stack', 'row', 'card', 'text', 'metric', 'table', 'chart', 'progress', 'input', 'select', 'slider', 'checkbox', 'button', 'image', 'divider',
 ] as const
 export type UiElementType = (typeof UI_ELEMENT_TYPES)[number]
 /** The element types that hold children; every other type is a leaf. */
@@ -266,14 +266,45 @@ export const UiChartFileSeriesSchema = z.strictObject({
   line_style: z.enum(UI_CHART_LINE_STYLES).optional(),
 })
 export type UiChartFileSeries = z.infer<typeof UiChartFileSeriesSchema>
+/** Optional task fields in each complete record. Numeric fields are nonnegative; rate is units/s and eta is
+ * seconds. Status is explicit (running/succeeded/failed/cancelled), never inferred from completed/total.
+ * execution_id binds the writer's command: its terminal result takes precedence and waits for the file's EOF. */
+export const UiTaskProgressSchema = z.strictObject({
+  completed: ColumnNameSchema.optional(), total: ColumnNameSchema.optional(),
+  rate: ColumnNameSchema.optional(), eta: ColumnNameSchema.optional(),
+  status: ColumnNameSchema.optional(), log: ColumnNameSchema.optional(),
+  execution_id: z.string().min(1).max(200).optional(),
+})
+export const UiProgressStatusSchema = z.enum(['running', 'succeeded', 'failed', 'cancelled'])
+export type UiProgressStatus = z.infer<typeof UiProgressStatusSchema>
+export const UiTaskExecutionSchema = z.object({
+  status: z.enum(['running', 'succeeded', 'failed', 'cancelled', 'unknown']),
+  exit_code: z.number().int().nullable(),
+})
+export type UiTaskExecution = z.infer<typeof UiTaskExecutionSchema>
 export const UiChartSourceSchema = z.strictObject({
   path: z.string().min(1).max(UI_CHART_SOURCE_LIMITS.pathChars).regex(NO_CONTROL, 'a path has no control characters'),
   format: z.enum(UI_CHART_SOURCE_FORMATS),
+  progress: UiTaskProgressSchema.optional(),
   /** the JSON key or CSV header name of the x value */
   x: ColumnNameSchema,
   series: z.array(UiChartFileSeriesSchema).min(1).max(UI_LIMITS.chartSeries),
 })
 export type UiChartSource = z.infer<typeof UiChartSourceSchema>
+/** A progress-only card uses the same reader, without asking for an x axis or a series. */
+export const UiProgressElementSchema = z.strictObject({
+  type: z.literal('progress'),
+  props: z.strictObject({
+    label: Label.optional(),
+    source: UiChartSourceSchema.omit({ x: true, series: true }).extend({ progress: UiTaskProgressSchema }),
+  }),
+})
+export function uiFileSource(el: UiElement): UiChartSource | undefined {
+  if (el.type === 'chart') return el.props.source
+  if (el.type === 'progress') return { ...el.props.source, x: 'step', series: [] }
+  return undefined
+}
+
 
 /** A chart: `data` (a bar or a line chart of labelled values, as ever) or — a line chart only — `series` on an x axis
  *  of its own (`x_axis` then required), or `source`: series read from a file (UiChartSourceSchema; `x_axis` required).
@@ -304,7 +335,7 @@ export function uiChartPointCount(props: Pick<UiChartProps, 'data' | 'series'>):
 export function uiChartSources(spec: Pick<UiSurfaceSpec, 'kind' | 'elements'>): Array<{ id: string; source: UiChartSource }> {
   if (spec.kind !== 'native') return []
   const out: Array<{ id: string; source: UiChartSource }> = []
-  for (const [id, el] of Object.entries(spec.elements ?? {})) if (el.type === 'chart' && el.props.source !== undefined) out.push({ id, source: el.props.source })
+  for (const [id, el] of Object.entries(spec.elements ?? {})) { const source = uiFileSource(el); if (source) out.push({ id, source }) }
   return out
 }
 
@@ -381,7 +412,7 @@ export const UiDividerElementSchema = z.strictObject({ type: z.literal('divider'
 
 export const UiElementSchema = z.discriminatedUnion('type', [
   UiStackElementSchema, UiRowElementSchema, UiCardElementSchema, UiTextElementSchema, UiMetricElementSchema,
-  UiTableElementSchema, UiChartElementSchema, UiInputElementSchema, UiSelectElementSchema, UiSliderElementSchema,
+  UiTableElementSchema, UiChartElementSchema, UiProgressElementSchema, UiInputElementSchema, UiSelectElementSchema, UiSliderElementSchema,
   UiCheckboxElementSchema, UiButtonElementSchema, UiImageElementSchema, UiDividerElementSchema,
 ])
 export type UiElement = z.infer<typeof UiElementSchema>
@@ -1014,8 +1045,10 @@ export const UiChartSourcePageSchema = z.discriminatedUnion('status', [
     status: z.literal('ok'), file_id: z.string(), size: z.number().int().min(0), mtime_ms: z.number(),
     offset: z.number().int().min(0), next_offset: z.number().int().min(0), eof: z.boolean(), data: z.string(),
     head: z.string(), anchor: z.string().nullable(), crc: z.number().int().nullable(),
+    execution: UiTaskExecutionSchema.optional(),
   }),
-  z.object({ status: z.literal('missing'), reason: z.string() }),
+  z.object({ status: z.literal('missing'), reason: z.string(), execution: UiTaskExecutionSchema.optional() }),
+  z.object({ status: z.literal('unavailable'), reason: z.string(), execution: UiTaskExecutionSchema }),
 ])
 export type UiChartSourcePage = z.infer<typeof UiChartSourcePageSchema>
 

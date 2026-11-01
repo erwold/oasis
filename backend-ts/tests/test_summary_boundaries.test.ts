@@ -7,14 +7,17 @@ import { afterEach, beforeEach, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as repo from '../src/db/repo.ts'
+import { ModelConfig } from '../src/config.ts'
+import { ContextKeeper } from '../src/agent/history.ts'
+import type { Script } from '../src/llm/scripted.ts'
 import { isRequest, isUserPrompt, loadValue, modelResponse, toolReturns, textPart, toolCallPart, userText, userTexts, type ModelMessage } from '../src/llm/messages.ts'
 import { PROMPT_TEXT } from '../src/prompt_texts.ts'
 import { ModelHTTPError } from '../src/llm/model.ts'
-import { appState, buggyRepo, closeState, openSession, scriptedModel, setModel, sleep, waitDone, type AppState } from './harness.ts'
+import { appState, buggyRepo, closeState, openSession, scriptedModel, setModel, sleep, testConfig, waitDone, type AppState } from './harness.ts'
 
 let state: AppState | null = null
 const prior = process.env.OASIS_CODE_CONTEXT_WINDOW_TOKENS
-// a 40 000-token window: the threshold is 40 000 − 4 096 − 8 000; a first request counted at 31 000 is over it
+// Explicit 4_096 output: threshold 27_904 < counted input 31_000 < hard input limit 35_904.
 beforeEach(() => { process.env.OASIS_CODE_CONTEXT_WINDOW_TOKENS = '40000' })
 afterEach(async () => {
   if (prior === undefined) delete process.env.OASIS_CODE_CONTEXT_WINDOW_TOKENS; else process.env.OASIS_CODE_CONTEXT_WINDOW_TOKENS = prior
@@ -27,13 +30,26 @@ const asksSummary = (messages: ModelMessage[]) => {
   return isRequest(last) && last.parts.some((p) => isUserPrompt(p) && userText(p) === PROMPT_TEXT['compaction.request'])
 }
 const counted = (parts: Parameters<typeof modelResponse>[0]) => modelResponse(parts, { usage: { input_tokens: 31_000, output_tokens: 10 } as never })
+const boundaryState = () => appState({ sandbox: true, config: testConfig([
+  new ModelConfig({ id: 'scripted:a', label: 'A', provider: 'anthropic', model: 'scripted-a', api_key_env: 'OASIS_TEST_KEY_A', max_tokens: 4096 }),
+]) })
+function boundaryModel(script: Script) {
+  const sizing = new ContextKeeper({ window: 40_000, output_reserve: 4096 })
+  return scriptedModel((messages, info) => {
+    const estimate = sizing.predict(messages, { instructions: messages.findLast(isRequest)?.instructions ?? '', params: info.model_request_parameters }).tokens
+    expect(info.model_settings.max_tokens).toBe(4096)
+    expect(estimate).toBeLessThanOrEqual(sizing.inputLimit)
+    return script(messages, info)
+  })
+}
+
 
 test('a Stop during the summary request aborts it and ends the run cancelled; nothing runs after it', async () => {
-  state = await appState({ sandbox: true })
+  state = await boundaryState()
   const { session, ws } = await openSession(state, buggyRepo())
   let summaryStarted = false
   let after = 0
-  setModel(state, 'scripted:a', scriptedModel(async (messages) => {
+  setModel(state, 'scripted:a', boundaryModel(async (messages) => {
     if (asksSummary(messages)) { summaryStarted = true; await sleep(30_000); return modelResponse([textPart('<summary>too late</summary>')]) }
     if (summaryStarted) { after += 1; return modelResponse([toolCallPart('write_file', { path: 'after-stop.txt', content: 'LATE' }, 'late')]) }
     return counted([toolCallPart('read_file', { path: 'calc.py' }, 'r1')])
@@ -51,10 +67,10 @@ test('a Stop during the summary request aborts it and ends the run cancelled; no
 })
 
 test('a request budget reached by the summary leaves only the report-only closing request: no tool of a later request runs', async () => {
-  state = await appState({ sandbox: true })
+  state = await boundaryState()
   const { session, ws } = await openSession(state, buggyRepo())
   const kinds: string[] = []
-  setModel(state, 'scripted:a', scriptedModel((messages) => {
+  setModel(state, 'scripted:a', boundaryModel((messages) => {
     if (asksSummary(messages)) { kinds.push('summary'); return modelResponse([textPart('<summary>calc.py was read.</summary>')]) }
     const closing = userTexts(messages).some((t) => t.includes('No tools are available'))
     if (closing) { kinds.push('closing'); return modelResponse([textPart('closing report')]) }
@@ -70,10 +86,10 @@ test('a request budget reached by the summary leaves only the report-only closin
 })
 
 test('with room in the budget the summary is made and the run goes on with its tools', async () => {
-  state = await appState({ sandbox: true })
+  state = await boundaryState()
   const { session } = await openSession(state, buggyRepo())
   const kinds: string[] = []
-  setModel(state, 'scripted:a', scriptedModel((messages) => {
+  setModel(state, 'scripted:a', boundaryModel((messages) => {
     if (asksSummary(messages)) { kinds.push('summary'); return modelResponse([textPart('<summary>calc.py was read.</summary>')]) }
     kinds.push('ordinary')
     return kinds.length === 1 ? counted([toolCallPart('read_file', { path: 'calc.py' }, 'r1')]) : modelResponse([textPart('done')])
@@ -85,10 +101,10 @@ test('with room in the budget the summary is made and the run goes on with its t
 })
 
 test('a budget with no request left asks no summary: the closing request is made as it is', async () => {
-  state = await appState({ sandbox: true })
+  state = await boundaryState()
   const { session } = await openSession(state, buggyRepo())
   const kinds: string[] = []
-  setModel(state, 'scripted:a', scriptedModel((messages) => {
+  setModel(state, 'scripted:a', boundaryModel((messages) => {
     if (asksSummary(messages)) { kinds.push('summary'); return modelResponse([textPart('<summary>x</summary>')]) }
     if (userTexts(messages).some((t) => t.includes('No tools are available'))) { kinds.push('closing'); return modelResponse([textPart('closing report')]) }
     kinds.push('ordinary')
@@ -100,10 +116,10 @@ test('a budget with no request left asks no summary: the closing request is made
 })
 
 test('a summary the provider refuses is a request spent: the next is the closing one, and nothing of it runs', async () => {
-  state = await appState({ sandbox: true })
+  state = await boundaryState()
   const { session, ws } = await openSession(state, buggyRepo())
   const kinds: string[] = []
-  setModel(state, 'scripted:a', scriptedModel((messages) => {
+  setModel(state, 'scripted:a', boundaryModel((messages) => {
     if (asksSummary(messages)) { kinds.push('summary'); throw new ModelHTTPError(400, 'scripted-a', { error: { message: 'summary refused' } }) }
     if (userTexts(messages).some((t) => t.includes('No tools are available'))) { kinds.push('closing'); return modelResponse([toolCallPart('write_file', { path: 'after-budget.txt', content: 'OVER' }, 'w2')]) }
     kinds.push('ordinary')
@@ -116,10 +132,10 @@ test('a summary the provider refuses is a request spent: the next is the closing
 })
 
 test('a tool-call budget of one runs that one call; a second call of the same response is refused', async () => {
-  state = await appState({ sandbox: true })
+  state = await boundaryState()
   const { session, ws } = await openSession(state, buggyRepo())
   let n = 0
-  setModel(state, 'scripted:a', scriptedModel(() => (n++ === 0
+  setModel(state, 'scripted:a', boundaryModel(() => (n++ === 0
     ? modelResponse([toolCallPart('write_file', { path: 'first.txt', content: '中文🙂' }, 'w1'), toolCallPart('write_file', { path: 'second.txt', content: 'NO' }, 'w2')])
     : modelResponse([textPart('closing report')]))))
   const run = await waitDone(state, (await state.runs.start(session, 'write', { budget: { tool_calls: 1 } })).id)

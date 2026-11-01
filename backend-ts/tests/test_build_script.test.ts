@@ -7,9 +7,9 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'n
 import { join } from 'node:path'
 import { removeDir, tempDir } from './helpers.ts'
 
-/** the compiled binary's entries: the backend, and the two workers it starts from its own file (the fork watch, the live
- *  share's projector) — a worker left out of the compile is missing from the binary */
-const ENTRIES = ['src/index.ts', 'src/execution/fork_watch_worker.ts', 'src/share/live/projector_worker.ts']
+/** the compiled binary's entries: the backend, and the three workers it starts from its own file (the fork watch, the live
+ *  share's projector, context report) — a worker left out of the compile is missing from the binary */
+const ENTRIES = ['src/index.ts', 'src/execution/fork_watch_worker.ts', 'src/share/live/projector_worker.ts', 'src/agent/context_report_worker.ts']
 const COMPILE = `bun build --compile --target=bun ${ENTRIES.join(' ')} --outfile dist/oasis-code`
 
 function buildScript(): string {
@@ -35,10 +35,10 @@ function runBuild(system: string, codesignExit: number): { code: number; signed:
   return { code: result.exitCode, signed, stderr: result.stderr.toString() }
 }
 
-test('the build script compiles its three entries and then signs on macOS', () => {
+test('the build script compiles its four entries and then signs on macOS', () => {
   const script = buildScript()
   expect(script.startsWith(`${COMPILE} && `)).toBe(true)
-  // the entries, read back from the script itself: exactly these three, each a file of this package
+  // the entries, read back from the script itself: exactly these four, each a file of this package
   const entries = /^bun build --compile --target=bun (.+?) --outfile dist\/oasis-code && /.exec(script)?.[1]?.split(' ')
   expect(entries).toEqual(ENTRIES)
   for (const entry of ENTRIES) expect(existsSync(join(import.meta.dir, '..', entry)), entry).toBe(true)

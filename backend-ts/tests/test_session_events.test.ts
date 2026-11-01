@@ -79,11 +79,11 @@ test('a v25 database migrates to v26: its events take their rowid, in written or
   fresh.close()
   // back to v25 as it stood: no cursor column, no counter
   const raw = new Database(path)
-  raw.exec('DROP INDEX run_events_by_cursor; DROP INDEX run_events_by_session_cursor; DROP TABLE event_cursor; ALTER TABLE run_events DROP COLUMN cursor; ALTER TABLE run_events DROP COLUMN session_id; PRAGMA user_version = 25;')
+  raw.exec('DROP INDEX run_events_by_cursor; DROP INDEX run_events_by_session_cursor; DROP TABLE event_cursor; ALTER TABLE run_events DROP COLUMN cursor; ALTER TABLE run_events DROP COLUMN session_id; DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 25;')
   for (let seq = 0; seq < 3; seq += 1) raw.run("INSERT INTO run_events (run_id, seq, version, event, data_json, created_at) VALUES ('r', ?, 1, 'text_block', '{}', 't')", [seq])
   raw.close()
   const migrated = connect(path)
-  expect(migrated.get('PRAGMA user_version')!.user_version).toBe(35)  // v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
+  expect(migrated.get('PRAGMA user_version')!.user_version).toBe(37)  // v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
   const rows = migrated.all('SELECT seq, cursor, session_id, rowid AS r FROM run_events ORDER BY seq')
   expect(rows.map((r) => r.cursor)).toEqual(rows.map((r) => r.r))
   expect(rows.map((r) => r.session_id)).toEqual(['s1', 's1', 's1'])

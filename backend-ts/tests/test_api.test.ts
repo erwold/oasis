@@ -252,7 +252,7 @@ test('build handshake and surface', async () => {
   expect(build.api_version).toBe('code-v1')
   expect((build.source_fingerprint as string).length).toBe(12)
   expect(rec(build.isolation).enforcement).toBe('unavailable')
-  expect(build.schema_version).toBe(35)                                           // v29: the sessions' task and roots; v28: the sessions' access and the access caps; v27: the sessions' latest activity; v26: the session cursor; v25: the collaboration model; v21: the UI surfaces and their action receipts; v22: the UI tasks and input requests; v23: session-scoped surfaces, the publication journal; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
+  expect(build.schema_version).toBe(37)                                           // v29: the sessions' task and roots; v28: the sessions' access and the access caps; v27: the sessions' latest activity; v26: the session cursor; v25: the collaboration model; v21: the UI surfaces and their action receipts; v22: the UI tasks and input requests; v23: session-scoped surfaces, the publication journal; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
   expect(build.ui_build).toBe(servedUiBuild())
   const surface = await json(await c.get('/api/agent/surface'))
   const names = new Set((surface.tools as Record<string, unknown>[]).map((t) => t.name))

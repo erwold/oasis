@@ -220,9 +220,10 @@ test("when even the summary request would not leave the output its room, the tai
   const seen: ModelMessage[][] = []
   const model = summarizer(seen)
   const messages = history(6)
-  // the prediction sits right under the window (19 000 is what the output leaves): the summary request cannot carry the tail's results
+  // Input budget 19_000: the counted prefix (18_400) leaves room for the summary prompt, but not the tail too.
+  // The old 18_900 anchor left less than the summary overhead even after omitting the tail.
   const keeper = new ContextKeeper({ window: 20_000, output_reserve: 1_000 })
-  const [out, report] = await keeper.maybeCompact(messages, seam(model, { input_tokens: 18_900, messages: messages.length - 1 }))
+  const [out, report] = await keeper.maybeCompact(messages, seam(model, { input_tokens: 18_400, messages: messages.length - 1 }))
   expect(report!.status).toBe('compacted')
   const askedTail = seen[0]![seen[0]!.length - 1] as ModelRequest
   const omitted = askedTail.parts.filter(isToolReturn)[0]!

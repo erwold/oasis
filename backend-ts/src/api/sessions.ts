@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
-import { ACTIVE_RUN_STATUSES, type BackgroundCommand, type RunCollab, DecisionBodySchema, DirectorNoteBodySchema, GrantsBodySchema, ModelBodySchema, SessionBodySchema, SessionUpdateBodySchema, WorkOrderBodySchema, type Session } from '@oasis-code/contract'
-import { contextReport } from '../agent/context_report.ts'
+import { ACTIVE_RUN_STATUSES, type BackgroundCommand, type RunCollab, DecisionBodySchema, DirectorNoteBodySchema, GrantsBodySchema, ModelBodySchema, SessionBodySchema, SessionUpdateBodySchema, SessionPinBodySchema, WorkOrderBodySchema, type Session } from '@oasis-code/contract'
+import { contextReportAsync } from '../agent/context_report.ts'
+import { ContextReportUnavailable } from '../agent/context_report_worker_client.ts'
 import { narrowOrder, OrderWidened, parseWorkOrder, WorkOrderInvalid } from '../agent/work_orders.ts'
 import * as repo from '../db/repo.ts'
 import { findModel } from '../llm/catalog.ts'
@@ -174,6 +175,14 @@ export function sessionRoutes(api: Api): Hono {
     return c.json(sessionDetail(state, repo.getSession(state.conn, session.id)!))
   })
 
+  app.put('/api/sessions/:session_id/pin', async (c) => {
+    const session = requireSession(state, c.req.param('session_id'))
+    const body = await parseBody(c, SessionPinBodySchema)
+    if (body.pinned && session.status !== 'open') throw new HttpError(409, 'only an open session can be pinned')
+    repo.setSessionPinned(state.conn, session.id, body.pinned)
+    return c.json(repo.getSession(state.conn, session.id)!)
+  })
+
   // a session with work under way is not deleted from under it: its runs are stopped first; an open director is
   // closed with it (its queued turns cancelled)
   app.delete('/api/sessions/:session_id', (c) => {
@@ -216,12 +225,16 @@ export function sessionRoutes(api: Api): Hono {
 
   /** What the session thread's next request would carry: tokens (counted for a route whose tokenizer is at hand, else
    *  the last run's labelled calibration), bytes, the window and the budget, the last run's prompt-cache series. */
-  app.get('/api/sessions/:session_id/context', (c) => {
+  app.get('/api/sessions/:session_id/context', async (c) => {
     const sessionId = c.req.param('session_id')
     requireSession(state, sessionId)
     const model = c.req.query('model') ?? null
     if (model !== null && !state.runs.knowsModel(model)) throw new HttpError(400, `unknown model: ${model}`)
-    return c.json(contextReport(state, sessionId, model))
+    try { return c.json(await contextReportAsync(state, sessionId, model)) }
+    catch (error) {
+      if (error instanceof ContextReportUnavailable) throw new HttpError(503, error.message)
+      throw error
+    }
   })
 
   /** The replay (adapted from oasis's project replay, see NOTICE): every run of the session as a tree row and every

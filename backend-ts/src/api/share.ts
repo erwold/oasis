@@ -4,9 +4,10 @@
 import { Hono } from 'hono'
 import { SHARE_ACTIVE_CODE, SHARE_TOO_LARGE_CODE, ShareSnapshotRequestSchema, ShareSnapshotResponseSchema, ShareSnapshotV3RequestSchema, ShareSnapshotV3ResponseSchema } from '@oasis-code/contract'
 import { currentRequestAgent } from '../policy/access.ts'
-import { buildShareSnapshot, ShareActive } from '../share/snapshot.ts'
-import { buildShareSnapshotV3, ShareTooLarge } from '../share/task.ts'
+import { activeWork, buildShareSnapshot, ShareActive } from '../share/snapshot.ts'
+import { buildShareSnapshotV3, ShareTooLarge, shareMembers } from '../share/task.ts'
 import { HttpError, parseBody, type Api } from './common.ts'
+import { sampleShareProgress } from '../share/progress.ts'
 import { requireSession } from './state.ts'
 
 export function shareRoutes(api: Api): Hono {
@@ -20,7 +21,12 @@ export function shareRoutes(api: Api): Hono {
     const body = await parseBody(c, ShareSnapshotRequestSchema)
     // the snapshot reads the session again inside its one transaction (no stale row across the await)
     let answer
-    try { answer = buildShareSnapshot(state, sessionId, body) } catch (error) {
+    try {
+      const reasons = activeWork(state, sessionId)
+      if (reasons.length) throw new ShareActive(reasons)
+      const progress = await sampleShareProgress(state, [sessionId], body.exclude_run_ids)
+      answer = buildShareSnapshot(state, sessionId, body, undefined, progress)
+    } catch (error) {
       if (error instanceof ShareActive) throw new HttpError(409, error.message, SHARE_ACTIVE_CODE, { reasons: error.reasons })
       throw error
     }
@@ -37,7 +43,11 @@ export function shareRoutes(api: Api): Hono {
     requireSession(state, sessionId)
     const body = await parseBody(c, ShareSnapshotV3RequestSchema)
     let answer
-    try { answer = buildShareSnapshotV3(state, sessionId, body) } catch (error) {
+    try {
+      const { members } = shareMembers(state, sessionId, body.include_task_sessions)
+      const progress = await sampleShareProgress(state, members.map((s) => s.id), body.exclude_run_ids)
+      answer = buildShareSnapshotV3(state, sessionId, body, undefined, progress)
+    } catch (error) {
       if (error instanceof ShareActive) throw new HttpError(409, error.message, SHARE_ACTIVE_CODE, { reasons: error.reasons })
       if (error instanceof ShareTooLarge) throw new HttpError(413, error.message, SHARE_TOO_LARGE_CODE)
       throw error

@@ -188,9 +188,10 @@ function FileSeriesChart({ props, source, target }: { props: SeriesProps; source
   const model = useMemo(() => fileModel(source, snap ?? EMPTY_SNAPSHOT(source), axis, props.label), [source, snap, axis, props.label])
   const status = target === null ? 'refused' : snap?.status ?? 'loading'
   const note = target === null ? 'A file source is shown on a surface' : status === 'live' ? '' : `${STATUS_TEXT[status]}${snap?.message ? ` (${snap.message})` : ''}`
-  return (
+  return <>
+    {source.progress && <TaskProgressView snap={snap} />}
     <SeriesFrame props={props} axis={axis} model={model} source={{ status, note, path: source.path, generation: snap?.generation ?? 0, offset: snap?.offset ?? 0, version: snap?.version ?? 0 }} />
-  )
+  </>
 }
 
 const EMPTY_SNAPSHOTS = new WeakMap<UiChartSource, FeedSnapshot>()
@@ -209,7 +210,7 @@ function feedDeps(t: ChartSourceTarget): FeedDeps {
     fetchPage: async (req) => {
       try {
         const page = await api.uiChartSourcePage(t.session_id, t.run_id, t.surface_id, t.element_id, req, req.signal)
-        return page.status === 'ok' ? { kind: 'page', page } : { kind: 'missing', reason: page.reason }
+        return page.status === 'ok' ? { kind: 'page', page } : page.status === 'unavailable' ? { kind: 'error', message: page.reason, execution: page.execution } : { kind: 'missing', reason: page.reason, execution: page.execution }
       } catch (error) {
         if (error instanceof ApiError) {
           if (error.status === 409 && error.body?.error === 'stale_revision') return { kind: 'stale' }
@@ -447,4 +448,44 @@ function LazyValues({ label, count, head, rows }: { label?: string; count: numbe
       )}
     </details>
   )
+}
+
+/** Same feed as a chart, but no fabricated x/series required by the publishing agent. */
+export function FileProgress({ source, target, label }: {
+  source: Omit<UiChartSource, 'x' | 'series'>; target: ChartSourceTarget | null; label?: string
+}) {
+  const normalized = useMemo(() => ({ ...source, x: 'step', series: [] }), [source])
+  const snap = useChartFeed(normalized, 'number', target)
+  return <TaskProgressView snap={snap} label={label} />
+}
+
+function TaskProgressView({ snap, label }: { snap: FeedSnapshot | null; label?: string }) {
+  const p = snap?.points.progress
+  const execution = snap?.execution
+  const state = execution && ['succeeded', 'failed', 'cancelled'].includes(execution.status) ? execution.status : p?.status ?? execution?.status ?? 'running'
+  const names = { running: 'Running', succeeded: 'Completed', failed: 'Failed', cancelled: 'Cancelled', unknown: 'Status unknown' }
+  const percent = p?.completed !== undefined && p.total !== undefined && p.total > 0 ? Math.min(100, 100 * p.completed / p.total) : undefined
+  const num = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  const eta = p?.eta ?? (p?.rate !== undefined && p.rate > 0 && p.completed !== undefined && p.total !== undefined ? Math.max(0, p.total - p.completed) / p.rate : undefined)
+  const note = snap && snap.status !== 'live' ? snap.terminal ? 'Final file unavailable — showing last received data' : STATUS_TEXT[snap.status] : ''
+  return <section className="uis-progress" data-testid="ui-task-progress" data-task-status={state} aria-label={label ?? 'Task progress'}>
+    <div className="uis-progress-head"><strong>{label ?? 'Progress'}</strong><span role="status" className={`uis-progress-state ${state}`}>{names[state]}</span>
+      {execution && execution.status !== state && <span>Command: {names[execution.status]}</span>}
+      {percent !== undefined && <span>{num(percent)}%</span>}
+      {p?.completed !== undefined && <span>{num(p.completed)}{p.total !== undefined ? ` / ${num(p.total)}` : ''}</span>}
+      {p?.rate !== undefined && <span>{num(p.rate)}/s</span>}
+      {eta !== undefined && Number.isFinite(eta) && !['succeeded', 'failed', 'cancelled'].includes(state) && <span>ETA {etaText(eta)}</span>}
+      {snap?.execution?.exit_code !== null && snap?.execution?.exit_code !== undefined && <span>exit {snap.execution.exit_code}</span>}
+    </div>
+    <progress aria-label="Task completion" max={100} value={percent} />
+    {note && <span className="uis-progress-note">{note}{snap?.terminal && <button type="button" onClick={snap.retryFinal}>Retry final read</button>}</span>}
+    {!!p?.logs.length && <pre className="uis-progress-logs" aria-label="Recent logs">{p.logs.join('\n')}</pre>}
+  </section>
+}
+
+function etaText(seconds: number): string {
+  const s = Math.ceil(seconds)
+  if (s < 60) return `${s}s`
+  if (s < 3600) return `${Math.floor(s / 60)}m${s % 60 ? ` ${s % 60}s` : ''}`
+  return `${Math.floor(s / 3600)}h${Math.floor(s % 3600 / 60) ? ` ${Math.floor(s % 3600 / 60)}m` : ''}`
 }

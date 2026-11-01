@@ -130,6 +130,7 @@ html[data-live-theme='signal'] .live-title { font: 600 17px/1.2 var(--font-body)
   .live-title { font-size: 22px; }
   .live-run { padding: 10px 12px 14px; }
   .live-cards { grid-template-columns: minmax(0, 1fr); }
-  .live-side { flex-direction: column; }
+  .live-side { flex-direction: column; flex-wrap: nowrap; }
+  .live-side > * { flex: none; }
   .live-controls { flex-wrap: wrap; }
 }

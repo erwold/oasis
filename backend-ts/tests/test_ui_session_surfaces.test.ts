@@ -153,7 +153,7 @@ test('contract: read_ui takes no session or run; its answers parse; a record wit
   expect(UiReadResultSchema.safeParse({ status: 'not_found', surface_id: 'p', scope: 'session' }).success).toBe(true)
   expect(UiReadResultSchema.safeParse({ status: 'refused', scope: 'session', reason: 'x' }).success).toBe(true)
   expect(UiReadResultSchema.safeParse({ status: 'refused', scope: 'run', reason: 'x' }).success).toBe(false)
-  expect(SCHEMA_VERSION).toBe(35)  // v26: the session cursor; v27: the sessions' latest activity; v28: the sessions' access; v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
+  expect(SCHEMA_VERSION).toBe(37)  // v26: the session cursor; v27: the sessions' latest activity; v28: the sessions' access; v29: the sessions' task and roots; v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
   // one metadata row per registered tool, twenty-one in all
   expect(Object.keys(TOOL_CALL_METADATA_KEYS).filter((name) => !(DIRECTOR_ONLY_METADATA_TOOLS as readonly string[]).includes(name)).sort()).toEqual(specs().map((s) => s.name).sort())
   expect(Object.keys(TOOL_CALL_METADATA_KEYS)).toHaveLength(26)
@@ -713,7 +713,7 @@ test('a v22 database comes to v23: its surfaces kept as run (none becomes a sess
   made.exec('DROP TABLE ui_publications')
   made.exec('DROP TABLE ui_surfaces')
   made.exec(UI_SURFACES_V22)
-  made.exec('PRAGMA user_version = 22')
+  made.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 22')
   made.run("INSERT INTO projects (id, name, base_repo_path, created_at, updated_at) VALUES ('p_1','legacy','/x','t','t')")
   made.run("INSERT INTO sessions (id, project_id, title, model, created_at, updated_at, workspace_id) VALUES ('s_1','p_1','t','m','t','t','ws_1')")
   made.run("INSERT INTO runs (id, session_id, project_id, workspace_id, model, user_text, status, created_at) VALUES ('run_1','s_1','p_1','ws_1','m','hi','done','t')")
@@ -725,7 +725,7 @@ test('a v22 database comes to v23: its surfaces kept as run (none becomes a sess
   writeFileSync(join(dir, 'index.db.v21.bak'), 'an older upgrade\'s copy')
   const migrated = connect(path)
   try {
-    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(35)
+    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(37)
     expect(structure(migrated)).toEqual(structure(fresh))
     const s = structure(migrated) as Record<string, { indexes: unknown[][] }>
     expect(s.ui_surfaces!.indexes).toContainEqual(['ui_surfaces_session_scope', 1, 1])            // unique, partial
@@ -753,7 +753,7 @@ test('a v22 database comes to v23: its surfaces kept as run (none becomes a sess
   // opened again: nothing to do, no new backup, the same rows
   const again = connect(path)
   try {
-    expect(again.get('PRAGMA user_version')!.user_version).toBe(35)
+    expect(again.get('PRAGMA user_version')!.user_version).toBe(37)
     expect(readdirSync(dir).filter((f) => f.includes('.bak')).sort()).toEqual(['index.db.v22.bak'])
     expect(repo.listUiPublications(again, 's_1')).toHaveLength(5)
     expect(existsSync(join(dir, 'index.db.v22.bak'))).toBe(true)

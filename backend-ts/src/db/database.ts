@@ -12,6 +12,7 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { SCHEMA_VERSION } from '@oasis-code/contract'
 import { backfillSessionActivity } from './repo.ts'
+import { RUN_READ_INDEX_SQL } from './run_read_index.ts'
 
 export { SCHEMA_VERSION }
 export const SCHEMA_PATH = join(dirname(fileURLToPath(import.meta.url)), 'schema.sql')
@@ -32,6 +33,13 @@ export function addColumnIfMissing(conn: Conn, table: string, column: string, de
 
 // CASE, not AND: json_type() raises on text that is not JSON, and SQLite does not promise to short-circuit AND
 const GRANTS_READABLE = "CASE WHEN json_valid(grants_json) THEN json_type(grants_json) = 'object' ELSE 0 END"
+
+// One complete statement: keep the trigger body out of splitStatements. Also installed for a fresh database.
+const SESSION_PIN_CLEANUP = `CREATE TRIGGER IF NOT EXISTS sessions_clear_pin AFTER UPDATE OF status ON sessions
+WHEN NEW.status <> 'open' AND NEW.pin_order IS NOT NULL
+BEGIN
+  UPDATE sessions SET pin_order=NULL WHERE id=NEW.id;
+END`
 
 export const MIGRATIONS: [number, Migration][] = [
   [2, `
@@ -703,6 +711,13 @@ CREATE INDEX IF NOT EXISTS share_links_by_session ON share_links(session_id, cre
     addColumnIfMissing(conn, 'share_links', 'task_root_id', 'TEXT')
     conn.exec('CREATE INDEX IF NOT EXISTS share_links_by_task ON share_links(task_root_id, created_at)')
   }],
+  [36, (conn) => {
+    addColumnIfMissing(conn, 'sessions', 'pin_order', 'INTEGER CHECK (pin_order > 0)')
+    conn.exec('CREATE UNIQUE INDEX IF NOT EXISTS sessions_by_pin_order ON sessions(pin_order) WHERE pin_order IS NOT NULL')
+    conn.run(SESSION_PIN_CLEANUP)
+  }],
+  // A derived covering index only; no message, run or history is rewritten.
+  [37, RUN_READ_INDEX_SQL],
 ]
 
 /** v25's tables and indexes, as schema.sql has them (a migrated database equals a fresh one). */
@@ -778,8 +793,8 @@ export class Conn {
 }
 
 /** The statements of a SQL script, split at the semicolons that end them (not those inside quotes or comments), with
- *  the comment-only remainders dropped. A trigger body (BEGIN … END) is not recognised: this code has none, and a
- *  split one fails loudly as incomplete input. */
+ *  the comment-only remainders dropped. A trigger body (BEGIN … END) is not recognised, and a
+ *  split one fails loudly as incomplete input. Triggers are supplied whole through Conn.run instead. */
 export function splitStatements(script: string): string[] {
   const statements: string[] = []
   let start = 0
@@ -859,7 +874,7 @@ function ensureSchema(conn: Conn): void {
   const empty = (): boolean => version() === 0
     && Number((conn.get("SELECT count(*) AS n FROM sqlite_master WHERE type='table'") as { n: number }).n) === 0
   if (from === 0 && empty()) {
-    step(SCHEMA_VERSION, () => conn.exec(SCHEMA_SQL), empty)
+    step(SCHEMA_VERSION, () => { conn.exec(SCHEMA_SQL); conn.run(SESSION_PIN_CLEANUP) }, empty)
   } else {
     if (from > 0 && from < SCHEMA_VERSION) {
       const backup = backUpBeforeUpgrade(conn, from)

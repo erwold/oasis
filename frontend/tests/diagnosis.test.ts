@@ -19,3 +19,7 @@ test('each failure kind says what happened and where to act; an unknown one fall
   assert.deepEqual(explain('something new'), explain('other'))
   assert.deepEqual(explain(null), explain('other'))
 })
+
+test('local context refusal is one short line, with no provider blame or extra advice', () => {
+  assert.deepEqual(explain('input_too_large'), { title: 'Message is too large.', advice: '', accounts: false })
+})

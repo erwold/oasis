@@ -19,7 +19,7 @@ import assert from 'node:assert/strict'
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { after, before, test } from 'node:test'
-import { chromium, type Browser, type Page } from 'playwright-core'
+import { chromium, type Browser, type Locator, type Page } from 'playwright-core'
 import { IX, MAIN_CUR, MAIN_OLD, makeRun, participantOf, RUN, S, startBotStub, type BotStub } from './bot-states-stub.ts'
 
 const DIST = realpathSync(resolve(process.env.OASIS_CODE_E2E_DIST ?? join(process.cwd(), 'dist')))
@@ -75,8 +75,12 @@ async function shot(name: string, what: string, selector?: string) {
 }
 
 /** The bot state an element's bot picture says (the first bot image under it). */
-const stateOf = (selector: string) => page.locator(selector).locator('img.bot-img').first().getAttribute('data-bot-state')
-async function expectState(selector: string, state: string | string[], what: string) {
+const stateOf = (selector: string | Locator) => typeof selector === 'string'
+  ? page.locator(selector).locator('img.bot-img').first().getAttribute('data-bot-state')
+  : selector.getAttribute('data-bot-state') // an explicit current-answer locator must resolve uniquely
+const answerBot = (runId: string, answer: string) => page.locator(`[data-testid="run-${runId}"]`).locator('.turn-agent')
+  .filter({ has: page.locator('.turn-text.prose').filter({ hasText: answer }) }).locator(':scope > .turn-who > img.turn-bot')
+async function expectState(selector: string | Locator, state: string | string[], what: string) {
   const until = Date.now() + WAIT_MS
   const wanted = Array.isArray(state) ? state : [state]
   let seen: string | null = null
@@ -239,12 +243,13 @@ test('in line, then going on; a request slot waited for; a form answered in plac
 
 test('the main agent\'s watch: waiting on its current run alone, a report waiting, the wake run taking over', async () => {
   await finish(MAIN_CUR, 'done', 'Fixed the tokenizer; I will check the CI run when it ends.')
-  await expectState(turn(MAIN_CUR), 'done', 'the main run ended well')
+  await expectState(answerBot(MAIN_CUR, 'Fixed the tokenizer; I will check the CI run when it ends.'), 'done', 'the final main answer ended well')
+  await expectState(answerBot(MAIN_CUR, 'Looking at the tokenizer.'), 'static', 'the preceding text remains still')
   // a watch the agent set in its older run: it waits now, on the current run alone
   stub.world.watches = [{ id: 'w_ci', session_id: S, run_id: MAIN_OLD, spec: { kind: 'exit', execution_id: 'ex_ci', at: null, every_s: null, pattern: null, field: null, op: null, value: null, stream: 'both', silence_s: null },
     note: 'check CI', summary: 'CI run ends', status: 'active', repeat: false, cooldown_s: 0, max_fires: 1, fires: 0, last_fired_at: null, expires_at: new Date(T0 + 86_400_000).toISOString(), ended_reason: null, created_at: new Date(T0).toISOString(), updated_at: new Date(T0).toISOString() }]
   await sync()
-  await expectState(turn(MAIN_CUR), 'waiting', 'the current run waits for its watch')
+  await expectState(answerBot(MAIN_CUR, 'Fixed the tokenizer; I will check the CI run when it ends.'), 'waiting', 'the current run waits for its watch')
   await expectState(MAIN_LANE, 'waiting', 'the main agent\'s lane')
   await expectState(turn(MAIN_OLD), 'static', 'the older run that set it: its own result')
   await expectState(turn(RUN.D), 'thinking', 'another agent: untouched')
@@ -253,7 +258,7 @@ test('the main agent\'s watch: waiting on its current run alone, a report waitin
   stub.world.watches = stub.world.watches.map((w) => ({ ...w, status: 'done', fires: 1 }))
   stub.world.wake_events = [{ id: 'wk_1', watch_id: 'w_ci', session_id: S, kind: 'fired', detail: 'CI ended', payload: {}, status: 'pending', run_id: null, created_at: new Date().toISOString(), delivered_at: null }]
   await sync()
-  await expectState(turn(MAIN_CUR), 'waiting', 'a report waits for delivery')
+  await expectState(answerBot(MAIN_CUR, 'Fixed the tokenizer; I will check the CI run when it ends.'), 'waiting', 'a report waits for delivery')
   // the wake run takes it: its own state; the run before it is no longer the current one
   const wake = makeRun({ id: 'run_m_wake', status: 'running', created: new Date(T0 + 40_000).toISOString(), user_text: 'A watch reported: CI ended', spawned_by: 'wake' })
   wake.events.push({ event: 'run_started', data: { model: 'scripted:a' } }, { event: 'thinking_delta', data: { text: 'CI passed.', start: true } })
@@ -261,7 +266,7 @@ test('the main agent\'s watch: waiting on its current run alone, a report waitin
   stub.world.wake_events = stub.world.wake_events.map((e) => ({ ...e, status: 'delivered', run_id: 'run_m_wake' }))
   await sync()
   await expectState(turn('run_m_wake'), 'thinking', 'the wake run thinks')
-  await expectState(turn(MAIN_CUR), ['done', 'static'], 'the run before it: its own ending, no longer waiting')
+  await expectState(answerBot(MAIN_CUR, 'Fixed the tokenizer; I will check the CI run when it ends.'), ['done', 'static'], 'the run before it: its own ending, no longer waiting')
   await shot('15-wake-run-thinking', 'the watch reported: the wake run thinks; the run before it plays its own ending')
   // the person stops it: idle, then still
   await finish('run_m_wake', 'cancelled', 'Checking the CI log')
@@ -281,7 +286,8 @@ test('a gate blocks until approved; an error blocks a moment; endings settle; wh
   // B and E end well
   for (const id of [RUN.B, RUN.E]) {
     await finish(id, 'done', 'Done here.')
-    await expectState(turn(id), 'done', `${id} ended well`)
+    await expectState(answerBot(id, 'Done here.'), 'done', `${id} final answer ended well`)
+    if (id === RUN.E) await expectState(page.locator(`${turn(id)} [data-testid="ui-input"][data-status="submitted"] .uis-who > img.turn-bot`), 'static', 'the earlier submitted form stays still')
   }
   // a watch of A's (its current run stopped long before): it waits, beyond any ending
   stub.world.watches = [...stub.world.watches, { ...(stub.world.watches[0] as object), id: 'w_a', run_id: RUN.A, status: 'active', fires: 0 }]
@@ -290,7 +296,8 @@ test('a gate blocks until approved; an error blocks a moment; endings settle; wh
   await shot('17-gate-error-watch', 'C held by a proposal (blocked), D failed (blocked), B/E done, A waits for its watch')
   // the time passes: every ending settles; the proposal and the watch do not
   await page.clock.fastForward(45_000)
-  for (const id of [RUN.B, RUN.D, RUN.E, RUN.F, 'run_m_wake', MAIN_CUR]) await expectState(turn(id), 'static', `${id} settled`)
+  for (const [id, answer] of [[RUN.B, 'Done here.'], [RUN.D, 'Half done'], [RUN.E, 'Done here.'], ['run_m_wake', 'Checking the CI log'], [MAIN_CUR, 'Fixed the tokenizer; I will check the CI run when it ends.']]) await expectState(answerBot(id!, answer!), 'static', `${id} final answer settled`)
+  await expectState(turn(RUN.F), 'static', 'F’s sole answer settled')
   await expectState(MAIN_LANE, 'static', 'the main agent settled')
   await expectState(turn(RUN.C), 'blocked', 'the proposal still waits')
   await expectState(turn(RUN.A), 'waiting', 'the watch still waits')

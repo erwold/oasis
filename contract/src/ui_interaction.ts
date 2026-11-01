@@ -293,6 +293,7 @@ export function parseUiInputRequest(input: unknown): UiParseResult<UiInputReques
   for (const [id, el] of Object.entries(req.elements)) {
     if (el.type === 'button') errors.push(`elements.${id}: request_input has no buttons (the form has its own submit)`)
     // a file source is read for a surface (its own route); a form is never one
+    if (el.type === 'progress') errors.push(`elements.${id}: file progress is for present_ui, not request_input`)
     if (el.type === 'chart' && el.props.source !== undefined) errors.push(`elements.${id}.props.source: a chart in request_input has data or series (a file source is for present_ui)`)
   }
   if (errors.length > 0) return { ok: false, errors }

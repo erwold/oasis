@@ -19,14 +19,14 @@ test('v29 upgrades to the current schema without changing old project/session hi
   const path = join(dir, 'old.db')
   const raw = new Database(path)
   raw.exec(readFileSync(join(import.meta.dir, 'fixtures/schema_v29.sql'), 'utf8'))
-  raw.exec("PRAGMA user_version=29; INSERT INTO projects (id,name,source_path,base_repo_path,kind,created_at,updated_at) VALUES ('p_old','old','/same/path','','direct','t','t'); INSERT INTO sessions (id,project_id,title,model,access_mode,created_at,updated_at) VALUES ('s_old','p_old','keep','m','full','t','t');")
+  raw.exec("DROP INDEX IF EXISTS runs_read; PRAGMA user_version=29; INSERT INTO projects (id,name,source_path,base_repo_path,kind,created_at,updated_at) VALUES ('p_old','old','/same/path','','direct','t','t'); INSERT INTO sessions (id,project_id,title,model,access_mode,created_at,updated_at) VALUES ('s_old','p_old','keep','m','full','t','t');")
   const oldSession = raw.query<Record<string, string | number | null>, []>('SELECT * FROM sessions').get()
   raw.close()
   const upgraded = connect(path)
   const fresh = connect(join(dir, 'fresh.db'))
   try {
     expect(upgraded.get('PRAGMA user_version')!.user_version).toBe(SCHEMA_VERSION)
-    expect(upgraded.get('SELECT * FROM sessions')).toEqual(oldSession)
+    expect(upgraded.get('SELECT * FROM sessions')).toEqual({ ...oldSession, pin_order: null })
     expect(repo.getProject(upgraded, 'p_old')!.target).toEqual({ kind: 'local' })
     expect(structure(upgraded)).toEqual(structure(fresh))
     expect(upgraded.all('SELECT * FROM ssh_targets')).toEqual([])
@@ -43,7 +43,7 @@ test('v30 upgrades to v31: connect intent seeded only from states a Connect leav
   const path = join(dir, 'v30.db')
   const raw = new Database(path)
   raw.exec(readFileSync(join(import.meta.dir, 'fixtures/schema_v30.sql'), 'utf8'))
-  raw.exec('PRAGMA user_version=30')
+  raw.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version=30')
   const states = ['disconnected', 'connecting', 'ready', 'auth_required', 'host_verification_required', 'unsupported', 'error']
   for (const state of states) raw.run("INSERT INTO ssh_targets (id,label,destination,state,created_at) VALUES (?,?,?,?,'t')", [`t_${state}`, state, 'user@host.invalid', state])
   // the ambiguous one has a command still running on it (v30 cannot say whether the person or a shutdown stopped it)
@@ -54,7 +54,7 @@ test('v30 upgrades to v31: connect intent seeded only from states a Connect leav
   const upgraded = connect(path)
   const fresh = connect(join(dir, 'fresh.db'))
   try {
-    expect(upgraded.get('PRAGMA user_version')!.user_version).toBe(35)
+    expect(upgraded.get('PRAGMA user_version')!.user_version).toBe(37)
     expect(structure(upgraded)).toEqual(structure(fresh))
     const intents = Object.fromEntries(upgraded.all('SELECT id,connect_intent FROM ssh_targets').map(r => [String(r.id), String(r.connect_intent)]))
     expect(intents).toEqual({ t_disconnected: 'none', t_connecting: 'connect', t_ready: 'connect', t_auth_required: 'connect', t_host_verification_required: 'connect', t_unsupported: 'connect', t_error: 'connect' })
@@ -77,7 +77,7 @@ test('v30 upgrades to v31: connect intent seeded only from states a Connect leav
   } finally { upgraded.close(); fresh.close() }
   const again = connect(path)
   try {
-    expect(again.get('PRAGMA user_version')!.user_version).toBe(35)
+    expect(again.get('PRAGMA user_version')!.user_version).toBe(37)
     expect(again.get("SELECT connect_intent FROM ssh_targets WHERE id='t_disconnected'")!.connect_intent).toBe('none')
   } finally { again.close() }
 })

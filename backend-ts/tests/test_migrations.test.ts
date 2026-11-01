@@ -41,7 +41,7 @@ for (const [version, fixture] of [[1, 'schema_v1.sql'], [2, 'schema_v2.sql']] as
     const fresh = connect(join(base, 'fresh', 'index.db'))
     try {
       expect(migrated.get('PRAGMA user_version')!.user_version).toBe(SCHEMA_VERSION)
-      expect(SCHEMA_VERSION).toBe(35)                                              // v7 attachments, v8 run keys, v9 project / session keys, v10 the director session, v11 the network granted, v12 no run tree, v13 the relay, v14 the relay's fresh / resumes_run_id, v15 the interaction, v16 its notes, v17 who named a session, v18 the watches, v19 the journal of a folder edited in place, v20 what a journalled write meant to leave, v21 the UI surfaces and their action receipts, v22 the UI tasks and input requests, v23 the session-scoped surfaces and the publication journal, v24 the director envelope and source mounts, v25 the collaboration model (participants, conversations, edges, run_collab), v26 the session cursor (run_events.cursor, event_cursor), v27 the sessions' latest activity, v28 the sessions' access and the access caps, v29 the sessions' task and roots, v30 the SSH targets and remote records, v31 the SSH targets' connect intent, v32 currency-separated CNY model costs, v33 the read-path indexes, v34 the live share links, v35 the live links' protocol and task
+      expect(SCHEMA_VERSION).toBe(37)                                              // v7 attachments, v8 run keys, v9 project / session keys, v10 the director session, v11 the network granted, v12 no run tree, v13 the relay, v14 the relay's fresh / resumes_run_id, v15 the interaction, v16 its notes, v17 who named a session, v18 the watches, v19 the journal of a folder edited in place, v20 what a journalled write meant to leave, v21 the UI surfaces and their action receipts, v22 the UI tasks and input requests, v23 the session-scoped surfaces and the publication journal, v24 the director envelope and source mounts, v25 the collaboration model (participants, conversations, edges, run_collab), v26 the session cursor (run_events.cursor, event_cursor), v27 the sessions' latest activity, v28 the sessions' access and the access caps, v29 the sessions' task and roots, v30 the SSH targets and remote records, v31 the SSH targets' connect intent, v32 currency-separated CNY model costs, v33 the read-path indexes, v34 the live share links, v35 the live links' protocol and task, v36 the pinned sessions, v37 the run read index
       expect(structure(migrated)).toEqual(structure(fresh))
       expect('relays' in structure(migrated)).toBe(true)
       for (const column of ['relay_id', 'relay_step']) expect((structure(migrated) as Record<string, { columns: unknown[][] }>).runs!.columns.some((c) => c[0] === column), column).toBe(true)
@@ -87,7 +87,7 @@ function rewindRunsToV13(conn: Conn): void {
   const create = String(conn.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='runs'")!.sql)
   const v13 = create.replace(/,\s*-- the interaction this run is a node of[^\n]*\n\s*interaction_id\s+TEXT,\s*interaction_node\s+TEXT\s*\)$/, '\n)')
   expect(v13).not.toBe(create)
-  const indexes = conn.all("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='runs' AND sql IS NOT NULL AND name <> 'runs_by_interaction'")
+  const indexes = conn.all("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='runs' AND sql IS NOT NULL AND name NOT IN ('runs_by_interaction', 'runs_read')")
     .map((r) => String(r.sql))
   conn.exec('PRAGMA foreign_keys=OFF')
   conn.exec(v13.replace(/^CREATE TABLE runs\b/, 'CREATE TABLE runs_v13'))
@@ -115,7 +115,7 @@ for (const variant of ['without the columns', 'with the columns'] as const) {
       made.exec('ALTER TABLE relays DROP COLUMN fresh')
       made.exec('ALTER TABLE relays DROP COLUMN resumes_run_id')
     }
-    made.exec('PRAGMA user_version = 13')                                            // … rewound to the v13 shape
+    made.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 13')                                            // … rewound to the v13 shape
     made.run("INSERT INTO projects (id, name, base_repo_path, created_at, updated_at) VALUES ('p_1','legacy','/x','t','t')")
     made.run("INSERT INTO sessions (id, project_id, title, model, created_at, updated_at) VALUES ('s_1','p_1','t','m','t','t')")
     made.run("INSERT INTO relays (id, session_id, status, user_text, participants_json, steps_json, rounds, round, current_step, created_at, updated_at) VALUES ('relay_1','s_1','done','hi','[]','[]',1,1,0,'t','t')")

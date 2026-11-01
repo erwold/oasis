@@ -370,6 +370,26 @@ test('one persistent panel: three forecasts from three runs, two timed wakes of 
   await oneBlockAt(app.page, r1)
   const w2 = (await until('the second wake', () => sessionDetail(sid), (d) => d.runs.filter((r) => r.spawned_by === 'wake' && r.status === 'done').length === 2 && d.active_run === null, 60_000))
     .runs.filter((r) => r.spawned_by === 'wake').map((r) => r.id).find((id) => id !== w1)!
+  // A revision is data readiness, not a promise that this old turn is still in the viewport after a wake.
+  for (const v of ['100.3', '0.55', '0.45', '0.925']) {
+    const value = panel.getByText(v, { exact: true }).first()
+    await value.scrollIntoViewIfNeeded()
+    await value.evaluate(el => {
+      const scroller = el.closest<HTMLElement>('.thread-scroll')!, r = el.getBoundingClientRect(), view = scroller.getBoundingClientRect()
+      const bottom = Math.min(view.bottom, document.querySelector('.composer-dock')!.getBoundingClientRect().top)
+      scroller.scrollTop += r.top - view.top - (bottom - view.top - r.height) / 2
+    })
+    await until(`${v} is rendered in the readable viewport, not behind the composer`, async () => {
+      await app.page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+      const state = await value.evaluate(el => {
+        const r = el.getBoundingClientRect(), view = el.closest('.thread-scroll')!.getBoundingClientRect(), dock = document.querySelector('.composer-dock')!.getBoundingClientRect()
+        return { text: (el as HTMLElement).innerText, visible: el.checkVisibility({ contentVisibilityAuto: true }),
+          readable: r.width > 0 && r.height > 0 && r.top >= view.top && r.bottom <= Math.min(view.bottom, dock.top) }
+      })
+      return state.readable && state.visible && state.text === v
+    }, readable => readable, 5_000)
+    assert.equal(await value.innerText(), v)
+  }
   const rev5Text = await panel.innerText()
   for (const v of ['100.3', '0.55', '0.45', '0.925']) assert.ok(rev5Text.includes(v), `${v} on the page after the second wake`)
 
@@ -403,6 +423,7 @@ test('one persistent panel: three forecasts from three runs, two timed wakes of 
 
   // ---- 8. the chart: four lines on one time axis (3 actual + 3 × 4 forecast points), nothing drawn from a non-finite number
   await oneBlockAt(app.page, r1, { run: w2, updated_at: rec.updated_at })
+  await panel.getByTestId('ui-chart-series').scrollIntoViewIfNeeded()
   c = await chartOf(app.page)
   assert.deepEqual([c.axis, c.series, c.points], ['time', 4, 3 + 3 * 4])
   assert.deepEqual(c.legend, { actual: 'solid', fc_owner: 'dashed', fc_A: 'dashed', fc_B: 'dashed' })

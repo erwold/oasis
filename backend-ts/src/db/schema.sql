@@ -91,6 +91,15 @@ CREATE TABLE runs (
   interaction_node    TEXT
 );
 CREATE INDEX runs_by_session ON runs(session_id, created_at);
+-- v37: metadata only, not history/usage/manifest/full receipt/attachments.
+CREATE INDEX runs_read ON runs (
+  session_id, created_at, id, project_id, workspace_id, parent_run_id,
+  resumes_run_id, spawned_by, label, model, user_text, status, error,
+  finished_at, work_order_json, client_request_id, relay_id, relay_step, interaction_id, interaction_node,
+  (CASE WHEN octet_length(history_json) > 4 THEN 0
+    ELSE (history_json IS NULL OR history_json = '' OR history_json = '[]') END),
+  length(json_extract(CASE WHEN json_valid(receipt_json) THEN receipt_json ELSE '{}' END, '$.final_text'))
+);
 CREATE INDEX runs_by_relay ON runs(relay_id);
 CREATE INDEX runs_by_interaction ON runs(interaction_id);
 CREATE UNIQUE INDEX runs_by_client_request ON runs(session_id, client_request_id) WHERE client_request_id IS NOT NULL;
@@ -759,3 +768,8 @@ CREATE INDEX share_links_by_session ON share_links(session_id, created_at);
 ALTER TABLE share_links ADD COLUMN protocol INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE share_links ADD COLUMN task_root_id TEXT;
 CREATE INDEX share_links_by_task ON share_links(task_root_id, created_at);
+
+-- schema v36: pins are independent of activity and row timestamps. The status cleanup trigger is installed
+-- alongside this script by database.ts (splitStatements deliberately does not split trigger bodies).
+ALTER TABLE sessions ADD COLUMN pin_order INTEGER CHECK (pin_order > 0);
+CREATE UNIQUE INDEX sessions_by_pin_order ON sessions(pin_order) WHERE pin_order IS NOT NULL;

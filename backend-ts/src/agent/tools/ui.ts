@@ -19,6 +19,7 @@ import { PROMPT_TEXT, text } from '../../prompt_texts.ts'
 import { presentSurface, readSurface } from '../ui_surfaces.ts'
 import { finish, orderRefused, type Ctx, type Payload } from './common.ts'
 import { register } from './registry.ts'
+import { ownedExecution } from './commands.ts'
 
 const P = (key: string) => PROMPT_TEXT[`parameter.present_ui.${key}` as keyof typeof PROMPT_TEXT]
 
@@ -112,8 +113,10 @@ async function checkChartSources(ctx: Ctx, spec: Record<string, unknown>): Promi
   if (spec.kind !== 'native' || elements === null || typeof elements !== 'object' || Array.isArray(elements)) return null
   const errors: string[] = []
   for (const [id, el] of Object.entries(elements as Record<string, unknown>)) {
-    const props = (el as { type?: unknown; props?: { source?: { path?: unknown } } } | null)
-    if (props?.type !== 'chart') continue
+    const props = (el as { type?: unknown; props?: { source?: { path?: unknown; progress?: { execution_id?: unknown } } } } | null)
+    if (props?.type !== 'chart' && props?.type !== 'progress') continue
+    const executionId = props.props?.source?.progress?.execution_id
+    if (typeof executionId === 'string' && ownedExecution(ctx.deps, executionId) === null) errors.push(`elements.${id}.props.source.progress.execution_id: unknown command`)
     const path = props.props?.source?.path
     if (typeof path !== 'string' || !path.trim()) continue
     const blocked = orderRefused(ctx, 'present_ui', { path })

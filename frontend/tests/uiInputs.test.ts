@@ -231,3 +231,12 @@ test('pending, dismissed and closed forms read back with their status; a replaye
     assert.equal(stale, rows, 'an older word is no change')
   }
 })
+
+test('file progress belongs to a surface, not a request_input form without a source route', () => {
+  const parsed = parseUiInputRequest({ ...request, elements: { ...request.elements,
+    main: { type: 'stack', children: [...request.elements.main.children, 'p'] },
+    p: { type: 'progress', props: { source: { path: 'batch.jsonl', format: 'jsonl', progress: { completed: 'done' } } } },
+  } })
+  assert.equal(parsed.ok, false)
+  if (!parsed.ok) assert.match(parsed.errors.join('\n'), /file progress is for present_ui/)
+})

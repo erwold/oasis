@@ -105,6 +105,11 @@ export interface ContextPrediction {
   basis: 'anchor' | 'estimate'
 }
 
+/** A locally known oversized request: do not send it, retry it, or attempt provider-overflow recovery. */
+export class ContextInputTooLarge extends Error {
+  constructor() { super('Message is too large.'); this.name = 'ContextInputTooLarge' }
+}
+
 /** A provider refused a request for its size and the one recovery could not make a smaller working view: the run
  *  ends here (the same request is not sent again), its record kept whole. */
 export class ContextOverflowUnrecovered extends Error {
@@ -277,19 +282,40 @@ export class ContextKeeper {
     return { tokens: Math.ceil((fixedTokens() + estimateMessages(view, this.fileCost)) * ESTIMATE_FACTOR) + imageCount(view) * IMAGE_TOKENS, basis: 'estimate' }
   }
 
-  /** The messages the loop goes on with: the same when the next request fits under the threshold; otherwise the
-   *  record with a compaction request appended — or, when the summary could not be had, the same record and a
-   *  report that says why (the request is then made as it is; the provider decides). */
+  /** The hard input budget, shared by ordinary requests, summaries, closing turns and steering delivery. */
+  get inputLimit(): number { return this.window - this.output_reserve }
+
+  assertFits(messages: ModelMessage[], seam: Pick<RequestSeam, 'instructions' | 'params'>): void {
+    if (this.predict(messages, seam).tokens > this.inputLimit) throw new ContextInputTooLarge()
+  }
+
+  /** Append a compaction when needed. A failed summary may fall back to the original request only if it fits. */
   async maybeCompact(messages: ModelMessage[], seam: RequestSeam, pending: RequestPart[] = [], onStart?: () => void): Promise<[ModelMessage[], CompactionReport | null]> {
     const overflow = this.overflow
     this.overflow = null
-    if (seam.observed) this.observe(seam.observed)
+    if (seam.observed && overflow === null) this.observe(seam.observed)
     // the person's words waiting to join this request (in-run steering) are counted as if they were in it: they go
     // whole, so the room is made for them here, not by cutting them later
-    const withPending = (ms: ModelMessage[]) => withTailParts(ms, pending)
+    const tail = messages[messages.length - 1]
+    const view = workingView(messages)
+    // The unsent person's parts (attachments included) must fit whole beside the fixed provider frame. Tool
+    // returns can be compacted; an earlier summary is not a new message. Never spend a request on an impossible input.
+    const required = tail && isRequest(tail) ? tail.parts.filter((p) => isUserPrompt(p) && (!isCompaction(tail) || personPieces(p) !== null)) : []
+    const minimum = [modelRequest(required)]
+    if (this.estimateView(minimum, seam) > this.inputLimit) throw new ContextInputTooLarge()
+    // An impossible queued steer is refused by delivery, not by failing the run it tried to join. It still stays
+    // peeked there; neither this decision nor delivery cuts it or consumes it as delivered.
+    const budgetPending = pending.length && this.estimateView(withTailParts(minimum, pending), seam) <= this.inputLimit ? pending : []
+    const withPending = (ms: ModelMessage[]) => withTailParts(ms, budgetPending)
     const prediction = this.predict(withPending(messages), seam)
     if (overflow === null && prediction.tokens <= this.trigger) return [messages, null]
-    const tail = messages[messages.length - 1]
+    // A fresh message has no earlier conversation to summarize. Above the soft trigger but within the hard
+    // budget, send it whole; adding a summary note cannot make it smaller. An observed prefix is not a fresh input.
+    if (overflow === null && prediction.basis === 'estimate' && view.length === 1 && tail && isRequest(tail) && !isCompaction(tail) && tail.parts.every(isUserPrompt)) {
+      this.assertFits(messages, seam)
+      return [messages, null]
+    }
+    const held = new Set<RequestPart>()
     const base: Omit<CompactionReport, 'status' | 'after_tokens' | 'summary_chars' | 'summary_input_tokens'> = {
       trigger: overflow !== null ? 'overflow' : 'threshold',
       estimate_tokens: prediction.tokens, threshold_tokens: this.threshold, window_tokens: this.window, covers: messages.length,
@@ -297,31 +323,57 @@ export class ContextKeeper {
     }
     // after the provider's refusal a failed attempt ends the run: the request it refused is not sent again as it was
     const failed = (reason: string): [ModelMessage[], CompactionReport] => {
+      this.assertFits(messages, seam)
+      if (overflow !== null && held.size) throw new ContextInputTooLarge()
       if (overflow !== null) throw new ContextOverflowUnrecovered(reason)
       return [messages, { ...base, status: 'failed', after_tokens: null, summary_chars: 0, summary_input_tokens: null, reason }]
     }
     if (!tail || !isRequest(tail)) return failed('the record does not end with a request')
-    // a summary is a request: with none left in the budget it is not asked — the request is then made as it is (the
-    // closing one) and the provider decides
+    // A summary is a request: with none left it is not asked, but the original must still fit the hard budget.
     if (seam.requests_left != null && seam.requests_left < 1) {
+      this.assertFits(messages, seam)
       if (overflow !== null) throw new ContextOverflowUnrecovered('the request budget has no request left for a summary')
       return [messages, { ...base, status: 'skipped', after_tokens: null, summary_chars: 0, summary_input_tokens: null, reason: 'the request budget has no request left for a summary' }]
     }
-    const view = workingView(messages)
     const prompt = promptText('compaction.request')
-    // the summary is asked from the context as it stands (the cache reads it); when even that would not leave the
-    // output its room, the tail's tool results are left out of the summary request — they ride in the compaction
-    // request itself, whole while it leaves the output its room. After the provider refused the context for its size,
-    // the summary request carries no text longer than RECOVERY_PART_CHARS (each cut one says so), and neither does
-    // the compaction's tail.
+    // Prefer the unchanged prefix for its cache. If it cannot fit (or the provider refused it), hold the pending
+    // person input out of the summary and omit the tail's returns there; both ride beside the summary afterwards.
+    // Recovery bounds the other long texts with the existing notes, never the earlier compaction's summary.
     const summaryLimit = Math.floor(this.threshold * SUMMARY_SHARE)
     const room = userPrompt(promptText('compaction.summary_room', { words: Math.max(1, Math.floor((summaryLimit / ESTIMATE_FACTOR) * 0.75)) }), APP_ORIGIN)
-    const roomy = overflow === null && prediction.tokens + countTokens(`${userText(room)}${prompt}`) * ESTIMATE_FACTOR <= this.window - this.output_reserve
+    const summaryParts = [room, userPrompt(prompt, APP_ORIGIN)]
+    // Tail-only changes still extend the provider-counted prefix. Keep its absolute record indexes (a working
+    // view can start at a later compaction); a bounded recovery rewrites that prefix and cannot use the anchor.
+    const summarySize = (ms: ModelMessage[], bounded = false): number => {
+      const asked = withPrompt(ms, summaryParts)
+      if (!bounded && this.anchor !== null && this.anchor.messages < messages.length) {
+        const record = [...messages.slice(0, messages.length - view.length), ...asked]
+        return this.estimate(record, () => countTokens(seam.instructions) + countTokens(toolsText(seam.params.function_tools))).tokens
+      }
+      return this.estimateView(asked, seam)
+    }
+    const fullSummarySize = summarySize(view)
+    const roomy = overflow === null && fullSummarySize <= this.inputLimit
     // the person's latest words are what the conversation is for: every compaction request carries them when its tail
-    // does not hold them already — after a refusal for size whole (and whole in the summary request too), else up to
-    // PERSON_SHARE of the threshold. The summary request tells the model the room its summary has.
+    // does not hold them already — after a refusal for size whole, else up to PERSON_SHARE of the threshold.
+    // The summary request tells the model the room its summary has.
     const person = new Set(personTurn(view))
-    const asked = withPrompt(overflow !== null ? boundedView(withReturnsOmitted(view), person) : roomy ? view : withReturnsOmitted(view), [room, userPrompt(prompt, APP_ORIGIN)])
+    let summaryView = view
+    if (!roomy) {
+      // Keep the current input out of an overfull summary request, then carry it verbatim beside the summary.
+      // Only remove the person's parts: returns in the SAME request must still answer the preceding tool calls.
+      // Keep the previous compaction note too — the next summary must incorporate its constraints.
+      const last = view.at(-1) as ModelRequest
+      for (const p of last.parts) if (personPieces(p) !== null) held.add(p)
+      summaryView = [...view.slice(0, -1), { ...last, parts: last.parts.filter((p) => !held.has(p)) }]
+      summaryView = withReturnsOmitted(summaryView)
+      if (overflow !== null) summaryView = boundedView(summaryView, person)
+    }
+    const asked = withPrompt(summaryView, summaryParts)
+    if ((roomy ? fullSummarySize : summarySize(summaryView, overflow !== null)) > this.inputLimit) {
+      if (overflow !== null) throw new ContextInputTooLarge()
+      return failed('the summary request does not fit the model window')
+    }
     let summary: string
     let summaryInput: number | null = null
     let modelName: string | null = null
@@ -346,7 +398,7 @@ export class ContextKeeper {
     } catch (error) {
       // stopped: not a failed summary but the run's end — the loop ends it
       if (seam.ctx?.signal?.aborted) throw error
-      if (error instanceof ContextOverflowUnrecovered) throw error
+      if (error instanceof ContextOverflowUnrecovered || error instanceof ContextInputTooLarge) throw error
       return failed(`the summary request failed: ${String((error as Error).message ?? error).slice(0, 300)}`)
     }
     if (!summary) return failed('the model returned no summary')
@@ -357,26 +409,30 @@ export class ContextKeeper {
     const instructions = tail.instructions ?? seam.instructions
     const personLimit = overflow !== null ? null : Math.floor(this.threshold * PERSON_SHARE)
     // after a refusal for size, the tail's long results (which can be read again) are cut with their note
-    let out = [...messages, compactionRequest(view, summary, compaction, instructions, { boundTail: overflow !== null, personLimit })]
+    let out = [...messages, compactionRequest(view, summary, compaction, instructions, { boundTail: overflow !== null, personLimit, held })]
     const anchorBefore = this.anchor
     this.anchor = null
     let after = this.predict(withPending(out), seam)
-    if (overflow === null && after.tokens > this.window - this.output_reserve) {
+    if (overflow === null && after.tokens > this.inputLimit) {
       // the results the tail carries whole would leave the next request no room for its output: they are cut too
-      out = [...messages, compactionRequest(view, summary, compaction, instructions, { boundTail: true, personLimit })]
+      out = [...messages, compactionRequest(view, summary, compaction, instructions, { boundTail: true, personLimit, held })]
       after = this.predict(withPending(out), seam)
     }
     // still no room for the output (the instructions and the tools take more of a small window than the part bound
     // allows for): the tail's long texts are cut shorter, halving down to TAIL_PART_MIN_CHARS, until the request fits
-    for (let chars = RECOVERY_PART_CHARS / 2; after.tokens > this.window - this.output_reserve && chars >= TAIL_PART_MIN_CHARS; chars = Math.floor(chars / 2)) {
-      out = [...messages, compactionRequest(view, summary, compaction, instructions, { boundTail: true, personLimit, tailChars: chars })]
+    for (let chars = RECOVERY_PART_CHARS / 2; after.tokens > this.inputLimit && chars >= TAIL_PART_MIN_CHARS; chars = Math.floor(chars / 2)) {
+      out = [...messages, compactionRequest(view, summary, compaction, instructions, { boundTail: true, personLimit, tailChars: chars, held })]
       after = this.predict(withPending(out), seam)
     }
+    // A summary is not success until the actual next request fits. Pending steers get their own whole-or-refuse
+    // check at delivery (including those that arrived while the summary was streaming).
+    this.assertFits(out, seam)
     if (overflow !== null) {
       // the recovery holds only when the view the provider will read is smaller than the one it refused
       const refused = this.estimateView(messages, seam)
       if (after.tokens >= refused) {
         this.anchor = anchorBefore
+        if (held.size) throw new ContextInputTooLarge()
         throw new ContextOverflowUnrecovered(`the compacted view (~${after.tokens} tokens) is not smaller than the refused one (~${refused})`)
       }
     }
@@ -503,7 +559,7 @@ function boundedResponsePart(part: ResponsePart): ResponsePart {
  *  earlier words of the person) cut with its note — except the person's latest words (the request at `keep`), which
  *  go whole. The record is not touched; the calls stay paired with their returns. */
 function boundedView(view: ModelMessage[], keep: Set<number>): ModelMessage[] {
-  return view.map((m, i) => (isRequest(m) ? { ...m, parts: m.parts.map((p) => (keep.has(i) || isSteerPart(p) ? boundedButPerson(p) : boundedRequestPart(p))) }
+  return view.map((m, i) => (isRequest(m) ? { ...m, parts: m.parts.map((p, j) => (isCompaction(m) && j === 0 ? p : keep.has(i) || isSteerPart(p) ? boundedButPerson(p) : boundedRequestPart(p))) }
     : isResponse(m) ? { ...m, parts: m.parts.map(boundedResponsePart) } : m))
 }
 
@@ -593,11 +649,11 @@ function withoutImages(part: UserPromptPart): UserPromptPart {
  *  of the tail but the person's words cut with its note (a result can be read again) to `tailChars` (default
  *  RECOVERY_PART_CHARS). */
 function compactionRequest(view: ModelMessage[], summary: string, compaction: Compaction, instructions: string | null | undefined,
-  o: { boundTail: boolean; personLimit: number | null; tailChars?: number }): CompactionRequest {
+  o: { boundTail: boolean; personLimit: number | null; tailChars?: number; held?: Set<RequestPart> }): CompactionRequest {
   const tail = view[view.length - 1] as ModelRequest
   const own = isCompaction(tail) ? tail.parts.slice(1) : tail.parts
   const limit = o.tailChars ?? RECOVERY_PART_CHARS
-  const parts = o.boundTail ? own.map((p) => (isToolReturn(p) ? boundedRequestPart(p, limit) : boundedButPerson(p, limit))) : own
+  const parts = o.boundTail ? own.map((p) => (o.held?.has(p) ? p : isToolReturn(p) ? boundedRequestPart(p, limit) : boundedButPerson(p, limit))) : own
   // the person's words of the current turn said before the tail: the turn's opening words (held to personLimit, as
   // ever), and every steer of theirs since — whole, never cut or summarized (the tail's own are said with it, whole)
   const turn = personTurn(view).filter((i) => i !== view.length - 1)

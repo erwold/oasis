@@ -7,7 +7,10 @@
 import { afterEach, expect, test } from 'bun:test'
 import { compactionThreshold, encoderOrNull, ESTIMATE_FACTOR, estimateMessages } from '../src/agent/context.ts'
 import * as cr from '../src/agent/context_report.ts'
+import { contextReport as referenceReport } from './context_report_reference.ts'
+import { reportMessages } from './context_report_fixture.ts'
 import { INSTRUCTIONS } from '../src/agent/instructions.ts'
+import { ModelConfig } from '../src/config.ts'
 import * as repo from '../src/db/repo.ts'
 import { loadValue, textPart, toolCallPart } from '../src/llm/messages.ts'
 import { appState, buggyRepo, closeState, openSession, scriptedModel, setModel, steps, waitDone, type AppState } from './harness.ts'
@@ -20,7 +23,9 @@ const byKey = (report: cr.ContextReport) => Object.fromEntries(report.segments.m
 test('an empty session reports the static segments', async () => {
   state = await appState()
   const { session } = await openSession(state, buggyRepo())
-  const report = cr.contextReport(state, session.id)
+  const report = referenceReport(state, session.id)
+  expect(cr.contextReport(state, session.id)).toEqual(report)
+  expect(await cr.contextReportAsync(state, session.id)).toEqual(report)
   expect(report.schema_version).toBe(cr.CONTEXT_REPORT_SCHEMA)
   expect(report.model_id).toBe('scripted:a')
   const seg = byKey(report)
@@ -55,7 +60,9 @@ test('an empty session reports the static segments', async () => {
 test('an OpenAI route is counted and a counter can be installed', async () => {
   state = await appState()
   const { session } = await openSession(state, buggyRepo())
-  const report = cr.contextReport(state, session.id, 'scripted:b')
+  const report = referenceReport(state, session.id, 'scripted:b')
+  expect(cr.contextReport(state, session.id, 'scripted:b')).toEqual(report)
+  expect(await cr.contextReportAsync(state, session.id, 'scripted:b')).toEqual(report)
   if (encoderOrNull() !== null) {
     const seg = byKey(report)
     expect(report.tokenizer).toBe('o200k_base')
@@ -65,7 +72,11 @@ test('an OpenAI route is counted and a counter can be installed', async () => {
   }
   cr.COUNTER_OVERRIDES.set('scripted:a', [(text) => Math.floor(text.length / 3), 'fake-claude-counter'])
   let counted: cr.ContextReport
-  try { counted = cr.contextReport(state, session.id, 'scripted:a') } finally { cr.COUNTER_OVERRIDES.delete('scripted:a') }
+  try {
+    counted = referenceReport(state, session.id, 'scripted:a')
+    expect(cr.contextReport(state, session.id, 'scripted:a')).toEqual(counted)
+    expect(await cr.contextReportAsync(state, session.id, 'scripted:a')).toEqual(counted)
+  } finally { cr.COUNTER_OVERRIDES.delete('scripted:a') }
   expect(counted.tokenizer).toBe('fake-claude-counter')
   expect(counted.tokens_basis).toContain('installed for scripted:a')
   expect(byKey(counted).instructions!.tokens).toBe(Math.floor(INSTRUCTIONS.length / 3))
@@ -95,7 +106,9 @@ test("the last run's cache series comes from its own records; the estimate stand
   // the next request is that and the rest
   const usage: Record<string, unknown> = { ...run.usage, requests: 2, input_tokens: 6400, cache_read_tokens: 2900, cache_write_tokens: 3300, output_tokens: 10, context_anchor: { input_tokens: 20_000, messages: 3 } }
   state.conn.run('UPDATE runs SET usage_json=? WHERE id=?', [JSON.stringify(usage), run.id])
-  const report = cr.contextReport(state, session.id)
+  const report = referenceReport(state, session.id)
+  expect(cr.contextReport(state, session.id)).toEqual(report)
+  expect(await cr.contextReportAsync(state, session.id)).toEqual(report)
   const cache = report.last_run!.cache
   expect(cache.scope).toBe('this run')
   expect(cache.recorded_requests).toBe(2)
@@ -115,7 +128,8 @@ test("the last run's cache series comes from its own records; the estimate stand
   expect(report.history.user_turns).toBe(1)
   // a compaction that freed too little moved the line: the report says where the next one waits
   state.conn.run('UPDATE runs SET usage_json=? WHERE id=?', [JSON.stringify({ ...usage, context_trigger: 100_000 }), run.id])
-  const raised = cr.contextReport(state, session.id)
+  const raised = referenceReport(state, session.id)
+  expect(await cr.contextReportAsync(state, session.id)).toEqual(raised)
   expect(raised.budget_tokens).toBe(100_000)
   expect(raised.budget_source).toContain('raised to 100,000')
   // an aggregate that the records do not reproduce is named, not hidden
@@ -136,10 +150,48 @@ test("a run still at work (no anchor stored yet) shows the keeper's prediction f
   state.conn.run('DELETE FROM model_requests WHERE run_id=?', [run.id])
   record(state, run.id, 1, 3000, 0)
   state.conn.run('UPDATE model_requests SET context_estimate_tokens=? WHERE run_id=?', [41_234, run.id])
-  const report = cr.contextReport(state, session.id)
+  const report = referenceReport(state, session.id)
+  expect(cr.contextReport(state, session.id)).toEqual(report)
+  expect(await cr.contextReportAsync(state, session.id)).toEqual(report)
   expect(report.tokens_est).toBe(41_234)
   expect(report.estimate_basis).toContain("latest request")
   expect(report.segments.reduce((a, s) => a + s.tokens_est, 0)).toBe(report.tokens_est)
   // another route's next request is still estimated whole
   expect(cr.contextReport(state, session.id, 'scripted:b').estimate_basis).toContain('no provider count')
+})
+
+
+test('async snapshots do not mix later history, usage, model configuration, or replaced same-label counters', async () => {
+  state = await appState()
+  setModel(state, 'scripted:a', scriptedModel(steps([textPart('synthetic reply')])))
+  const { session } = await openSession(state, buggyRepo())
+  const run = await waitDone(state, (await state.runs.start(session, 'synthetic prompt')).id)
+  const cfgIndex = state.config.models.findIndex((model) => model.id === 'scripted:a')
+  const cfg = state.config.models[cfgIndex]!
+  try {
+    cr.COUNTER_OVERRIDES.set('scripted:a', [(text) => text.length, 'same-label'])
+    const expectedFirst = referenceReport(state, session.id)
+    const first = cr.contextReportAsync(state, session.id)
+    // Same label, different function: pure worker work MAY coalesce, but the callback/result must not.
+    cr.COUNTER_OVERRIDES.set('scripted:a', [(text) => text.length + 100, 'same-label'])
+    const expectedSecond = referenceReport(state, session.id)
+    const second = cr.contextReportAsync(state, session.id)
+    // Mutate all DB/config sources before either pending call can finish. The report may be late, not mixed.
+    state.conn.run('UPDATE runs SET history_json=?, usage_json=? WHERE id=?', [JSON.stringify(reportMessages()), JSON.stringify({ context_anchor: { input_tokens: 30_000, messages: 1 }, context_trigger: 110_000 }), run.id])
+    state.config.models[cfgIndex] = new ModelConfig({ ...cfg, context_window: 240_000 })
+    cr.COUNTER_OVERRIDES.delete('scripted:a')
+    const expectedThird = referenceReport(state, session.id)
+    const third = cr.contextReportAsync(state, session.id)
+    const [a, b, c] = await Promise.all([first, second, third])
+    expect(a).toEqual(expectedFirst)
+    expect(b).toEqual(expectedSecond)
+    expect(c).toEqual(expectedThird)
+    expect(a.total_tokens).not.toBe(b.total_tokens)
+    expect(c.history.raw_bytes).not.toBe(a.history.raw_bytes)
+    // No global old-count cache can be populated by a late response.
+    expect(await cr.contextReportAsync(state, session.id)).toEqual(expectedThird)
+  } finally {
+    cr.COUNTER_OVERRIDES.delete('scripted:a')
+    state.config.models[cfgIndex] = cfg
+  }
 })

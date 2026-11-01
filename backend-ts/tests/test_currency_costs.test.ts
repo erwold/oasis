@@ -38,7 +38,7 @@ test('CNY per-request records, events and totals accumulate independently, inclu
 test('v31 to v32 preserves old USD rows as unknown CNY and roundtrips new CNY records', () => {
   const path = join(tempDir(), 'index.db')
   const old = connect(path)
-  old.exec('ALTER TABLE model_requests DROP COLUMN cost_cny; PRAGMA user_version=31;')
+  old.exec('ALTER TABLE model_requests DROP COLUMN cost_cny; DROP INDEX IF EXISTS runs_read; PRAGMA user_version=31;')
   old.run("INSERT INTO projects (id,name,base_repo_path,created_at,updated_at) VALUES ('p','p','/fixture','t','t')")
   old.run("INSERT INTO sessions (id,project_id,title,model,created_at,updated_at) VALUES ('s','p','s','m','t','t')")
   old.run("INSERT INTO runs (id,session_id,project_id,model,user_text,status,created_at) VALUES ('r','s','p','m','hi','done','t')")

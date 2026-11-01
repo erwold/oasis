@@ -9,7 +9,7 @@ import { classifyError, providerStatusError, transientTransportError } from './r
 
 export type DiagnosisKind =
   | 'auth' | 'quota' | 'rate_limit' | 'context_overflow' | 'model_unavailable' | 'bad_request' | 'outage' | 'timeout'
-  | 'disconnect' | 'budget' | 'cancelled' | 'incomplete' | 'other'
+  | 'input_too_large' | 'disconnect' | 'budget' | 'cancelled' | 'incomplete' | 'other'
   // a remote effect (an SSH write or command start) whose outcome is unknown stopped the run
   | 'remote_unknown'
   // ChatGPT on the web: its page signed out, the page not there, the page not taking the message
@@ -43,7 +43,7 @@ export function diagnose(error: unknown): Diagnosis {
   if (base === 'quota') return { kind: 'quota', status_code: code }
   if (code === 404 || (base === 'bad_request' && MODEL_GONE.test(message))) return { kind: 'model_unavailable', status_code: code }
   const known: Record<string, DiagnosisKind> = {
-    auth: 'auth', rate_limit: 'rate_limit', context_overflow: 'context_overflow', bad_request: 'bad_request', outage: 'outage', cancelled: 'cancelled',
+    input_too_large: 'input_too_large', auth: 'auth', rate_limit: 'rate_limit', context_overflow: 'context_overflow', bad_request: 'bad_request', outage: 'outage', cancelled: 'cancelled',
   }
   return { kind: known[base] ?? 'other', status_code: code }
 }

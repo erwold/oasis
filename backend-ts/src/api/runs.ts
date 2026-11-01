@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 import { ACTIVE_RUN_STATUSES, agentMentionsOf, ChatBodySchema, isThreadRun, MentionSchema, participantsOf, ResumeBodySchema, SteerBodySchema, THINKING_LEVELS, toolMentionsOf } from '@oasis-code/contract'
 import { RelayInvalid, RelayManager } from '../agent/relay.ts'
-import { inheritedMessageCount, rebuildTranscript, toolCallOf } from '../agent/transcript.ts'
+import { rebuildStoredTranscript, toolCallOf } from '../agent/transcript.ts'
 import { narrowOrder, OrderWidened, parseWorkOrder, WorkOrderInvalid } from '../agent/work_orders.ts'
 import * as repo from '../db/repo.ts'
 import { resolveMentions, type Mention } from '../workspace/entities.ts'
@@ -315,10 +315,11 @@ export function runRoutes(api: Api): Hono {
    *  whole), but the record shown for this run begins where the inherited conversation ends. */
   app.get('/api/runs/:run_id/transcript', (c) => {
     const runId = c.req.param('run_id')
-    const run = requireRun(runId)
+    const run = repo.getTranscriptRun(state.conn, runId)
+    if (run === null) throw new HttpError(404, `run not found: ${runId}`)
     const ended = ACTIVE_RUN_STATUSES.includes(run.status) ? null : run.status
     const steers = state.runs.steersOf(runId)
-    const entries = rebuildTranscript(repo.getRunHistory(state.conn, runId), inheritedMessageCount(state.conn, run), ended, repo.listUiSurfaces(state.conn, run.session_id, runId),
+    const entries = rebuildStoredTranscript(state.conn, run, ended, repo.listUiSurfaces(state.conn, run.session_id, runId),
       repo.listUiInputs(state.conn, run.session_id, { run_id: runId, limit: 1_000 }), steers, repo.listCompactionEvents(state.conn, runId))
     return c.json({ run_id: runId, status: run.status, model: run.model, entries, steers })
   })

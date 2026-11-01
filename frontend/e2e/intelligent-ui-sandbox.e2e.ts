@@ -1158,7 +1158,7 @@ for (const vp of [{ name: 'regular', width: 900 }, { name: 'narrow', width: 320 
     await page.keyboard.type('typed')
     assert.equal(await frame.locator('#name').inputValue(), 'typed')
     const light = await matchesHost(page, frame, `embedded ${vp.name}, light`)
-    // one ring around the frame at most (the surface's card), no element past the card's right edge, no scroll inside
+    // No outer ring around the frame; contents remain within the surface without horizontal scrolling.
     const layout = await surface.evaluate((section) => {
       const iframe = section.querySelector('iframe')!
       const ringed: string[] = []
@@ -1173,7 +1173,7 @@ for (const vp of [{ name: 'regular', width: 900 }, { name: 'narrow', width: 320 
       return { ringed, past, cardRight: box.right, viewport: document.documentElement.clientWidth, scroll: section.scrollWidth - section.clientWidth,
       }
     })
-    assert.ok(layout.ringed.length <= 1, `one ring around the frame at most: ${layout.ringed.join(', ')}`)
+    assert.deepEqual(layout.ringed, [], 'no outer card around the embedded frame')
     assert.deepEqual(layout.past, [], 'nothing of the card past its edges')
     assert.ok(layout.cardRight <= layout.viewport + 0.5, `the card fits the window (${layout.cardRight} / ${layout.viewport})`)
     assert.ok(layout.scroll <= 0, `no horizontal scroll in the card (${layout.scroll})`)

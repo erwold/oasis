@@ -186,14 +186,22 @@ function rememberBounds(win) {
   try { fs.writeFileSync(STATE_PATH(), JSON.stringify({ ...win.getNormalBounds(), maximized: win.isMaximized() })) } catch { /* a convenience */ }
 }
 
-/** What the window shows while the backend comes up: the wordmark and one status line (updated in place). */
+/** What the window shows while the backend comes up: the wordmark as the app draws it ("code" a chip of the same
+ *  size), its chip turning through the bots' colours, and a thin bar sweeping under it. The status line is for a
+ *  screen reader only (updated in place). */
 function loadingPage() {
   const html = `<!doctype html><meta charset="utf-8"><title>oasis-code</title>
-<style>html,body{height:100%;margin:0;background:#fafafa;color:#1a1a1a;font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-app-region:drag}
-main{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.word{font-size:28px;font-weight:600;letter-spacing:-.01em}.chip{margin-left:8px;padding:2px 8px;border-radius:999px;background:#1a1a1a;color:#fafafa;font-size:14px;font-weight:500;vertical-align:middle}
-#status{color:#6b6b6b}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6b6b6b;margin-right:8px;animation:p 1.2s ease-in-out infinite}@keyframes p{0%,100%{opacity:.25}50%{opacity:1}}</style>
-<main><div class="word">oasis<span class="chip">code</span></div><div id="status"><span class="dot"></span>starting</div></main>`
+<style>html,body{height:100%;margin:0;background:#fafafa;color:#222;font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-app-region:drag}
+main{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px}
+.word{display:inline-flex;align-items:baseline;gap:6px;font-size:30px;font-weight:650;letter-spacing:-.02em;line-height:1}
+.chip{display:inline-flex;align-items:center;height:1.3em;padding:0 .38em .12em;border-radius:.34em;background:#222;color:#fff;letter-spacing:-.01em;animation:c 6s ease-in-out infinite}
+@keyframes c{0%,100%{background:#222}20%{background:#F37C52}40%{background:#0EBB73}60%{background:#416CB7}80%{background:#9391F0}}
+.bar{position:relative;width:88px;height:3px;border-radius:3px;background:#ebe8e2;overflow:hidden}
+.bar::after{content:"";position:absolute;inset:0;width:40%;border-radius:3px;background:#222;animation:s 1.3s cubic-bezier(.65,0,.35,1) infinite}
+@keyframes s{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+#status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){.chip,.bar::after{animation:none}}</style>
+<main><div class="word">oasis<span class="chip">code</span></div><div class="bar"></div><div id="status" role="status">starting</div></main>`
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`
 }
 
@@ -242,7 +250,7 @@ async function createWindow() {
     else showError('oasis-code', `The window crashed repeatedly (${details.reason}).`)
   })
   await win.loadURL(loadingPage())
-  const setStatus = (text) => { if (!win.isDestroyed()) void win.webContents.executeJavaScript(`document.getElementById('status').lastChild.textContent = ${JSON.stringify(text)}`).catch(() => undefined) }
+  const setStatus = (text) => { if (!win.isDestroyed()) void win.webContents.executeJavaScript(`document.getElementById('status').textContent = ${JSON.stringify(text)}`).catch(() => undefined) }
 
   const found = await probe()
   if (found === 'foreign') {

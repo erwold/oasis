@@ -11,6 +11,7 @@ import * as repo from '../src/db/repo.ts'
 import { schemaRowsFingerprint } from '../src/llm/usage.ts'
 import { parametersSchema, specOf, withoutToolsForTest } from '../src/agent/tools/registry.ts'
 import { z } from '@oasis-code/contract'
+import { ElementArgSchema } from '../src/agent/tools/ui.ts'
 import type { App } from '../src/main.ts'
 import baseline from '../src/agent/surfaces/agent.v1.json' with { type: 'json' }
 import { Client, json, makeApp } from './api_harness.ts'
@@ -44,6 +45,11 @@ function asBaselineParameters(): { restore: () => void } {
     const valued = (k: string): z.ZodType => (was[k]!.enum && JSON.stringify(was[k]!.enum) !== JSON.stringify(now[k]?.enum) ? z.enum(was[k]!.enum as [string, ...string[]]) : shape[k]!)
     const differs = (k: string) => was[k]!.description !== now[k]?.description || JSON.stringify(was[k]!.enum) !== JSON.stringify(now[k]?.enum)
     const described = Object.fromEntries(Object.keys(was).filter((k) => differs(k) && shape[k]).map((k) => [k, valued(k).describe(was[k]!.description ?? '')]))
+    // The native catalog grew after the frozen baseline too (a nested enum, not a top-level parameter).
+    if (row.name === 'present_ui') {
+      const old = row.parameters.properties as { elements: { anyOf: [{ additionalProperties: { properties: { type: { enum: [string, ...string[]] } } } }] } }
+      described.elements = z.record(z.string(), ElementArgSchema.extend({ type: z.enum(old.elements.anyOf[0].additionalProperties.properties.type.enum) })).nullable().optional().describe(was.elements!.description ?? '')
+    }
     const later = Object.fromEntries(Object.keys(now).filter((k) => !(k in was)).map((k) => [k, true as const]))
     kept.push([spec, spec.schema])
     type Obj = { extend: (s: Record<string, z.ZodType>) => z.ZodType; omit: (m: Record<string, true>) => Obj }

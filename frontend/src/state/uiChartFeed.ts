@@ -24,7 +24,7 @@
  *  waits for the revision the surface is drawn at (setRevision). An answer to a request made before a reset, or after
  *  the feed was let go, changes nothing. */
 
-import { UI_CHART_SOURCE_LIMITS, type UiChartSource, type UiChartSourcePage, type UiChartXAxis } from '@oasis-code/contract'
+import { UI_CHART_SOURCE_LIMITS, type UiChartSource, type UiChartSourcePage, type UiChartXAxis, type UiTaskExecution } from '@oasis-code/contract'
 import { crc32, SourceParser, type SourcePoints } from './uiChartSource.ts'
 
 export const POLL_MS = 1000
@@ -40,10 +40,10 @@ export const CATCH_UP_NOTIFY_MS = 250
 
 export type PageAnswer =
   | { kind: 'page'; page: Extract<UiChartSourcePage, { status: 'ok' }> }
-  | { kind: 'missing'; reason: string }
+  | { kind: 'missing'; reason: string; execution?: UiTaskExecution }
   | { kind: 'stale' }
   | { kind: 'refused'; message: string }
-  | { kind: 'error'; message: string }
+  | { kind: 'error'; message: string; execution?: UiTaskExecution }
 
 export interface PageRequest { revision: number; offset: number; limit: number; verify: boolean; signal: AbortSignal }
 
@@ -57,6 +57,9 @@ export interface FeedDeps {
 export type FeedStatus = 'loading' | 'live' | 'missing' | 'retrying' | 'refused' | 'stale'
 
 export interface FeedSnapshot {
+  execution?: UiTaskExecution
+  retryFinal?: () => void
+  terminal?: boolean
   /** grows with every change of the points or of the status */
   version: number
   /** grows with every reading from the start */
@@ -99,10 +102,12 @@ export class ChartFeed {
   /** when a check asked for by a change without growth was last made */
   private lastTouchCheck = Number.NEGATIVE_INFINITY
   private failures = 0
+  private finalReadFailures = 0
   private token = 0
   private inflight: AbortController | null = null
   private timer: unknown = null
   private disposed = false
+  private paused = false
   private lastNotify = 0
   private dirty = false
   private readonly anchorBytes = UI_CHART_SOURCE_LIMITS.anchorBytes
@@ -117,19 +122,39 @@ export class ChartFeed {
     this.source = source; this.axis = axis; this.revision = revision; this.deps = deps; this.pageBytes = pageBytes
     this.parser = new SourceParser(source, axis)
     this.lastVerifyAt = deps.now()
-    this.snap = { version: 0, generation: 0, status: 'loading', message: null, points: this.parser.points, offset: 0, caughtUp: false, pages: 0, verifies: 0, resets: 0 }
+    this.snap = { retryFinal: () => this.retryFinal(), version: 0, generation: 0, status: 'loading', message: null, points: this.parser.points, offset: 0, caughtUp: false, pages: 0, verifies: 0, resets: 0 }
   }
 
   snapshot = (): FeedSnapshot => this.snap
   subscribe = (fn: () => void): (() => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn) } }
 
-  start(): void { if (!this.disposed && this.timer === null && this.inflight === null) this.schedule(0) }
+  start(): void { this.paused = false; if (!this.disposed && !this.snap.terminal && this.timer === null && this.inflight === null) this.schedule(0) }
 
   /** The revision the surface is drawn at: the server reads the source under it. */
   setRevision(revision: number): void {
     if (revision === this.revision) return
     this.revision = revision
-    if (this.snap.status === 'stale') { this.cancelTimer(); this.schedule(0) }
+    if (this.source.progress) this.reset()
+    this.token += 1
+    this.inflight?.abort(); this.inflight = null
+    this.set({ terminal: false }, true)
+    this.cancelTimer(); this.schedule(0)
+  }
+
+  retryFinal(): void {
+    this.finalReadFailures = 0
+    this.set({ terminal: false }, true); this.schedule(0)
+  }
+
+  private finalUnavailable(execution: UiTaskExecution | undefined): boolean {
+    if (!isTerminal(execution?.status)) { this.finalReadFailures = 0; return false }
+    this.finalReadFailures += 1
+    return this.finalReadFailures >= 3
+  }
+
+  pause(): void {
+    this.paused = true; this.token += 1
+    this.cancelTimer(); this.inflight?.abort(); this.inflight = null
   }
 
   dispose(): void {
@@ -143,7 +168,7 @@ export class ChartFeed {
 
   private cancelTimer(): void { if (this.timer !== null) { this.deps.clearTimer(this.timer); this.timer = null } }
   private schedule(ms: number): void {
-    if (this.disposed) return
+    if (this.disposed || this.paused || this.snap.terminal) return
     this.cancelTimer()
     this.timer = this.deps.setTimer(() => { this.timer = null; void this.poll() }, ms)
   }
@@ -169,8 +194,8 @@ export class ChartFeed {
     this.inflight = null
     this.parser = new SourceParser(this.source, this.axis)
     this.cursor = 0; this.crc = 0; this.fileId = null; this.head = new Uint8Array(0); this.tail = new Uint8Array(0)
-    this.lastMtime = null; this.needVerify = false; this.lastVerifyAt = this.deps.now()
-    this.set({ points: this.parser.points, offset: 0, caughtUp: false, generation: this.snap.generation + 1, resets: this.snap.resets + 1 }, true)
+    this.lastMtime = null; this.needVerify = false; this.lastVerifyAt = this.deps.now(); this.finalReadFailures = 0
+    this.set({ points: this.parser.points, execution: undefined, terminal: false, offset: 0, caughtUp: false, generation: this.snap.generation + 1, resets: this.snap.resets + 1 }, true)
   }
 
   private verifyDue(now: number): boolean {
@@ -182,7 +207,7 @@ export class ChartFeed {
   }
 
   async poll(): Promise<void> {
-    if (this.disposed || this.inflight !== null) return
+    if (this.disposed || this.paused || this.snap.terminal || this.inflight !== null) return
     const token = this.token
     const started = this.deps.now()
     const verify = this.verifyDue(started)
@@ -203,11 +228,12 @@ export class ChartFeed {
         // asked at a revision the surface has left: asked again at once when the newer one is known already
         if (revision !== this.revision) { this.schedule(0); return }
         this.set({ status: 'stale', message: 'the surface changed' }, true); this.schedule(RETRY_REFUSED_MS); return
-      case 'missing': this.failures = 0; this.set({ status: 'missing', message: answer.reason }, true); this.schedule(RETRY_MISSING_MS); return
+      case 'missing': this.failures = 0; this.set({ status: 'missing', message: answer.reason, execution: answer.execution, terminal: this.finalUnavailable(answer.execution) }, true); this.schedule(RETRY_MISSING_MS); return
       case 'refused': this.set({ status: 'refused', message: answer.message }, true); this.schedule(RETRY_REFUSED_MS); return
       case 'error': {
         this.failures += 1
-        this.set({ status: 'retrying', message: answer.message }, true)
+        const execution = answer.execution ?? this.snap.execution
+        this.set({ status: 'retrying', message: answer.message, execution, terminal: this.finalUnavailable(execution) }, true)
         this.schedule(Math.min(RETRY_MAX_MS, 500 * 2 ** Math.min(5, this.failures)))
         return
       }
@@ -246,8 +272,14 @@ export class ChartFeed {
     this.lastMtime = p.mtime_ms
     const status: FeedStatus = 'live'
     const grew = data.length > 0
-    if (grew || this.snap.status !== status || this.snap.caughtUp !== p.eof || verified) {
-      this.set({ status, message: null, offset: this.cursor, caughtUp: p.eof, pages: this.snap.pages + 1, verifies: this.snap.verifies + (verified ? 1 : 0) }, p.eof)
+    const progress = this.parser.points.progress
+    const points = this.parser.points
+    this.finalReadFailures = 0
+    const terminal = p.eof && (this.source.progress?.execution_id
+      ? isTerminal(p.execution?.status)
+      : isTerminal(progress.status))
+    if (terminal || JSON.stringify(p.execution) !== JSON.stringify(this.snap.execution) || grew || this.snap.status !== status || this.snap.caughtUp !== p.eof || verified) {
+      this.set({ status, message: null, points, terminal, execution: p.execution, offset: this.cursor, caughtUp: p.eof, pages: this.snap.pages + 1, verifies: this.snap.verifies + (verified ? 1 : 0) }, p.eof)
     } else this.flush(now)
     this.schedule(p.eof ? POLL_MS : 0)
   }
@@ -293,6 +325,7 @@ export function acquireFeed(key: string, make: () => ChartFeed, timers: Pick<Fee
       released = true
       h.refs -= 1
       if (h.refs > 0) return
+      if (h.feed.source.progress) h.feed.pause()
       h.idle = timers.setTimer(() => {
         if (h.refs > 0 || feeds.get(key) !== h) return
         feeds.delete(key)
@@ -301,3 +334,5 @@ export function acquireFeed(key: string, make: () => ChartFeed, timers: Pick<Fee
     },
   }
 }
+
+export function isTerminal(status: string | undefined): boolean { return status === 'succeeded' || status === 'failed' || status === 'cancelled' }

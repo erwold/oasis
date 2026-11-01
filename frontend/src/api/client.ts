@@ -24,7 +24,7 @@ import {
 export type SeparateTaskBody = Omit<WorkOrderBody, 'work_order'> & { work_order: { prompt: string; label?: string | null; model?: string | null } & Record<string, unknown> }
 import type {
   Approval, AuthAccounts, BuildInfo, DiffResponse, LoginSession, ModelEntry, OutputWindow, Project, Run, RunDetailResponse,
-  SessionDetail, TranscriptEntry, UsageSnapshot, WorkspaceDetail, ContextReport, SurfaceTool, ActionProposal, RunControl, RunTreeRow, Receipt, DirListing,
+  Session, SessionDetail, TranscriptEntry, UsageSnapshot, WorkspaceDetail, ContextReport, SurfaceTool, ActionProposal, RunControl, RunTreeRow, Receipt, DirListing,
   DirectorDetail, DirectorOpenBody, DirectorTurn, DirectorUpdateBody } from './types'
 
 /** The director persists this envelope and forwards its materials to the actual agent runs. Attachments do not
@@ -135,6 +135,7 @@ export const api = {
     request<SessionDetail>(`/api/projects/${projectId}/sessions`, { method: 'POST', body: JSON.stringify({ ...body, mode: 'auto' }) }),
   session: (id: string) => request<SessionDetail>(`/api/sessions/${id}`),
   renameSession: (id: string, title: string) => request<SessionDetail>(`/api/sessions/${id}`, { method: 'PUT', body: JSON.stringify({ title }) }),
+  pinSession: (id: string, pinned: boolean) => request<Session>(`/api/sessions/${id}/pin`, { method: 'PUT', body: JSON.stringify({ pinned }) }),
   deleteSession: (id: string) => request<{ deleted: boolean; session_id: string }>(`/api/sessions/${id}`, { method: 'DELETE' }),
   sessionMode: (id: string) => request<SessionMode>(`/api/sessions/${id}/mode`),
   setSessionMode: (id: string, mode: HarnessMode) => request<SessionMode>(`/api/sessions/${id}/mode`, { method: 'PUT', body: JSON.stringify({ mode }) }),

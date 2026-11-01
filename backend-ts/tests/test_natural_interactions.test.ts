@@ -564,10 +564,10 @@ test('a genuine v23-shaped fixture migrates to v24 without changing legacy sourc
     ALTER TABLE workspaces DROP COLUMN source_mount_json;
     ALTER TABLE interactions DROP COLUMN source_turn_id;
     ALTER TABLE interactions DROP COLUMN workspace_policy;
-    PRAGMA user_version=23;`)
+    DROP INDEX IF EXISTS runs_read; PRAGMA user_version=23;`)
   db.close()
   db = connect(file)
-  expect(db.get('PRAGMA user_version')!.user_version).toBe(35)  // v25: the collaboration model's migration runs after v24's (v26, the session cursor, v27, the sessions' latest activity, v28, the sessions' access, and v29, the sessions' task and roots, after it); v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
+  expect(db.get('PRAGMA user_version')!.user_version).toBe(37)  // v25: the collaboration model's migration runs after v24's (v26, the session cursor, v27, the sessions' latest activity, v28, the sessions' access, and v29, the sessions' task and roots, after it); v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes
   expect(existsSync(`${file}.v23.bak`)).toBe(true)
   expect(repo.getWorkspace(db, 'ws_legacy')!.source_mount).toBeNull()
   expect(repo.getWorkspace(db, 'ws_legacy')!.kind).toBe('direct')

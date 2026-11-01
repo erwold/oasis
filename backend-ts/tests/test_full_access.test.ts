@@ -404,19 +404,22 @@ test('a v27 database upgrades to v28: every session runs with full access from t
   const base = tempDir('oasis-v27-')
   const path = join(base, 'old', 'index.db')
   const made = connect(path)                                                    // a fresh database …
+  made.exec('DROP TRIGGER sessions_clear_pin')
+  made.exec('DROP INDEX sessions_by_pin_order')
+  made.exec('ALTER TABLE sessions DROP COLUMN pin_order')                       // v36's, absent at v27
   made.exec('DROP TABLE session_roots')                                         // v29's, absent at v27
   made.exec('ALTER TABLE sessions DROP COLUMN task_root_id')
   made.exec('DROP TABLE access_caps')
   made.exec('ALTER TABLE sessions DROP COLUMN access_mode')
-  made.exec('PRAGMA user_version = 27')                                         // … as v27 had it
+  made.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 27')                                         // … as v27 had it
   made.run("INSERT INTO projects (id, name, base_repo_path, created_at, updated_at) VALUES ('p_1','legacy','/x','t','t')")
   made.run("INSERT INTO sessions (id, project_id, title, model, grants_json, created_at, updated_at, last_activity_at) VALUES ('s_old','p_1','old','m','{\"run_commands\":true}','t','t','t')")
   made.close()
-  expect(SCHEMA_VERSION).toBe(35)                                               // v28's step, then v29's (the sessions' task and roots); v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes, v34 live links, v35 their protocol and task
+  expect(SCHEMA_VERSION).toBe(37)                                               // v28's step, then v29's (the sessions' task and roots); v30: SSH targets; v31: SSH connect intent; v32: CNY costs, v33 read-path indexes, v34 live links, v35 their protocol and task
   const migrated = connect(path)
   const fresh = connect(join(base, 'fresh', 'index.db'))
   try {
-    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(35)
+    expect(migrated.get('PRAGMA user_version')!.user_version).toBe(37)
     expect(structure(migrated)).toEqual(structure(fresh))
     expect(repo.getSession(migrated, 's_old')!.access_mode).toBe('full')
     expect(repo.getSession(migrated, 's_old')!.grants.run_commands).toBe(true)
@@ -428,7 +431,7 @@ test('a v27 database upgrades to v28: every session runs with full access from t
   const again = connect(path)
   try {
     repo.setSessionAccess(again, 's_old', 'sandbox')
-    again.exec('PRAGMA user_version = 27')
+    again.exec('DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 27')
   } finally { again.close() }
   const rerun = connect(path)
   try { expect(repo.getSession(rerun, 's_old')!.access_mode).toBe('sandbox') } finally { rerun.close() }

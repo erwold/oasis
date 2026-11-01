@@ -187,12 +187,12 @@ test('atelier app: the normal page, Claude chosen in Settings — the live surfa
   console.info(`served (claude): ${builtCss} ${JSON.stringify(served)}`)
   assert.deepEqual([served.page, served.ink, served.ink2, served.line, served.uisLatest, served.uisAccent], ['#fff', '#222', '#655e53', '#e9e5de', '#e2401f', '#222'])
 
-  // the surface: paper, a hairline, the app's radius, Helvetica Neue; ink lines, the latest point in vermilion
+  // The surface blends into the conversation; typography and curve colors still follow the selected theme.
   const uis = (await css(page, '[data-testid="ui-surface-training_metrics"]', ['background-color', 'border-radius', 'font-family', 'box-shadow']))!
-  assert.equal(uis['background-color'], 'rgb(255, 255, 255)')
-  assert.equal(uis['border-radius'], '10px')
+  assert.equal(uis['background-color'], 'rgba(0, 0, 0, 0)')
+  assert.equal(uis['border-radius'], '0px')
   assert.match(uis['font-family']!, /^"Helvetica Neue"/)
-  assert.match(uis['box-shadow']!, /rgb\(233, 229, 222\) 0px 0px 0px 1px/)
+  assert.equal(uis['box-shadow'], 'none')
   assert.equal((await css(page, '[data-testid="ui-surface-training_metrics"] [data-testid="ui-chart-latest"]', ['stroke']))!.stroke, VERMILION)
   assert.equal((await css(page, '[data-testid="ui-surface-training_metrics"] .uis-series.c0 .uis-series-line', ['stroke']))!.stroke, INK)
   // the small multiples line up: four plots, one baseline, whatever their legends wrap to
@@ -281,9 +281,9 @@ test('atelier app: the default is the neutral light palette — no Atelier warmt
   assert.deepEqual(norm(served), norm({ scheme: 'light', page: 'oklch(0.985 0.001 286.376)', ink: LIGHT_INK, line: 'oklch(0.946 0.003 264.542)', accent, uisLatest: '', uisAccent: accent, agentLive: '' }))
   const uis = (await css(page, '[data-testid="ui-surface-training_metrics"]', ['color', 'font-family', 'box-shadow', 'border-radius']))!
   assert.equal(uis.color, await page.evaluate((l) => { const el = document.createElement('div'); el.style.color = l; document.body.append(el); const v = getComputedStyle(el).color; el.remove(); return v }, LIGHT_INK))
-  assert.doesNotMatch(uis['box-shadow']!, /233, 229, 222/, 'no warm hairline')
+  assert.equal(uis['box-shadow'], 'none', 'no outer shadow in either theme')
   assert.match(uis['font-family']!, /^"Helvetica Neue"/, 'the components keep their face in every theme')
-  assert.equal(uis['border-radius'], '10px', 'the app\'s radius, as under claude')
+  assert.equal(uis['border-radius'], '0px', 'no outer card in either theme')
   assert.notEqual((await css(page, '[data-testid="ui-surface-training_metrics"] [data-testid="ui-chart-latest"]', ['stroke']))!.stroke, VERMILION)
   assert.notEqual((await css(page, '[data-testid="ui-surface-training_metrics"] .uis-series.c0 .uis-series-line', ['stroke']))!.stroke, INK)
   assert.notEqual((await css(page, '[data-testid="agents-board"] .rg-body', ['border-top-color']))!['border-top-color'], WARM_LINE)

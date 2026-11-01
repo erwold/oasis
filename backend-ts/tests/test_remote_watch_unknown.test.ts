@@ -46,3 +46,27 @@ test('remote disconnected time cannot satisfy a silence watch',async()=>{
     expect(repo.listWakeEvents(f.st.conn,f.session.id)).toHaveLength(0)
   } finally {Date.now=now;await f.app.close()}
 })
+
+test('progress source keeps authoritative exit state through an unavailable SSH final read, then recovers through the bound reader', async () => {
+  const { parseUiSurfaceSpec } = await import('@oasis-code/contract')
+  const { readChartSourcePage } = await import('../src/agent/ui_chart_sources.ts')
+  const { RemoteRefused } = await import('../src/workspace/remote.ts')
+  const f = await fixture()
+  const original = f.st.workspaces.requireRemoteFiles
+  try {
+    const parsed = parseUiSurfaceSpec({ version: 1, surface_id: 'progress', title: 'Remote batch', fallback: 'Remote batch progress', kind: 'native', root: 'p',
+      elements: { p: { type: 'progress', props: { source: { path: 'metrics.jsonl', format: 'jsonl', progress: { completed: 'done', execution_id: f.execution.id } } } } } })
+    if (!parsed.ok) throw new Error(parsed.errors.join('\n'))
+    repo.putUiSurface(f.st.conn, { session_id: f.session.id, run_id: 'run_remote_watch', surface_id: 'progress', revision: 1, spec: parsed.value, state: {}, model: 'scripted:a', created_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+    f.st.workspaces.requireRemoteFiles = (() => ({ resolve: async () => { throw new RemoteRefused('remote_unavailable', 'fixture disconnected', 503) } })) as unknown as typeof original
+    const read = () => readChartSourcePage(f.st, f.session.id, 'run_remote_watch', 'progress', 'p', { revision: 1, offset: 0 })
+    expect(await read()).toMatchObject({ status: 'unavailable', execution: { status: 'unknown', exit_code: null } })
+    for (const status of ['failed', 'succeeded', 'cancelled']) {
+      repo.finishExecution(f.st.conn, f.execution.id, { status, exit_code: status === 'failed' ? 7 : 0, cancelled: status === 'cancelled', timed_out: false, truncated: false, stdout_asset_id: null, stderr_asset_id: null, stdout_bytes: 0, stderr_bytes: 0, duration_ms: 1 })
+      expect(await read()).toMatchObject({ status: 'unavailable', execution: { status } })
+    }
+    const data = Buffer.from('{"done":4}\n').toString('base64')
+    f.st.workspaces.requireRemoteFiles = (() => ({ resolve: async () => ({ exists: true, path: 'metrics.jsonl' }), remote: { request: async () => ({ file_id: 'fixture', size: 11, mtime_ms: 1, byte_offset: 0, next_offset: 11, eof: true, data, head: data, anchor: '', crc: null, crc_next: null }) } })) as unknown as typeof original
+    expect(await read()).toMatchObject({ status: 'ok', data, execution: { status: 'cancelled' } })
+  } finally { f.st.workspaces.requireRemoteFiles = original; await f.app.close() }
+})

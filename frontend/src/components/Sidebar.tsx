@@ -8,8 +8,8 @@ import { RAIL_BOTS_SHOWN, RailBots, RailSessionButton } from './RailBots'
 import { activityRunning, sessionDot } from '../state/sessionDots'
 import { AccountsPanel } from './AccountsPanel'
 import { Brand } from './Brand'
-import { CopyIcon, FolderOpenIcon, MoreIcon, PanelLeftIcon, PencilIcon, PlusIcon, TrashIcon } from './icons'
-import { folderName, railGroups } from '../state/rail'
+import { CopyIcon, FolderOpenIcon, MoreIcon, PanelLeftIcon, PencilIcon, PinIcon, PlusIcon, TrashIcon } from './icons'
+import { folderName, railView } from '../state/rail'
 import { sessionBots } from '../state/outline'
 import { useStore } from '../state/store'
 
@@ -43,10 +43,9 @@ export function Sidebar() {
   }
   // the start screen always shows the rail (there is nothing to hide it for); inside a session it can be collapsed
   if (!sidebarOpen && session) return null
-  const groups = railGroups(projects)
+  const { pinned, groups } = railView(projects)
   // a project's bots' column is as wide as its tallest stack: its titles start at one place, none further than it must
-  const stackOf = ({ sessions, members }: (typeof groups)[number]) => Math.max(1, ...sessions.flatMap((s) => [s.id, ...(members[s.id] ?? []).map((m) => m.session.id)])
-    .map((id) => Math.min(RAIL_BOTS_SHOWN, sessionBots(id, activity?.[id]?.agents).length)))
+  const stackOf = (ids: string[]) => Math.max(1, ...ids.map((id) => Math.min(RAIL_BOTS_SHOWN, sessionBots(id, activity?.[id]?.agents).length)))
   const open = (id: string) => { void openSession(id).catch((e) => showToast(e instanceof Error ? e.message : String(e))) }
   return (
     <div className="sidebar-shell" ref={shellRef} style={{ width: sidebarWidth }}>
@@ -63,22 +62,29 @@ export function Sidebar() {
             <PlusIcon size={13} />
             New task
           </button>
+          {pinned.length > 0 && <div className="rail-pinned" data-testid="rail-pinned" style={{ ['--rail-bots' as string]: stackOf(pinned.map((m) => m.session.id)) }}>
+            {pinned.map(({ session: s, project }) => (
+              <SessionRow key={s.id} id={s.id} title={s.title} on={session?.id === s.id} onOpen={() => open(s.id)}
+                          activity={activity?.[s.id]} visible={visible} pinned
+                          folder={{ name: project.name, path: project.source_path ?? project.name }} />
+            ))}
+          </div>}
           <div className="sidebar-section">Projects</div>
           {groups.length === 0 && <div className="sidebar-empty">Nothing yet. Say what should happen — pick a folder when it works on your files.</div>}
-          {groups.map((group) => { const { project, sessions, members } = group; return (
-            <div className="rail-project" key={project.id} style={{ ['--rail-bots' as string]: stackOf(group) }}>
+          {groups.map((group) => { const { project, tasks } = group; return (
+            <div className="rail-project" key={project.id} style={{ ['--rail-bots' as string]: stackOf(tasks.flatMap((t) => [...(t.session ? [t.session.id] : []), ...t.members.map((m) => m.session.id)])) }}>
               <button className="nav-item rail-project-head" title={project.source_path ?? (project.config.no_folder === true ? 'tasks that need no folder: each session writes in a working folder of its own' : 'an empty project')}
                       onClick={() => { setTarget({ kind: 'project', target: resourceTarget(project), projectId: project.id, name: project.name, path: project.source_path }); closeSession() }}
                       data-testid={`project-${project.id}`}>
                 <FolderOpenIcon size={13} />
                 <span className="nav-label">{project.name}{resourceTarget(project).kind !== 'local' && <small className="ssh-rail-target"> · {targetLabel(resourceTarget(project), sshHosts)}</small>}</span>
-                <span className="nav-meta">{sessions.length + sessions.reduce((n, s) => n + (members[s.id]?.length ?? 0), 0) || ''}</span>
+                <span className="nav-meta">{tasks.reduce((n, t) => n + (t.session ? 1 : 0) + t.members.length, 0) || ''}</span>
               </button>
-              {sessions.map((s) => (
-                <div key={s.id} className="rail-task" data-testid={members[s.id] ? `rail-task-${s.id}` : undefined}>
-                  <SessionRow id={s.id} title={s.title} on={session?.id === s.id} onOpen={() => open(s.id)} activity={activity?.[s.id]} visible={visible} />
+              {tasks.map(({ id, session: s, members }) => (
+                <div key={id} className="rail-task" data-testid={members.length ? `rail-task-${id}` : undefined}>
+                  {s && <SessionRow id={s.id} title={s.title} on={session?.id === s.id} onOpen={() => open(s.id)} activity={activity?.[s.id]} visible={visible} />}
                   {/* the task's other sessions, whichever folder they work in: under it, each with its folder */}
-                  {members[s.id]?.map((m) => (
+                  {members.map((m) => (
                     <SessionRow key={m.session.id} id={m.session.id} title={m.session.title} on={session?.id === m.session.id} onOpen={() => open(m.session.id)}
                                 activity={activity?.[m.session.id]} visible={visible}
                                 folder={m.project.id === project.id ? null : { name: m.project.source_path ? folderName(m.project.source_path) : m.project.name, path: m.project.source_path ?? m.project.name }} member />
@@ -118,17 +124,18 @@ function useSeenWhileViewing(visible: boolean): void {
   }, [sessionId, visible, ready, ended, markSessionSeen])
 }
 
-/** A conversation in the rail: a click opens it; its "…" (shown on hover) renames it in place or deletes it, the
+/** A conversation in the rail: a click opens it; its "…" (shown on hover) pins it, renames it in place or deletes it, the
  *  delete asked twice. At its end a small dot (state/sessionDots.ts): blue, breathing, while one of its agents runs;
  *  green once one ended (however it ended) since the person last looked; nothing else — no words beside it (its name is for a
  *  screen reader alone). */
-function SessionRow({ id, title, on, onOpen, folder = null, member = false, activity, visible = true }: { id: string; title: string; on: boolean; onOpen: () => void; folder?: { name: string; path: string } | null; member?: boolean; activity?: SessionActivity; visible?: boolean }) {
+function SessionRow({ id, title, on, onOpen, folder = null, member = false, pinned = false, activity, visible = true }: { id: string; title: string; on: boolean; onOpen: () => void; folder?: { name: string; path: string } | null; member?: boolean; pinned?: boolean; activity?: SessionActivity; visible?: boolean }) {
   // the open session reads its own records (null during a replay: its summary then); every other its summary
   const openRunning = useStore((s) => (on ? openSessionRunningIn(s) : null))
   const seen = useStore((s) => (s.railSeen.ready ? s.railSeen.marks[id] ?? null : undefined))
   const dot = sessionDot({ running: openRunning ?? activityRunning(activity), ended: seen === undefined ? null : activity?.ended, seen, viewing: on && visible })
   const renameSession = useStore((s) => s.renameSession)
   const deleteSession = useStore((s) => s.deleteSession)
+  const pinSession = useStore((s) => s.pinSession)
   const showToast = useStore((s) => s.showToast)
   const bots = useMemo(() => sessionBots(id, activity?.agents), [id, activity?.agents])
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
@@ -158,13 +165,16 @@ function SessionRow({ id, title, on, onOpen, folder = null, member = false, acti
     <div className={`rail-session-row${menu ? ' menu-open' : ''}${member ? ' rail-member' : ''}`} data-member={member || undefined}
          onContextMenu={(e) => { e.preventDefault(); setConfirming(false); setMenu({ left: e.clientX, top: e.clientY }) }}>
       <RailSessionButton title={title} tooltip={folder ? `${title}\n${folder.path}` : title} bots={bots} on={on} onClick={onOpen} testId={`session-${id}`} dot={dot} dotTestId={`rail-dot-${id}`} />
-      <button className="icon-btn rail-more" title="Rename, copy its ID or delete" aria-haspopup="menu" data-testid={`session-more-${id}`}
+      <button className="icon-btn rail-more" title="Session actions" aria-haspopup="menu" data-testid={`session-more-${id}`}
               onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu(menu ? null : { left: r.left, top: r.bottom + 4 }) }}>
         <MoreIcon size={14} />
       </button>
       {menu && <>
         <div className="picker-backdrop" onClick={close} />
         <div className="picker-popover rail-menu" role="menu" style={{ left: menu.left, top: menu.top }}>
+          <button role="menuitem" className="picker-row" data-testid="session-pin" onClick={() => { close(); void pinSession(id, !pinned).catch(fail) }}>
+            <PinIcon size={14} /><span className="picker-label">{pinned ? 'Unpin' : 'Pin'}</span>
+          </button>
           <button role="menuitem" className="picker-row" data-testid="session-rename" onClick={() => { close(); setDraft(title); setEditing(true) }}>
             <PencilIcon size={14} /><span className="picker-label">Rename</span>
           </button>

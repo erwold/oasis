@@ -45,8 +45,20 @@ const HEADS: [string, string][] = [
 export function baselineSql(sql: string): string {
   if (sql === REMOTE_EXECUTION_WORKSPACES_SQL) return V32_REMOTE_EXECUTION_WORKSPACES_SQL
   if (sql === REMOTE_EXECUTIONS_OF_WORKSPACE_SQL) return V32_REMOTE_EXECUTIONS_OF_WORKSPACE_SQL
-  for (const [now, before] of HEADS) if (sql.startsWith(now)) return before + sql.slice(now.length)
-  return sql
+  for (const [now, before] of HEADS) if (sql.startsWith(now)) {
+    sql = before + sql.slice(now.length)
+    break
+  }
+  // Restore a4dc9ca's four run readers, not just their SELECT lists. v36 added these
+  // ties/hint; relay/interaction and journal reads already had rowid in v32 and keep it.
+  if (/^SELECT \* FROM runs WHERE session_id=\?(?: AND parent_run_id IS NULL AND work_order_json IS NULL AND spawned_by IN \([^)]*\))? ORDER BY created_at, rowid$/.test(sql)) {
+    return sql.replace(/, rowid$/, '')
+  }
+  if (sql.startsWith('SELECT r.* FROM runs r JOIN sessions s ON s.id = r.session_id WHERE r.session_id=? AND r.parent_run_id IS NULL AND r.work_order_json IS NULL AND r.spawned_by IN (')) {
+    // Includes sourceContinuations: leave its EXISTS and every other predicate intact.
+    return sql.replace(/ ORDER BY r\.created_at DESC, r\.rowid DESC LIMIT 1$/, ' ORDER BY r.created_at DESC LIMIT 1')
+  }
+  return sql.replace(/^SELECT \* FROM runs INDEXED BY runs_by_status WHERE status IN /, 'SELECT * FROM runs WHERE status IN ')
 }
 
 export type SqlMode = 'v32' | 'v33'
@@ -68,6 +80,7 @@ export function withSql<T>(conn: Conn, mode: SqlMode, fn: () => T): T {
 
 /** v33's indexes taken back to v32's, and the version with them: what a v32 build left. */
 export const REWIND_TO_V32_SQL = `
+DROP INDEX IF EXISTS runs_read;
 DROP INDEX run_events_finished_by_run;
 DROP INDEX executions_by_workspace;
 DROP INDEX file_journal_by_run;

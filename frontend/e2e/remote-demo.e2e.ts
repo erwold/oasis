@@ -265,9 +265,11 @@ test('it plays the six steps once in order and stops at the end; pause holds it;
 test('pause and resume freeze what moves where it is and never play a finished entrance or click again', async () => {
   const { page } = await openConnections()
   await openDemo(page)
-  // a click's ripple is moving (the toggle is pressed ~1.05 s in)
-  await page.waitForSelector('[data-testid="remote-demo"] .demo-click', { timeout: 5000 })
-  await page.waitForTimeout(80)
+  // Synchronize with the actual animation, not selector polling + a fixed delay: the click frame lasts only
+  // 320ms, so noticing it late and then waiting another 80ms can pause the next frame (which has no ripple).
+  await page.waitForFunction(() => document.querySelector('[data-testid="remote-demo"]')?.getAnimations({ subtree: true })
+    .some(a => (a as CSSAnimation).animationName === 'demo-click' && a.playState === 'running'
+      && Number(a.currentTime) >= 50 && Number(a.currentTime) < 150), null, { polling: 'raf', timeout: 5000 })
   await page.click('[data-testid="demo-play"]')   // pause
   await page.waitForTimeout(100)   // a pause takes hold on the next animation frame
   const frozen = await stageAnimations(page)

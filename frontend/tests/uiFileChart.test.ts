@@ -135,3 +135,18 @@ test('a file not there yet says so and is drawn once it appears', async () => {
   assert.equal(q('[data-testid="ui-chart-series"]')!.getAttribute('data-points'), '1')
   assert.equal(q('[data-testid="ui-chart-source-status"]'), null)
 })
+
+test('progress-only card needs no fake series, escapes logs, formats hours, and 100% without a terminal stays running', async () => {
+  const s = { version: 1, surface_id: 'train', title: 'Batch images', fallback: 'Batch progress', kind: 'native', root: 'p',
+    elements: { p: { type: 'progress', props: { label: 'Converting', source: { path: 'batch-progress.jsonl', format: 'jsonl', progress: { completed: 'done', total: 'total', rate: 'rate', eta: 'eta', status: 'status', log: 'log' } } } } } }
+  assert.equal(parseUiSurfaceSpec(s).ok, true)
+  files.set('batch-progress.jsonl', '{"done":10,"total":10,"rate":2,"eta":7260,"log":"<img src=x onerror=alert(1)>"}\n')
+  await show(rec(1, s))
+  assert.equal(q('[data-testid="ui-task-progress"]')?.getAttribute('data-task-status'), 'running')
+  assert.equal(q('[data-testid="ui-chart-series"]'), null)
+  assert.match(container.textContent!, /ETA 2h 1m/)
+  assert.equal(q('.uis-progress-logs img'), null)
+  files.set('batch-progress.jsonl', '{"done":10,"total":10,"rate":2,"eta":7260,"log":"<img src=x onerror=alert(1)>"}\n{"status":"failed","log":"crashed"}\n')
+  await act(async () => { await new Promise((r) => setTimeout(r, 1100)) }); await flush()
+  assert.equal(q('[data-testid="ui-task-progress"]')?.getAttribute('data-task-status'), 'failed')
+})

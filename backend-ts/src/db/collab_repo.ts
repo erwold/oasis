@@ -7,6 +7,7 @@ import type { Origin, Placement } from '@oasis-code/contract'
 import { createHash } from 'node:crypto'
 import { nowIso } from '../timebase.ts'
 import type { Conn, Row } from './database.ts'
+import { DbReadCache, jsonWeight } from './read_cache.ts'
 
 const j = (value: unknown): string => JSON.stringify(value)
 function d<T>(text: unknown, fallback: T): T {
@@ -170,10 +171,14 @@ export interface RunMeta {
   participant_id: string | null; conversation_id: string | null; origin: Origin | null; placement: Placement | null; intent_sha: string | null
 }
 
+// octet_length(column) uses SQLite's stored byte count without materializing the history's overflow pages.
+// CASE short-circuits; AND/OR need not. Keep the original equality for small values (including invalid JSON,
+// whitespace and BLOBs). Four bytes also covers '[]' in a UTF-16 database; a longer value cannot be empty.
 const META_COLUMNS = `r.id, r.session_id, r.project_id, r.workspace_id, r.parent_run_id, r.resumes_run_id, r.spawned_by, r.label, r.model, r.user_text, r.status, r.error,
   r.created_at, r.finished_at, r.work_order_json, r.client_request_id, r.relay_id, r.relay_step, r.interaction_id, r.interaction_node,
   length(json_extract(CASE WHEN json_valid(r.receipt_json) THEN r.receipt_json ELSE '{}' END, '$.final_text')) AS final_text_chars,
-  (r.history_json IS NULL OR r.history_json = '' OR r.history_json = '[]') AS history_empty,
+  (CASE WHEN octet_length(r.history_json) > 4 THEN 0
+    ELSE (r.history_json IS NULL OR r.history_json = '' OR r.history_json = '[]') END) AS history_empty,
   c.participant_id, c.conversation_id, c.origin_json, c.placement_json, c.intent_sha`
 const META_FROM = 'runs r LEFT JOIN run_collab c ON c.run_id = r.id'
 
@@ -190,9 +195,15 @@ function runMeta(row: Row): RunMeta {
   }
 }
 
+// Only DB rows/fingerprints, not assignments, live handles, config labels, or permission decisions. Any DB write
+// invalidates these; callers receive their own objects. No history blobs are retained.
+const sessionMetas = new DbReadCache<RunMeta[]>(8, 8 * 1024 * 1024, jsonWeight)
+const fingerprints = new DbReadCache<string>(128, 32 * 1024, (value) => value.length * 2)
+
 /** Every run of a session as the collaboration model reads it, oldest first (rowid breaks a tie of times). */
 export function listRunMetas(conn: Conn, sessionId: string): RunMeta[] {
-  return conn.all(`SELECT ${META_COLUMNS} FROM ${META_FROM} WHERE r.session_id=? ORDER BY r.created_at, r.rowid`, [sessionId]).map(runMeta)
+  return structuredClone(sessionMetas.read(conn, sessionId, () =>
+    conn.all(`SELECT ${META_COLUMNS} FROM runs r INDEXED BY runs_read LEFT JOIN run_collab c ON c.run_id = r.id WHERE r.session_id=? ORDER BY r.created_at, r.rowid`, [sessionId]).map(runMeta)))
 }
 
 export function getRunMeta(conn: Conn, runId: string): RunMeta | null {
@@ -208,9 +219,13 @@ export function runIntentSha(conn: Conn, runId: string): string | null {
 /** A cheap fingerprint of everything the session's collaboration graph is read from: it moves whenever a run starts,
  *  changes status or ends, a group or its steps change, an edge or a participant is written, a director turn moves. */
 export function collaborationFingerprint(conn: Conn, sessionId: string): string {
+  return fingerprints.read(conn, sessionId, () => readCollaborationFingerprint(conn, sessionId))
+}
+
+function readCollaborationFingerprint(conn: Conn, sessionId: string): string {
   const parts: unknown[] = []
   parts.push(conn.get(`SELECT count(*) AS n, max(created_at) AS c, max(coalesce(finished_at, '')) AS f,
-    group_concat(status, ',') AS st FROM (SELECT created_at, finished_at, status FROM runs WHERE session_id=? ORDER BY created_at, rowid)`, [sessionId]))
+    group_concat(status, ',') AS st FROM (SELECT created_at, finished_at, status FROM runs INDEXED BY runs_read WHERE session_id=? ORDER BY created_at, rowid)`, [sessionId]))
   parts.push(conn.get('SELECT count(*) AS n, max(updated_at) AS u FROM interactions WHERE session_id=?', [sessionId]))
   parts.push(conn.get('SELECT count(*) AS n, max(n.updated_at) AS u, group_concat(n.status, \',\') AS st FROM interaction_nodes n JOIN interactions i ON i.id = n.interaction_id WHERE i.session_id=?', [sessionId]))
   parts.push(conn.get('SELECT count(*) AS n, max(updated_at) AS u FROM relays WHERE session_id=?', [sessionId]))

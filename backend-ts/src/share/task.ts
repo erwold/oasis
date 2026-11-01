@@ -10,6 +10,7 @@ import {
   type ShareBot, type ShareSnapshotV3Request, type ShareSnapshotV3Response, type ShareStats,
 } from '@oasis-code/contract'
 import * as repo from '../db/repo.ts'
+import type { ProgressSamples } from './progress.ts'
 import type { Conn } from '../db/database.ts'
 import { requireSession, type AppState } from '../api/state.ts'
 import { activeWork, appShareSource, freshBudget, projectShareSession, ShareActive, type ProjectedExtra } from './snapshot.ts'
@@ -60,21 +61,27 @@ export function facedRuns<R extends { key: string }>(runs: R[], extra: Projected
   })
 }
 
+/** The same preflight before asynchronous sampling and again inside the projection transaction. */
+export function shareMembers(state: AppState, sessionId: string, includeTaskSessions: boolean): { anchor: Session; root: string; members: Session[] } {
+  const anchor = requireSession(state, sessionId)
+  const root = taskRootOf(anchor)
+  const members = includeTaskSessions ? taskSessions(state.conn, root) : [anchor]
+  if (!members.some((m) => m.id === anchor.id)) members.unshift(anchor)
+  if (members.length > SHARE_LIMITS_V3.max_sessions) {
+    throw new ShareTooLarge(`the task has ${members.length} sessions; a share holds at most ${SHARE_LIMITS_V3.max_sessions} — share fewer (this session alone)`)
+  }
+  // only a quiescent share: every session of it at rest
+  const reasons = members.flatMap((m) => activeWork(state, m.id).map((r) => (members.length > 1 ? `${m.title || 'a session'}: ${r}` : r)))
+  if (reasons.length) throw new ShareActive(reasons)
+  return { anchor, root, members }
+}
+
 /** The V3 snapshot and the dialog's run choice. Throws ShareActive while work is under way in any session shared,
  *  ShareTooLarge past max_sessions or max_snapshot_bytes. */
-export function buildShareSnapshotV3(state: AppState, sessionId: string, req: ShareSnapshotV3Request, now: () => Date = () => new Date()): ShareSnapshotV3Response {
-  const src = appShareSource(state)
+export function buildShareSnapshotV3(state: AppState, sessionId: string, req: ShareSnapshotV3Request, now: () => Date = () => new Date(), progressSamples?: ProgressSamples): ShareSnapshotV3Response {
+  const src = { ...appShareSource(state), progressSamples }
   const answer = state.conn.transaction(() => {
-    const anchor = requireSession(state, sessionId)
-    const root = taskRootOf(anchor)
-    const members = req.include_task_sessions ? taskSessions(state.conn, root) : [anchor]
-    if (!members.some((m) => m.id === anchor.id)) members.unshift(anchor)
-    if (members.length > SHARE_LIMITS_V3.max_sessions) {
-      throw new ShareTooLarge(`the task has ${members.length} sessions; a share holds at most ${SHARE_LIMITS_V3.max_sessions} — share fewer (this session alone)`)
-    }
-    // only a quiescent share: every session of it at rest
-    const reasons = members.flatMap((m) => activeWork(state, m.id).map((r) => (members.length > 1 ? `${m.title || 'a session'}: ${r}` : r)))
-    if (reasons.length) throw new ShareActive(reasons)
+    const { anchor, root, members } = shareMembers(state, sessionId, req.include_task_sessions)
     const keyOf = new Map(members.map((m, i) => [m.id, `s${i + 1}`]))
     // the budgets are the whole share's; the session shared first, then the rail's order
     const budget = freshBudget()

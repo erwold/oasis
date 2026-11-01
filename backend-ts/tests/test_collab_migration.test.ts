@@ -39,7 +39,7 @@ function v24Database(path: string): Database {
   const db = new Database(path)
   db.exec(`DROP TABLE run_collab; DROP TABLE participants; DROP TABLE conversations; DROP TABLE collab_edges;
     ALTER TABLE interaction_nodes DROP COLUMN receive_runs_json; ALTER TABLE interaction_nodes DROP COLUMN cites_json;
-    ALTER TABLE interaction_nodes DROP COLUMN message_json; ALTER TABLE interaction_nodes DROP COLUMN kind; PRAGMA user_version = 24;`)
+    ALTER TABLE interaction_nodes DROP COLUMN message_json; ALTER TABLE interaction_nodes DROP COLUMN kind; DROP INDEX IF EXISTS runs_read; PRAGMA user_version = 24;`)
   return db
 }
 

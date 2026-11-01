@@ -13,7 +13,7 @@
     "auth": "bun run src/auth/cli.ts",
     "cache-probe": "bun run scripts/cache_probe.ts",
     "interaction-smoke": "bun run scripts/interaction_smoke.ts",
-    "build": "bun build --compile --target=bun src/index.ts src/execution/fork_watch_worker.ts src/share/live/projector_worker.ts --outfile dist/oasis-code && (test \"$(uname -s)\" != Darwin || codesign --force --sign - dist/oasis-code)",
+    "build": "bun build --compile --target=bun src/index.ts src/execution/fork_watch_worker.ts src/share/live/projector_worker.ts src/agent/context_report_worker.ts --outfile dist/oasis-code && (test \"$(uname -s)\" != Darwin || codesign --force --sign - dist/oasis-code)",
     "postinstall": "cd ../contract && bun install --silent && cd ../backend-ts && rm -rf node_modules/@oasis-code/contract && mkdir -p node_modules/@oasis-code && ln -sfn ../../../contract node_modules/@oasis-code/contract"
   },
   "dependencies": {

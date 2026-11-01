@@ -55,7 +55,7 @@ import { isContextError, legacyFileCost, nativeRefCost, resolveWindow, type File
 import { makeDeps, type AgentDeps } from './deps.ts'
 import { RunEventMapper } from './events.ts'
 import { runEventsPage, SessionEventHub, sessionEvents, snapshotCursor, type MemoryRun, type SessionFrame } from './session_events.ts'
-import { ContextKeeper, ContextOverflowUnrecovered, ContextView, historyMetrics, outputReserve, workingView, type ContextAnchor } from './history.ts'
+import { ContextInputTooLarge, ContextKeeper, ContextOverflowUnrecovered, ContextView, historyMetrics, outputReserve, workingView, type ContextAnchor } from './history.ts'
 import { INSTRUCTIONS } from './instructions.ts'
 import { partialTextOf, RunHalted, stoppedAfter, type Agent, type AnswerEnd, type RequestSeam } from './loop.ts'
 import { buildRunManifest, inputFingerprints, instructionDelta } from './manifest.ts'
@@ -154,6 +154,7 @@ export function classifyError(error: unknown): string {
   if (error instanceof LoginRequired) return 'auth'
   if (error instanceof NativeAuthTemporaryError) return error.status_code ? 'outage' : 'transport'
   if (error instanceof NativeAuthError) return 'auth'
+  if (error instanceof ContextInputTooLarge) return 'input_too_large'
   if (error instanceof ContextOverflowUnrecovered) return 'context_overflow'
   const status = providerStatusError(error)
   if (status && providerQuotaExhausted(status[0], status[1])) return 'quota'
@@ -934,7 +935,7 @@ export class RunManager {
       },
       deliver: (messages: ModelMessage[], seam: RequestSeam, must: boolean): ModelMessage[] => {
         if (!this.canDeliver(handle) || !inbox.queue.length) return messages
-        const room = keeper !== null ? keeper.window - keeper.output_reserve : Infinity
+        const room = keeper !== null ? keeper.inputLimit : Infinity
         const taken: SteerRecord[] = []
         let deferred = false
         for (const queued of [...inbox.queue]) {
@@ -1598,7 +1599,7 @@ export class RunManager {
         this.emit(handle, 'error', { message: `budget_exceeded: ${handle.budget_exceeded}`, kind: 'budget' })
       } else {
         status = 'error'
-        error = redactSecrets(describeException(e))
+        error = e instanceof ContextInputTooLarge ? e.message : redactSecrets(describeException(e))
         historyJson = this.stashJson(stashed)
         usage = this.usageFrom(meter, toolCallsTotal, segments, historyJson, stashed)
         // what kind of failure, for the page to say what it means and what to do; the model's route beside it

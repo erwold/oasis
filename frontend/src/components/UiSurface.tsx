@@ -1,3 +1,4 @@
+import { FileProgress } from './UiLiveChart'
 import { Component, useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type ErrorInfo, type ReactNode } from 'react'
 import { UI_LIMITS, isSafeImageSrc, isUiTaskActive, uiActionMode, uiSurfaceUpdatedBy, uiTaskRefusal, type UiElement, type UiTaskResult } from '@oasis-code/contract'
 import { ApiError, api } from '../api/client'
@@ -504,6 +505,7 @@ export function NativeNode({ id, ctx, depth }: { id: string; ctx: Ctx; depth: nu
     case 'text': return <p className="uis-text">{textOf(valueAt(el.props.text, ctx.state))}</p>
     case 'metric': return <Metric el={el} state={ctx.state} />
     case 'table': return <Table el={el} />
+    case 'progress': return <FileProgress source={el.props.source} label={el.props.label} target={ctx.surface ? { ...ctx.surface, element_id: id } : null} />
     case 'chart': return <Chart el={el} state={ctx.state} target={ctx.surface ? { ...ctx.surface, element_id: id } : null} />
     case 'input': return <InputField el={el} ctx={ctx} />
     case 'select': return <SelectField el={el} ctx={ctx} />
